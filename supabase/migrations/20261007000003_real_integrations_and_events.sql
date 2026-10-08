@@ -55,16 +55,19 @@ alter table public.email_campaign_events enable row level security;
 alter table public.automation_event_triggers enable row level security;
 alter table public.automation_step_logs enable row level security;
 
+drop policy if exists "Tenant isolation: email_campaign_events" on public.email_campaign_events;
 create policy "Tenant isolation: email_campaign_events"
     on public.email_campaign_events for all to authenticated
     using (public.is_workspace_member(workspace_id))
     with check (public.is_workspace_member(workspace_id));
 
+drop policy if exists "Tenant isolation: automation_event_triggers" on public.automation_event_triggers;
 create policy "Tenant isolation: automation_event_triggers"
     on public.automation_event_triggers for all to authenticated
     using (public.is_workspace_member(workspace_id))
     with check (public.is_workspace_member(workspace_id));
 
+drop policy if exists "Tenant isolation: automation_step_logs" on public.automation_step_logs;
 create policy "Tenant isolation: automation_step_logs"
     on public.automation_step_logs for all to authenticated
     using (public.is_workspace_member(workspace_id))

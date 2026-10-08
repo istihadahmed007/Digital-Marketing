@@ -505,94 +505,142 @@ alter table public.seo_gsc_data enable row level security;
 alter table public.seo_ga4_data enable row level security;
 
 -- Policies: Workspaces
+drop policy if exists "Users can view workspaces they belong to" on public.workspaces;
 create policy "Users can view workspaces they belong to"
     on public.workspaces for select to authenticated
     using (exists (select 1 from public.workspace_members where workspace_members.workspace_id = workspaces.id and workspace_members.user_id = auth.uid()));
 
+drop policy if exists "Users can create new workspaces" on public.workspaces;
 create policy "Users can create new workspaces"
     on public.workspaces for insert to authenticated
     with check (true);
 
+drop policy if exists "Owners and admins can update their workspace" on public.workspaces;
 create policy "Owners and admins can update their workspace"
     on public.workspaces for update to authenticated
     using (exists (select 1 from public.workspace_members where workspace_members.workspace_id = workspaces.id and workspace_members.user_id = auth.uid() and workspace_members.role in ('owner', 'admin')));
 
 -- Policies: Workspace Members
+drop policy if exists "Members can view members in their workspace" on public.workspace_members;
 create policy "Members can view members in their workspace"
     on public.workspace_members for select to authenticated
     using (user_id = auth.uid() or public.is_workspace_member(workspace_id));
 
+drop policy if exists "Users can add initial membership on workspace creation" on public.workspace_members;
 create policy "Users can add initial membership on workspace creation"
     on public.workspace_members for insert to authenticated
     with check (user_id = auth.uid() or exists (select 1 from public.workspace_members wm where wm.workspace_id = workspace_members.workspace_id and wm.user_id = auth.uid() and wm.role in ('owner', 'admin')));
 
+drop policy if exists "Owners and admins can update memberships" on public.workspace_members;
 create policy "Owners and admins can update memberships"
     on public.workspace_members for update to authenticated
     using (exists (select 1 from public.workspace_members wm where wm.workspace_id = workspace_members.workspace_id and wm.user_id = auth.uid() and wm.role in ('owner', 'admin')));
 
+drop policy if exists "Owners and admins can remove members" on public.workspace_members;
 create policy "Owners and admins can remove members"
     on public.workspace_members for delete to authenticated
     using (exists (select 1 from public.workspace_members wm where wm.workspace_id = workspace_members.workspace_id and wm.user_id = auth.uid() and wm.role in ('owner', 'admin')));
 
 -- Policies: Companies
+drop policy if exists "Tenant isolation: select companies" on public.companies;
 create policy "Tenant isolation: select companies" on public.companies for select to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: insert companies" on public.companies;
 create policy "Tenant isolation: insert companies" on public.companies for insert to authenticated with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: update companies" on public.companies;
 create policy "Tenant isolation: update companies" on public.companies for update to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: delete companies" on public.companies;
 create policy "Tenant isolation: delete companies" on public.companies for delete to authenticated using (public.is_workspace_member(workspace_id));
 
 -- Policies: Contacts
+drop policy if exists "Tenant isolation: select contacts" on public.contacts;
 create policy "Tenant isolation: select contacts" on public.contacts for select to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: insert contacts" on public.contacts;
 create policy "Tenant isolation: insert contacts" on public.contacts for insert to authenticated with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: update contacts" on public.contacts;
 create policy "Tenant isolation: update contacts" on public.contacts for update to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: delete contacts" on public.contacts;
 create policy "Tenant isolation: delete contacts" on public.contacts for delete to authenticated using (public.is_workspace_member(workspace_id));
 
 -- Policies: Pipelines & Stages
+drop policy if exists "Tenant isolation: pipelines" on public.pipelines;
 create policy "Tenant isolation: pipelines" on public.pipelines for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: pipeline_stages" on public.pipeline_stages;
 create policy "Tenant isolation: pipeline_stages" on public.pipeline_stages for all to authenticated using (exists (select 1 from public.pipelines p where p.id = pipeline_id and public.is_workspace_member(p.workspace_id)));
 
 -- Policies: Deals & Stage History
+drop policy if exists "Tenant isolation: select deals" on public.deals;
 create policy "Tenant isolation: select deals" on public.deals for select to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: insert deals" on public.deals;
 create policy "Tenant isolation: insert deals" on public.deals for insert to authenticated with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: update deals" on public.deals;
 create policy "Tenant isolation: update deals" on public.deals for update to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: delete deals" on public.deals;
 create policy "Tenant isolation: delete deals" on public.deals for delete to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: deal_stage_history" on public.deal_stage_history;
 create policy "Tenant isolation: deal_stage_history" on public.deal_stage_history for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
 
 -- Policies: Contact Views
+drop policy if exists "Tenant isolation: contact_views" on public.contact_views;
 create policy "Tenant isolation: contact_views" on public.contact_views for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
 
 -- Policies: Activities
+drop policy if exists "Tenant isolation: select activities" on public.activities;
 create policy "Tenant isolation: select activities" on public.activities for select to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: insert activities" on public.activities;
 create policy "Tenant isolation: insert activities" on public.activities for insert to authenticated with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: update activities" on public.activities;
 create policy "Tenant isolation: update activities" on public.activities for update to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: delete activities" on public.activities;
 create policy "Tenant isolation: delete activities" on public.activities for delete to authenticated using (public.is_workspace_member(workspace_id));
 
 -- Policies: Tasks
+drop policy if exists "Tenant isolation: select tasks" on public.tasks;
 create policy "Tenant isolation: select tasks" on public.tasks for select to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: insert tasks" on public.tasks;
 create policy "Tenant isolation: insert tasks" on public.tasks for insert to authenticated with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: update tasks" on public.tasks;
 create policy "Tenant isolation: update tasks" on public.tasks for update to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: delete tasks" on public.tasks;
 create policy "Tenant isolation: delete tasks" on public.tasks for delete to authenticated using (public.is_workspace_member(workspace_id));
 
 -- Policies: Forms & Submissions
+drop policy if exists "Tenant isolation: forms" on public.forms;
 create policy "Tenant isolation: forms" on public.forms for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Public insert form submissions" on public.form_submissions;
 create policy "Public insert form submissions" on public.form_submissions for insert to anon, authenticated with check (true);
+drop policy if exists "Tenant isolation: view form_submissions" on public.form_submissions;
 create policy "Tenant isolation: view form_submissions" on public.form_submissions for select to authenticated using (public.is_workspace_member(workspace_id));
 
 -- Policies: Campaigns & Automations
+drop policy if exists "Tenant isolation: email_campaigns" on public.email_campaigns;
 create policy "Tenant isolation: email_campaigns" on public.email_campaigns for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: automation_workflows" on public.automation_workflows;
 create policy "Tenant isolation: automation_workflows" on public.automation_workflows for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: automation_logs" on public.automation_logs;
 create policy "Tenant isolation: automation_logs" on public.automation_logs for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: integrations" on public.integrations;
 create policy "Tenant isolation: integrations" on public.integrations for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
 
 -- Policies: SEO Toolkit
+drop policy if exists "Tenant isolation: seo_websites" on public.seo_websites;
 create policy "Tenant isolation: seo_websites" on public.seo_websites for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: seo_audits" on public.seo_audits;
 create policy "Tenant isolation: seo_audits" on public.seo_audits for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: seo_audit_pages" on public.seo_audit_pages;
 create policy "Tenant isolation: seo_audit_pages" on public.seo_audit_pages for all to authenticated using (exists (select 1 from public.seo_audits a where a.id = audit_id and public.is_workspace_member(a.workspace_id)));
+drop policy if exists "Tenant isolation: seo_audit_issues" on public.seo_audit_issues;
 create policy "Tenant isolation: seo_audit_issues" on public.seo_audit_issues for all to authenticated using (exists (select 1 from public.seo_audits a where a.id = audit_id and public.is_workspace_member(a.workspace_id)));
+drop policy if exists "Tenant isolation: seo_keywords" on public.seo_keywords;
 create policy "Tenant isolation: seo_keywords" on public.seo_keywords for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: seo_content_briefs" on public.seo_content_briefs;
 create policy "Tenant isolation: seo_content_briefs" on public.seo_content_briefs for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: seo_local_locations" on public.seo_local_locations;
 create policy "Tenant isolation: seo_local_locations" on public.seo_local_locations for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: seo_integrations" on public.seo_integrations;
 create policy "Tenant isolation: seo_integrations" on public.seo_integrations for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: seo_gsc_data" on public.seo_gsc_data;
 create policy "Tenant isolation: seo_gsc_data" on public.seo_gsc_data for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists "Tenant isolation: seo_ga4_data" on public.seo_ga4_data;
 create policy "Tenant isolation: seo_ga4_data" on public.seo_ga4_data for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
 
 -- ====================================================================
@@ -645,6 +693,11 @@ alter table public.email_campaign_events enable row level security;
 alter table public.automation_event_triggers enable row level security;
 alter table public.automation_step_logs enable row level security;
 
+drop policy if exists "Tenant isolation: email_campaign_events" on public.email_campaign_events;
 create policy "Tenant isolation: email_campaign_events" on public.email_campaign_events for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+
+drop policy if exists "Tenant isolation: automation_event_triggers" on public.automation_event_triggers;
 create policy "Tenant isolation: automation_event_triggers" on public.automation_event_triggers for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+
+drop policy if exists "Tenant isolation: automation_step_logs" on public.automation_step_logs;
 create policy "Tenant isolation: automation_step_logs" on public.automation_step_logs for all to authenticated using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
