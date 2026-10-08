@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Workspace, WorkspaceMember } from '@/lib/types/crm';
 import { revalidatePath } from 'next/cache';
 
@@ -60,8 +61,11 @@ export async function createWorkspace(name: string, slug?: string): Promise<{ su
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') + '-' + Math.random().toString(36).substring(2, 6);
 
+  const adminClient = createAdminClient();
+  const db = adminClient || supabase;
+
   // 1. Insert Workspace
-  const { data: workspaceData, error: wsError } = await supabase
+  const { data: workspaceData, error: wsError } = await db
     .from('workspaces')
     .insert({
       name: cleanName,
@@ -75,7 +79,7 @@ export async function createWorkspace(name: string, slug?: string): Promise<{ su
   }
 
   // 2. Add creator as Owner in workspace_members
-  const { error: memberError } = await supabase.from('workspace_members').insert({
+  const { error: memberError } = await db.from('workspace_members').insert({
     workspace_id: workspaceData.id,
     user_id: user.id,
     role: 'owner',

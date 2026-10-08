@@ -16,9 +16,12 @@ create table if not exists public.workspaces (
     id uuid primary key default gen_random_uuid(),
     name text not null,
     slug text not null unique,
+    created_by uuid references auth.users(id) default auth.uid(),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+alter table public.workspaces add column if not exists created_by uuid references auth.users(id) default auth.uid();
 
 -- 3. Workspace Members
 create table if not exists public.workspace_members (
@@ -508,7 +511,7 @@ alter table public.seo_ga4_data enable row level security;
 drop policy if exists "Users can view workspaces they belong to" on public.workspaces;
 create policy "Users can view workspaces they belong to"
     on public.workspaces for select to authenticated
-    using (exists (select 1 from public.workspace_members where workspace_members.workspace_id = workspaces.id and workspace_members.user_id = auth.uid()));
+    using (created_by = auth.uid() or exists (select 1 from public.workspace_members where workspace_members.workspace_id = workspaces.id and workspace_members.user_id = auth.uid()));
 
 drop policy if exists "Users can create new workspaces" on public.workspaces;
 create policy "Users can create new workspaces"
