@@ -1,7 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { Contact, Company, Deal, Activity } from '@/lib/types/crm';
+import { AiClient } from '@/lib/integrations/ai/client';
+import { decryptSecret } from '@/lib/security/crypto';
 
 export interface OutreachDraftResult {
   contactName: string;
@@ -22,6 +23,7 @@ export interface DealHealthAssessment {
   riskScore: 'Low' | 'Medium' | 'High' | 'Critical';
   riskFactors: string[];
   recommendedAction: string;
+  calculationType: string;
 }
 
 export interface AccountBriefingResult {
@@ -61,78 +63,71 @@ export async function generateOutreachDraft(
   // 2. Fetch last 5 activities
   const { data: activities } = await supabase
     .from('activities')
-    .select('*')
+    .select('title, created_at, type')
     .eq('workspace_id', workspaceId)
     .eq('contact_id', contactId)
     .order('created_at', { ascending: false })
     .limit(5);
 
-  const contactName = `${contact.first_name} ${contact.last_name}`.trim();
-  const companyName = contact.company?.name || 'your company';
-  const industry = contact.company?.industry || 'your market';
-  const role = contact.job_title || 'Leader';
+  // 3. Fetch active deals for this contact or company
+  const { data: deals } = await supabase
+    .from('deals')
+    .select('title, amount, stage')
+    .eq('workspace_id', workspaceId)
+    .eq('contact_id', contactId)
+    .eq('is_archived', false)
+    .limit(3);
 
-  const groundedFacts: string[] = [
-    `Contact: ${contactName} (${role})`,
-    `Company: ${companyName}${contact.company?.domain ? ` (${contact.company.domain})` : ''}`,
-    `Lifecycle Stage: ${contact.lifecycle_stage.toUpperCase()}`,
-    `Lead Status: ${contact.lead_status}`,
-    activities && activities.length > 0
-      ? `Last logged interaction: "${activities[0].title}" on ${new Date(activities[0].created_at).toLocaleDateString()}`
-      : 'No prior interactions recorded in CRM',
-  ];
+  // 4. Resolve AI provider credentials
+  const { data: aiInteg } = await supabase
+    .from('seo_integrations')
+    .select('config, is_connected')
+    .eq('workspace_id', workspaceId)
+    .eq('provider', 'openai')
+    .maybeSingle();
 
-  let subject = '';
-  let body = '';
+  let apiKey = process.env.OPENAI_API_KEY || '';
+  if (aiInteg?.config?.apiKey) {
+    apiKey = decryptSecret(aiInteg.config.apiKey) || aiInteg.config.apiKey;
+  }
+  const baseUrl = aiInteg?.config?.baseUrl || process.env.OPENAI_BASE_URL || '';
+  const model = aiInteg?.config?.model || process.env.OPENAI_MODEL || '';
 
-  if (options.objective === 'cold_outreach') {
-    subject = `Quick question regarding ${companyName}'s growth strategy`;
-    body = `Hi ${contact.first_name},
+  const aiClient = new AiClient(apiKey, baseUrl, model);
+  if (!aiClient.isConfigured()) {
+    return {
+      success: false,
+      error: aiClient.getSetupInstructions(),
+    };
+  }
 
-I came across your work as ${role} at ${companyName}. Given the developments in ${industry}, many marketing and revenue leaders are focused on streamlining prospect acquisition and eliminating pipeline friction.
+  const contactName = `${contact.first_name} ${contact.last_name || ''}`.trim();
+  const companyName = contact.company?.name || 'Independent Account';
 
-At NexusMark, we help companies in ${industry} consolidate their CRM pipeline and automate prospect engagement without losing personal touch.
+  const res = await aiClient.generateOutreachDraft({
+    contactName,
+    email: contact.email,
+    jobTitle: contact.job_title,
+    companyName,
+    industry: contact.company?.industry,
+    lifecycleStage: contact.lifecycle_stage,
+    leadStatus: contact.lead_status,
+    activities: (activities || []).map((a) => ({
+      title: a.title,
+      date: new Date(a.created_at).toLocaleDateString(),
+      type: a.type,
+    })),
+    deals: (deals || []).map((d) => ({
+      title: d.title,
+      amount: Number(d.amount || 0),
+      stage: d.stage,
+    })),
+    objective: options.objective.replace('_', ' '),
+    tone: options.tone,
+  });
 
-Do you have 10 minutes next Tuesday or Wednesday to discuss how ${companyName} is approaching this quarter's growth initiatives?
-
-Best regards,
-Growth Team`;
-  } else if (options.objective === 'proposal_followup') {
-    subject = `Following up on our proposal for ${companyName}`;
-    body = `Hi ${contact.first_name},
-
-I wanted to follow up on the proposal we shared regarding our digital marketing collaboration for ${companyName}.
-
-We are confident our strategic pipeline framework can accelerate ${companyName}'s acquisition goals while maintaining healthy unit economics.
-
-Have you had a chance to review the terms with your team? I would be glad to hop on a brief call this week to address any technical questions or adjust the timeline to align with your targets.
-
-Looking forward to hearing from you,
-Sales & Marketing`;
-  } else if (options.objective === 're_engagement') {
-    subject = `Checking in: New growth benchmarks for ${companyName}`;
-    body = `Hi ${contact.first_name},
-
-It's been a little while since our last conversation. I wanted to touch base and see how your initiatives at ${companyName} have progressed.
-
-We recently released several new campaign automation capabilities designed specifically to optimize conversion rates for companies like yours.
-
-Would you be open to a 15-minute sync to see if there's an opportunity to revisit our work together?
-
-Warm regards,
-NexusMark Team`;
-  } else {
-    subject = `Checking in with ${contact.first_name} at ${companyName}`;
-    body = `Hi ${contact.first_name},
-
-Hope you are having a productive week.
-
-I'm checking in to ensure everything is running smoothly with your marketing operations and to see if there are any upcoming campaign milestones where you could use extra support.
-
-Let me know if there's anything we can assist with!
-
-Best regards,
-Client Success Team`;
+  if (!res.success || !res.draft) {
+    return { success: false, error: res.error || 'Failed to generate draft' };
   }
 
   return {
@@ -140,13 +135,17 @@ Client Success Team`;
     draft: {
       contactName,
       companyName,
-      subject,
-      body,
-      groundedFacts,
+      subject: res.draft.subject,
+      body: res.draft.body,
+      groundedFacts: res.draft.groundedFacts,
     },
   };
 }
 
+/**
+ * Deal Health Analysis
+ * Strictly labeled as a rule-based assessment engine rather than simulated AI.
+ */
 export async function analyzeDealHealth(
   workspaceId: string,
   dealId?: string
@@ -197,13 +196,13 @@ export async function analyzeDealHealth(
     let riskScore: 'Low' | 'Medium' | 'High' | 'Critical' = 'Low';
 
     if (daysSinceLastActivity > 21) {
-      riskFactors.push(`No activity touchpoints recorded in over 21 days (${daysSinceLastActivity} days silent)`);
+      riskFactors.push(`No touchpoints recorded in over 21 days (${daysSinceLastActivity} days silent)`);
       riskScore = 'Critical';
     } else if (daysSinceLastActivity > 10) {
       riskFactors.push(`10+ days without client communication (${daysSinceLastActivity} days)`);
       riskScore = 'High';
     } else if (daysSinceLastActivity > 5) {
-      riskFactors.push('Moderate gap since last interaction');
+      riskFactors.push('Moderate gap since last interaction (5+ days)');
       if (riskScore === 'Low') riskScore = 'Medium';
     }
 
@@ -213,7 +212,7 @@ export async function analyzeDealHealth(
     }
 
     if (deal.expected_close_date && new Date(deal.expected_close_date).getTime() < now) {
-      riskFactors.push(`Expected close date (${deal.expected_close_date}) has already passed`);
+      riskFactors.push(`Expected close date (${deal.expected_close_date}) has passed`);
       if (riskScore !== 'Critical') riskScore = 'High';
     }
 
@@ -241,12 +240,17 @@ export async function analyzeDealHealth(
       riskScore,
       riskFactors,
       recommendedAction,
+      calculationType: 'Rule-based heuristic assessment based on velocity, inactivity duration, and target close dates.',
     });
   }
 
   return { success: true, assessments };
 }
 
+/**
+ * Account Briefing Generator
+ * Strictly calculates totals from verified CRM records without hallucinating facts.
+ */
 export async function generateAccountBriefing(
   workspaceId: string,
   companyId: string
@@ -295,10 +299,10 @@ export async function generateAccountBriefing(
     }
   });
 
-  const summary = `${company.name} is a target organization in the ${company.industry || 'general commercial'} sector with ${totalContacts} tracked stakeholder(s). Total pipeline currently stands at $${openPipelineValue.toLocaleString()} across active deals, with $${wonRevenue.toLocaleString()} in realized revenue.`;
+  const summary = `${company.name} is a tracked organization in the ${company.industry || 'commercial'} sector with ${totalContacts} recorded stakeholder(s). Active open pipeline stands at $${openPipelineValue.toLocaleString()}, with $${wonRevenue.toLocaleString()} in realized revenue.`;
 
   const keyInsights: string[] = [
-    `${totalContacts} active contacts logged in CRM directory.`,
+    `${totalContacts} active contact(s) logged in CRM directory.`,
     `Total active open pipeline: $${openPipelineValue.toLocaleString()}`,
     wonRevenue > 0
       ? `Existing customer relationship with $${wonRevenue.toLocaleString()} in historical won business.`
@@ -306,7 +310,7 @@ export async function generateAccountBriefing(
   ];
 
   const actionItems: string[] = [
-    totalContacts === 1
+    totalContacts <= 1
       ? 'Expand stakeholder mapping: identify secondary decision makers at the company.'
       : 'Maintain multi-threading with key department heads.',
     openPipelineValue > 0

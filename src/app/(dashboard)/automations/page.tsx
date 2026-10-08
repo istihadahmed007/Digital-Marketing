@@ -80,17 +80,20 @@ export default function AutomationsPage() {
     setRunFeedback(null);
     try {
       const res = await testRunWorkflow(workspaceId, wf.id);
-      if (res.success && res.log) {
-        setRunFeedback(`Simulated execution of "${wf.name}" completed successfully! Audit log created.`);
+      if (res.success && res.sandboxResult) {
+        const warnings = res.sandboxResult.warnings?.length ? ` Notice: ${res.sandboxResult.warnings.join('; ')}` : '';
+        setRunFeedback(
+          `[SANDBOX TEST] Simulated execution of "${wf.name}" completed with status: ${res.sandboxResult.overallStatus.toUpperCase()}. Live contacts & tasks were preserved without changes.${warnings}`
+        );
         await fetchData(workspaceId);
       } else {
-        alert(res.error || 'Failed to trigger workflow');
+        alert(res.error || 'Failed to simulate workflow');
       }
     } catch (err: any) {
       alert(err.message || 'Execution error');
     } finally {
       setRunningId(null);
-      setTimeout(() => setRunFeedback(null), 4000);
+      setTimeout(() => setRunFeedback(null), 5000);
     }
   };
 

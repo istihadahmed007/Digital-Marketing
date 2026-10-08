@@ -71,7 +71,7 @@ export default function CampaignsPage() {
       const res = await sendCampaign(workspaceId, campaign.id);
       if (res.success && res.stats) {
         setSendFeedback(
-          `Dispatched! Sent to ${res.stats.recipients} contacts (${res.stats.delivered} delivered).`
+          `Dispatched successfully! Provider accepted ${res.stats.sent} email send(s) out of ${res.stats.recipients} eligible opted-in contacts.`
         );
         await fetchCampaigns(workspaceId);
       } else {
@@ -166,9 +166,9 @@ export default function CampaignsPage() {
             Avg. Open Rate
           </span>
           <p className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1">
-            {avgOpenRate}%
+            {totalDelivered > 0 ? `${avgOpenRate}%` : 'Not available'}
           </p>
-          <span className="text-xs text-slate-500">{totalOpened} total opens</span>
+          <span className="text-xs text-slate-500">{totalDelivered > 0 ? `${totalOpened} total opens` : 'Awaiting event webhooks'}</span>
         </div>
 
         <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
@@ -176,9 +176,9 @@ export default function CampaignsPage() {
             Click-To-Open
           </span>
           <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
-            {avgClickRate}%
+            {totalOpened > 0 ? `${avgClickRate}%` : 'Not available'}
           </p>
-          <span className="text-xs text-slate-500">{totalClicked} total clicks</span>
+          <span className="text-xs text-slate-500">{totalOpened > 0 ? `${totalClicked} total clicks` : 'Awaiting event webhooks'}</span>
         </div>
 
         <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
@@ -262,20 +262,32 @@ export default function CampaignsPage() {
                   <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-2">
                     <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
                       <Send className="w-3.5 h-3.5 text-purple-500" />
-                      {camp.delivered_count} Delivered
+                      {camp.recipient_count} Sent
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5 text-emerald-500" />
-                      {camp.opened_count} Opens ({camp.delivered_count > 0 ? Math.round((camp.opened_count / camp.delivered_count) * 100) : 0}%)
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MousePointerClick className="w-3.5 h-3.5 text-indigo-500" />
-                      {camp.clicked_count} Clicks
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <UserX className="w-3.5 h-3.5 text-slate-400" />
-                      {camp.unsubscribed_count} Unsubscribed
-                    </span>
+                    {camp.delivered_count > 0 ? (
+                      <>
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                          {camp.delivered_count} Delivered
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5 text-emerald-500" />
+                          {camp.opened_count} Opens ({Math.round((camp.opened_count / camp.delivered_count) * 100)}%)
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MousePointerClick className="w-3.5 h-3.5 text-indigo-500" />
+                          {camp.clicked_count} Clicks
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <UserX className="w-3.5 h-3.5 text-slate-400" />
+                          {camp.unsubscribed_count} Unsubscribed
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-slate-400 italic">
+                        Delivery/engagement telemetry: Not available (Awaiting provider webhooks)
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

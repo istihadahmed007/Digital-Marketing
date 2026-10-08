@@ -315,3 +315,59 @@ export interface Integration {
   updated_at: string;
 }
 
+export type EmailDeliveryStatus = 'queued' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'unsubscribed' | 'failed';
+
+export interface EmailCampaignEvent {
+  id: string;
+  workspace_id: string;
+  campaign_id: string;
+  contact_id: string | null;
+  recipient_email: string;
+  provider: string;
+  provider_message_id: string | null;
+  status: EmailDeliveryStatus;
+  error_message: string | null;
+  idempotency_key: string;
+  event_payload: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutomationStepLog {
+  id: string;
+  workspace_id: string;
+  workflow_id: string;
+  log_id: string | null;
+  step_id: string;
+  step_type: string;
+  step_title: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  error_message?: string | null;
+  output?: Record<string, any>;
+  executed_at: string;
+}
+
+export interface SandboxedStepResult {
+  stepId: string;
+  stepTitle: string;
+  stepType: string;
+  status: 'simulated_success' | 'simulated_failure' | 'invalid_config';
+  actionSummary: string;
+  simulatedOutput?: Record<string, any>;
+  error?: string;
+}
+
+export interface SandboxedWorkflowResult {
+  workflowId: string;
+  workflowName: string;
+  isSandbox: true;
+  simulatedContact: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  steps: SandboxedStepResult[];
+  overallStatus: 'passed' | 'failed';
+  warnings: string[];
+}
+

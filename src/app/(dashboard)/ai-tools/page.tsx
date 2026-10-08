@@ -348,9 +348,17 @@ export default function AiToolsPage() {
       {activeTab === 'deals' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">
-              Evaluates deal velocity, inactivity windows, and proposal linger times across active pipeline opportunities.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                  Rule-Based Engine
+                </span>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Deterministic Velocity & Inactivity Evaluation</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Evaluates touchpoint recency, stage duration, and target close deadlines using deterministic CRM rules.
+              </p>
+            </div>
             <button
               onClick={handleScanDeals}
               disabled={dealsLoading}

@@ -190,6 +190,19 @@ export async function updateDealStage(
     user_id: user?.id || null,
   });
 
+  // Trigger active workflows registered for deal_stage_changed event
+  try {
+    const { dispatchCrmEventTriggers } = await import('@/lib/actions/automations');
+    await dispatchCrmEventTriggers(workspaceId, 'deal_stage_changed', dealId, {
+      dealId,
+      contactId: updatedDeal.contact_id || undefined,
+      from_stage: currentDeal?.stage || null,
+      to_stage: newStage,
+    });
+  } catch (triggerErr) {
+    console.error('Error triggering automations on deal stage change:', triggerErr);
+  }
+
   revalidatePath('/deals');
   revalidatePath('/dashboard');
   return { success: true };

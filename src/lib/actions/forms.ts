@@ -392,6 +392,18 @@ export async function submitPublicForm(
     });
   }
 
+  // Trigger active workflows registered for form_submission event
+  try {
+    const { dispatchCrmEventTriggers } = await import('@/lib/actions/automations');
+    await dispatchCrmEventTriggers(form.workspace_id, 'form_submission', form.id, {
+      contactId: contactId || undefined,
+      formId: form.id,
+      formData: cleanData,
+    });
+  } catch (triggerErr) {
+    console.error('Error triggering automations on form submission:', triggerErr);
+  }
+
   revalidatePath('/forms');
   revalidatePath('/contacts');
   revalidatePath('/dashboard');

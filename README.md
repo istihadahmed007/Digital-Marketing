@@ -1,21 +1,23 @@
 # NexusMark — AI-Powered Growth & Digital Marketing CRM
 
-> **Phase 1 & Phase 2 Complete**: Full-featured, multi-tenant CRM engine with workspace isolation, PostgreSQL Row Level Security (RLS), Deals Kanban pipeline, CSV batch import, Activity audit timeline, Lead Capture Forms & public embeds (`/forms` & `/f/[slug]`), Email Campaigns Studio (`/campaigns`), Automation Workflows Engine (`/automations`), Grounded AI Growth Intelligence (`/ai-tools`), and Marketing Integrations Directory (`/integrations`).
+> **Status & System Architecture**: Full-featured, multi-tenant digital marketing SaaS and CRM engine built with Next.js 16 (App Router), React 19, and Supabase PostgreSQL. Enforces workspace isolation with PostgreSQL Row Level Security (RLS), enterprise SSRF protection, AES-256-GCM credential encryption at rest, sandboxed workflow execution, grounded AI generation, and genuine third-party provider verification.
 
 ---
 
-## 🚀 Overview & Branding
+## 🚀 Overview & System Architecture
 
-**NexusMark** is an original digital marketing SaaS and growth CRM built from scratch. It features original branding, clean modern UI aesthetics, responsive layouts, and strict database isolation.
+**NexusMark** is an original digital marketing SaaS and growth CRM built from scratch. It features original branding, clean modern UI aesthetics, responsive layouts, strict database tenant isolation, and zero simulated metrics.
 
 ### Technology Stack
 - **Framework**: Next.js 16 (App Router) & React 19
 - **Language**: TypeScript (Strict typing)
 - **Database & Auth**: Supabase PostgreSQL & Supabase Auth
-- **Security**: PostgreSQL Row Level Security (RLS) with workspace tenant enforcement
+- **Security & Secret Vault**:
+  - PostgreSQL Row Level Security (RLS) with workspace tenant enforcement
+  - AES-256-GCM secret encryption at rest for OAuth tokens and API keys
+  - Server-Side Request Forgery (SSRF) guard with DNS-level validation and private IP blocking
 - **Styling**: Tailwind CSS
-- **CSV Engine**: PapaParse with automated column detection & email validation
-- **Testing**: Vitest test suite for access isolation, CRM logic, and CSV imports
+- **Testing**: Vitest test suite covering access isolation, CRM operations, CSV ingestion, provider adapters, SSRF defense, and credentials enforcement
 
 ---
 
@@ -26,244 +28,202 @@
 - A Supabase project (Free at [supabase.com](https://supabase.com))
 
 ### 2. Environment Configuration
-Duplicate the provided `.env.example` file to `.env.local`:
+Duplicate `.env.example` to `.env.local`:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Populate `.env.local` with your Supabase credentials:
+Populate `.env.local` with your configuration:
 
 ```ini
-# Supabase Project URL (found in Project Settings -> API)
+# Supabase Project URL & Anon Key (Required)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-
-# Supabase Public Anon API Key (found in Project Settings -> API)
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
-# Application Base URL (for auth redirects)
+# Supabase Service Role Key (Required for secure server actions & background jobs)
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
+
+# Application Base URL (Required for auth redirects and webhook endpoints)
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Secret Encryption Key (Required for AES-256-GCM at-rest encryption)
+# Generate a 32-byte hex string (e.g., node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+ENCRYPTION_SECRET=your-64-character-hex-encryption-key-here
+
+# Resend Email Delivery (Required for sending live email campaigns & automation emails)
+RESEND_API_KEY=re_123456789
+RESEND_FROM_EMAIL=growth@yourdomain.com
+
+# Mautic Marketing Automation (Required for live contact synchronization)
+MAUTIC_BASE_URL=https://mautic.yourdomain.com
+MAUTIC_CLIENT_ID=your-mautic-oauth-client-id
+MAUTIC_CLIENT_SECRET=your-mautic-oauth-client-secret
+# Or basic auth credentials:
+MAUTIC_USERNAME=your-mautic-username
+MAUTIC_PASSWORD=your-mautic-password
+
+# Google Search Console & Google Analytics 4 (Required for live SEO/Analytics sync)
+GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-your-google-oauth-client-secret
+
+# DataForSEO / SerpApi (Required for live keyword rankings, SERP data, & backlinks)
+DATAFORSEO_LOGIN=your-dataforseo-login
+DATAFORSEO_PASSWORD=your-dataforseo-password
+SERPAPI_API_KEY=your-serpapi-api-key
+
+# AI Intelligence Providers (Required for personalized email drafting & briefs)
+OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=AIzaSy...
 ```
 
-> **Note**: NexusMark never hardcodes credentials or uses mock databases. If credentials are missing, the application gracefully presents a guided setup banner with step-by-step instructions.
+---
 
-### 3. Database Migrations
-Open your Supabase project's **SQL Editor** and execute the migration files located in `supabase/migrations/`:
+## 🗄️ Database Migrations
 
-1. **Phase 1 CRM Schema**:
-   `supabase/migrations/20261007000000_phase1_crm_schema.sql`
+Open your Supabase project's **SQL Editor** and execute the migration files located in `supabase/migrations/` (or apply the consolidated schema from `supabase/COMPLETE_SCHEMA.sql`):
+
+1. **`supabase/migrations/20261007000000_phase1_crm_schema.sql`**:
    - Creates `workspaces`, `workspace_members`, `contacts`, `companies`, `deals`, `activities`, and `tasks`.
    - Enables RLS on all tables with tenant isolation policies.
    - Creates the `public.is_workspace_member(workspace_id)` security function.
 
-2. **Phase 2 Architectural Readiness**:
-   `supabase/migrations/20261007000001_phase2_architectural_stubs.sql`
-   - Initializes table schemas for `forms`, `form_submissions`, `email_campaigns`, `automation_workflows`, `automation_logs`, and `integrations` with RLS.
+2. **`supabase/migrations/20261007000001_phase2_architectural_stubs.sql`**:
+   - Table schemas for `forms`, `form_submissions`, `email_campaigns`, `automation_workflows`, `automation_logs`, and `integrations` with RLS.
 
-3. **Phase 3 CRM Expansion & Complete SEO Toolkit Schema**:
-   `supabase/migrations/20261007000002_crm_expansion_and_seo_schema.sql`
-   - Expands `contacts` with `owner_id`, `source`, `consent_status`, `custom_fields`, `lead_score`, `lead_score_reasons`, and UTM attribution columns (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `referrer`).
-   - Creates `pipelines`, `pipeline_stages`, and `deal_stage_history` with automated deal stage transition audit logging.
-   - Creates `contact_views` for persisted saved filters.
+3. **`supabase/migrations/20261007000002_crm_expansion_and_seo_schema.sql`**:
+   - Expands `contacts` with `owner_id`, `source`, `consent_status`, `custom_fields`, `lead_score`, `lead_score_reasons`, and UTM attribution columns.
+   - Creates `pipelines`, `pipeline_stages`, and `deal_stage_history` with automated stage transition logging.
+   - Creates `contact_views` for saved filters.
    - Creates `seo_websites`, `seo_audits`, `seo_audit_pages`, `seo_audit_issues`, `seo_keywords`, `seo_content_briefs`, `seo_local_locations`, `seo_integrations`, `seo_gsc_data`, and `seo_ga4_data`.
-   - Enforces workspace-level PostgreSQL Row Level Security (RLS) on every table.
 
-### 4. Install Dependencies & Run
+4. **`supabase/migrations/20261007000003_real_integrations_and_events.sql`**:
+   - Creates `email_campaign_events` tracking provider message IDs, delivery events, opens, clicks, bounces, and unsubscribes.
+   - Creates `automation_event_triggers` with unique constraints for once-only execution idempotency.
+   - Creates `automation_step_logs` for durable per-step execution logs with status, retry counts, and error details.
+
+---
+
+## 🚦 Feature Operational Status Matrix
+
+To provide total clarity and eliminate misleading claims, features in NexusMark fall into three clear categories:
+
+### A. Working Core Features (Fully Operational Out-of-the-Box)
+These features function immediately upon completing Supabase database setup:
+
+1. **Authentication & Multi-Tenant Workspaces (`/login`, `/register`, `/workspaces/new`)**:
+   - Sign up, sign in, password recovery, session management.
+   - Workspace creation and switching with strict PostgreSQL Row-Level Security (RLS) isolation.
+2. **Contacts Management (`/contacts` & `/contacts/[id]`)**:
+   - Full CRUD operations, archiving/unarchiving, and company associations.
+   - Deterministic rule-based Lead Scoring (0–100) with transparent score explanation modal.
+   - Marketing consent tracking (`opted_in`, `opted_out`, `pending`).
+   - Saved custom views (`contact_views`) and UTM attribution tracking (`utm_source`, `utm_medium`, `utm_campaign`).
+3. **Companies Directory (`/companies` & `/companies/[id]`)**:
+   - Full company profile management with automatic contact and deal association mapping.
+4. **Deals & Sales Pipelines (`/deals` & `/deals/[id]`)**:
+   - Custom sales pipelines and stages with interactive Kanban board and list view.
+   - Automated stage transition history recording in `deal_stage_history`.
+   - Pipeline value forecasting, win probability weighting, and deal velocity tracking.
+5. **Activity Timeline & Tasks (`/tasks`)**:
+   - Activity audit trail logging notes, calls, meetings, emails, and stage changes.
+   - Task assignment with priority levels, due dates, and completion toggles.
+6. **Lead Capture Forms & Public Embeds (`/forms` & `/f/[slug]`)**:
+   - Form field builder with validation.
+   - Anti-bot honeypot protection.
+   - Direct CRM ingestion creating or updating contacts in the workspace.
+   - Iframe and raw HTML embed code generator.
+7. **Real Analytics Dashboard (`/dashboard`)**:
+   - All metrics (Pipeline Value, Closed Won Revenue, Win Rate %, Active Deals) computed dynamically from live PostgreSQL database records. Zero hardcoded numbers.
+8. **Sandboxed Automation Test-Runs (`/automations`)**:
+   - "Test Run" executes workflows in an isolated dry-run sandbox.
+   - Validates trigger conditions and action parameters without mutating live contacts, creating real tasks, or dispatching external emails.
+
+---
+
+### B. Manual Entry & CSV Import Features
+These features allow data ingestion without requiring external third-party API connections:
+
+1. **Contact CSV Import Engine (`/contacts/import`)**:
+   - Browser-side CSV parsing using PapaParse.
+   - Header auto-detection and field mapping.
+   - Email format validation and duplicate resolution (skip vs. update existing).
+   - Insertion/update/error breakdown report.
+2. **Keyword CSV Import & Manual Tracking (`/seo/keywords`)**:
+   - Manual keyword addition and bulk CSV keyword import wizard.
+   - Intent classification (`informational`, `commercial`, `transactional`, `navigational`), target URL binding, and notes.
+   - Strict provenance labeling: manual entries and CSV imports are explicitly marked as `Manual / CSV Import` with creation timestamps. They are never misrepresented as live provider data.
+3. **Local SEO & NAP Consistency Directory (`/seo/local`)**:
+   - Business location directory with address, phone, and website URL.
+   - Live on-page crawler inspecting website markup for Name, Phone, and City/Postal code matches.
+
+---
+
+### C. External Integrations Requiring Configured Credentials
+These features require API credentials or OAuth tokens and enforce strict verification before connecting:
+
+1. **Email Campaigns Studio (`/campaigns`)**:
+   - **Provider**: Resend (`RESEND_API_KEY`, optional `RESEND_FROM_EMAIL`).
+   - **Consent Enforcement**: Sends only to non-archived contacts with valid email addresses and explicit marketing consent (`consent_status = 'opted_in'`).
+   - **Truthful Status**: Never marks a campaign as `sent` until the provider API confirms message acceptance.
+   - **Telemetry**: Records provider message IDs and real delivery/bounce/open/click events in `email_campaign_events`. Displays `"Not available (Awaiting provider webhooks)"` instead of fabricated estimates when webhook data is pending.
+   - **Idempotency**: Prevents duplicate sends per recipient and handles rate limits (HTTP 429).
+   - **Missing Credentials**: Sending is disabled with an explicit setup guide when `RESEND_API_KEY` is not configured.
+2. **Mautic Contact Synchronization (`/integrations`)**:
+   - **Provider**: Mautic REST API (OAuth 2.0 or Basic Auth).
+   - **Truthful Sync**: Authenticated synchronization supporting pagination, contact deduplication/upsert, and truthful synced contact counts.
+   - **Error Handling**: Displays actionable error messages upon authentication or network failure.
+3. **Outbound Webhooks (`/integrations`)**:
+   - **SSRF Protection**: Strict host validation blocking requests to localhost, loopback (`127.0.0.0/8`), link-local (`169.254.0.0/16`), private networks (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), cloud metadata endpoints, and IPv6 equivalents. Blocks unsafe redirects.
+   - **Truthful Test**: Webhook test ping reports success only for a genuine 2xx HTTP response within timeout. Timeouts and non-2xx responses report failure.
+4. **Automations Engine Live Execution (`/automations`)**:
+   - **Supported Steps**: Executes supported actions (`send_email`, `create_task`, `add_tag`, `webhook`). Email steps dispatch through the configured email provider. Unknown step types fail visibly.
+   - **Durable Logging**: Logs each step's execution state, error details, and retry attempts in `automation_step_logs`.
+   - **Only-Once Execution**: CRM events (`contact_created`, `form_submission`, `deal_stage_changed`) trigger active workflows only once via `automation_event_triggers` idempotency locks.
+5. **Google Search Console & GA4 (`/seo/analytics`)**:
+   - **Provider**: Google Search Console API & Google Analytics Data API.
+   - **Real Verification**: Requires OAuth token exchange or Service Account credentials. Only marked `is_connected: true` after a successful API probe.
+   - **Truthful Data**: Syncs verified organic query rankings, impressions, clicks, CTR, average position, and GA4 organic sessions. Shows disconnected state when unconfigured.
+6. **Live Keyword & SERP Provider (`/seo/keywords`)**:
+   - **Provider**: DataForSEO or SerpApi.
+   - **Metrics**: Real search volume, keyword difficulty, CPC, and SERP competitive rankings. Displays provider name, date range, and last sync timestamp for all external metrics.
+7. **SEO Website Audit & Crawler (`/seo/audits`, `/seo/on-page`, `/seo/competitors`)**:
+   - **Verification Requirement**: Audits require a verified website via exact token `<meta name="nexusmark-site-verification" content="<token>">`. Development-mode bypass is disabled.
+   - **Origin Boundary**: Restricts page crawling strictly to the verified website's origin.
+   - **SSRF & Resource Clamps**: Blocks private/internal IPs, inspects redirect hops, enforces page limits (1–50 pages), clamps response sizes (max 2 MB), and sets request timeouts.
+   - **Robots.txt & Sitemaps**: Compliant `robots.txt` parser respecting user-agent groups, path-specific Allow/Disallow precedence, and auto-discovering XML sitemaps.
+   - **Performance Labeling**: Measures and displays `"fetch latency"`. Does not misrepresent fetch latency as PageSpeed or Core Web Vitals.
+   - **Competitor Comparison**: Restricted strictly to live data fetched from compared URLs.
+8. **AI Tools & Secret Vault (`/ai-tools`)**:
+   - **Provider**: OpenAI (`OPENAI_API_KEY`) or Google Gemini (`GEMINI_API_KEY`).
+   - **CRM Grounding**: Personalized email generation is grounded strictly in retrieved contact notes, job title, company name, and domain. Does not fabricate facts.
+   - **Rule-Based Distinction**: Deal Health calculations are explicitly labeled as rule-based heuristic assessments.
+   - **Secret Protection**: OAuth tokens and API keys are stored encrypted at rest (AES-256-GCM). Client responses mask secrets (e.g. `re_12...99`). Plaintext secrets are never returned to browser components or committed to git.
+
+---
+
+## 🧪 Testing
+
+The repository contains an automated Vitest test suite validating business logic, security protections, and provider integrations:
 
 ```bash
-# Run the development server
-npm run dev
-
-# Run unit and integration tests
-npm run test
-
-# Build production bundle
-npm run build
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## ✅ What Works (Phase 1 Deliverables)
-
-### 1. Authentication
-- **Sign-Up** (`/register`): User account creation with email verification support.
-- **Sign-In** (`/login`): Secure session generation with redirect protection.
-- **Sign-Out**: Immediate session termination via sidebar profile action.
-- **Password Reset** (`/forgot-password` & `/reset-password`): Automated password recovery link and password update flow.
-
-### 2. Multi-Tenant Workspaces
-- **Workspace Onboarding** (`/workspaces/new`): Any user can create one or multiple workspaces.
-- **Roles & Membership**: Creator becomes `owner`, with support for `admin` and `member` roles.
-- **Workspace Switcher**: Seamlessly switch between active workspaces with persistence in cookies and `localStorage`.
-
-### 3. Contacts Directory (`/contacts` & `/contacts/[id]`)
-- **CRUD Operations**: Create, view, edit, and archive contacts.
-- **Filtering & Search**: Live search by name/email, filter by Lead Status (`new`, `contacted`, `qualified`, `unqualified`, `customer`), Lifecycle Stage (`subscriber`, `lead`, `mql`, `sql`, `opportunity`, `customer`), and tags.
-- **Contact Details**: Detailed record page with company associations, contact tasks, and chronological activity timeline.
-- **Archive Toggle**: Filter between active and archived contacts.
-
-### 4. Companies Directory (`/companies` & `/companies/[id]`)
-- **Organization Management**: Record domains, industries, company size, phone, and locations.
-- **Relationships**: Automatically lists all associated contacts and deals belonging to the company.
-- **Archive Toggle & Search**: Filter and search organizations.
-
-### 5. CSV Contact Import Engine (`/contacts/import`)
-- **File Upload & Parsing**: Fast browser parsing using PapaParse.
-- **Auto Field Mapping**: Automatically maps CSV headers (e.g. `Email`, `First Name`, `Last Name`, `Phone`, `Title`, `Company`, `Tags`).
-- **Validation**: Rejects invalid email formats, checks required fields.
-- **Duplicate Handling Options**:
-  - *Skip duplicates*: Preserves existing records by ignoring matching emails.
-  - *Update existing*: Upserts matching records with latest fields.
-- **Summary Report**: Detailed counts for newly inserted, updated, and skipped contacts, with row-level error feedback.
-
-### 6. Deals & Pipeline (`/deals` & `/deals/[id]`)
-- **Stages**: `Lead (10%)`, `Qualified (30%)`, `Proposal (60%)`, `Negotiation (80%)`, `Closed Won (100%)`, `Closed Lost (0%)`.
-- **Kanban Board**: Drag/select stage transitions with live database update and activity logging.
-- **Table List View**: Switch between visual Kanban board and tabular overview.
-- **Forecasting**: Value amounts, currencies, win probabilities, and expected close dates.
-
-### 7. Activities, Notes & Tasks (`/tasks`)
-- **Activity Timeline**: Log notes, calls, meetings, and emails linked to contacts, companies, or deals.
-- **Audit Trail**: Automated logging of deal creation and stage changes.
-- **Task Queue**: Assign follow-ups with priority levels (`low`, `medium`, `high`, `urgent`), due dates, and completion status toggles.
-
-### 8. Real Database Dashboard (`/dashboard`)
-- **Zero Hallucinated Metrics**: All statistics (Total Contacts, Active Deals, Open Pipeline Value, Closed Won Revenue, Win Rate %, Pending Tasks) are calculated directly from active PostgreSQL records.
-- **Clear Empty States**: Informative empty states with direct call-to-action buttons when a workspace has no records.
-
----
-
-## 🔒 Data & Security Architecture
-
-1. **Workspace Isolation**:
-   - Every workspace-owned record contains a mandatory `workspace_id` foreign key.
-   - Enforced by server actions and PostgreSQL Row Level Security (RLS) policies:
-     ```sql
-     create policy "Tenant isolation: select contacts"
-         on public.contacts for select to authenticated
-         using (public.is_workspace_member(workspace_id));
-     ```
-2. **Access Control**: Users in Workspace A can never read, modify, or delete data belonging to Workspace B.
-
----
-
-## 🧪 Test Suite
-
-- **`tests/phase2-growth-engine.test.ts`**: Verifies form slug normalization, contact field extraction, bot honeypot detection, audience segmentation, delivery math, event-driven workflow triggering, and deal stagnation algorithms.
-- **`tests/access-isolation.test.ts`**: Verifies tenant isolation logic, role checking, cross-tenant query filtering, and confirms all tables and RLS policies in the SQL migration.
-- **`tests/csv-import.test.ts`**: Verifies CSV parsing, header auto-detection, email validation regex, duplicate skipping, and duplicate updating.
-- **`tests/crm-operations.test.ts`**: Verifies pipeline value calculation, win rate formulas, stage probabilities, and task filtering.
-
-Run tests:
-```bash
 npm run test
 ```
 
----
-
-## 🚀 Live Growth & Marketing Modules (Phase 2 Deliverables)
-
-1. **Lead Capture Forms & Public Embeds (`/forms` & `/f/[slug]`)**:
-   - Visual drag-and-drop form field builder supporting text, email, phone, number, and textarea.
-   - Direct CRM ingestion: submissions automatically match or create contacts in the active workspace and log timeline activities.
-   - Public standalone lead submission pages (`/f/[slug]`) with anti-bot honeypots.
-   - Shareable iframe widget code and custom website HTML code generators.
-   - REST API ingestion endpoint at `/api/forms/[slug]` for external sites.
-
-2. **Email Campaigns Studio (`/campaigns`)**:
-   - Broadcast creator with pre-built responsive marketing email templates.
-   - Audience segmentation by Lifecycle Stage, Lead Status, or CRM Tags.
-   - One-click broadcast dispatch simulator logging sent activities on contact timelines.
-   - Live deliverability telemetry tracking total delivered, open rate, and click-through metrics.
-
-3. **Automation Workflows Engine (`/automations`)**:
-   - Visual workflow pipeline builder supporting triggers (`form_submission`, `contact_created`, `deal_stage_changed`, `tag_added`).
-   - Action steps: Send notification email, create CRM follow-up task, add tag, or trigger outbound webhook.
-   - Real-time "Test Run" trigger generating execution audit history entries in `automation_logs`.
-
-4. **AI Growth Intelligence Hub (`/ai-tools`)**:
-   - **Zero Hallucinated Metrics**: 100% grounded in active Supabase workspace data.
-   - Personalized Outreach Assistant drafting tailored emails from logged contact notes and company domains.
-   - Deal Health & Stagnation Radar scanning for deal velocity lapses and overdue proposal stages.
-   - Executive Account Briefings synthesizing contact mapping and open pipeline value.
-
-5. **Marketing Integrations Directory (`/integrations`)**:
-   - Mautic bi-directional contact synchronization with last synced timestamping.
-   - Custom inbound/outbound webhook manager with live test ping utility.
-   - Resend email delivery API key management.
-   - Slack channel deal notifications configuration.
+Test suite coverage:
+- **`tests/provider-adapters.test.ts`**: Comprehensive provider adapter tests for Resend, Mautic, SSRF validator/safe fetch, Google GSC/GA4, DataForSEO/SerpApi, and AI clients covering success, invalid credentials, rate limiting (HTTP 429), timeouts, duplicate delivery idempotency, and non-2xx responses.
+- **`tests/credentials-enforcement.test.ts`**: Proves that missing credentials never produce a "connected", "sent", or "synced" success state across Resend, Mautic, Google GSC/GA4, and SEO providers.
+- **`tests/access-isolation.test.ts`**: Validates workspace tenant isolation and RLS security policies.
+- **`tests/phase2-growth-engine.test.ts`**: Tests form slug normalization, bot honeypot detection, delivery math, and stagnation algorithms.
+- **`tests/csv-import.test.ts`**: Tests CSV parsing, header mapping, email format validation, and duplicate handling.
+- **`tests/crm-operations.test.ts`**: Tests pipeline values, win rates, and task assignment logic.
+- **`tests/phase3-crm-seo.test.ts`**: Tests lead scoring algorithms, consent updates, robots.txt parsing, and SEO audit issue classification.
 
 ---
 
-## ⚡ Phase 3: Real CRM Expansion & Complete SEO Toolkit
+## 🔒 Security Summary
 
-### CRM Realization Deliverables
-1. **Contacts Engine (`/contacts`)**:
-   - **Pagination & Batch Export**: Server-side pagination with configurable page limits and full CSV export button.
-   - **Deterministic Lead Scoring**: Rule-based scoring engine (0–100) evaluating phone presence (+15), verified company (+15), executive job titles (+25), lifecycle stage (+15 to +35), organic inbound source (+25), consent opt-in (+10), and logged call/email activity velocity (+5 to +30) with a transparent reasons modal.
-   - **Saved Views & Filters**: Create, switch, and delete named contact view filters persisted in the `contact_views` table.
-   - **Consent & Custom Fields**: Opt-in/opt-out consent tracking and JSONB custom fields.
-   - **Marketing Attribution**: Direct tracking of `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, and `referrer`.
-
-2. **Deals & Configurable Sales Pipelines (`/deals` & `/deals/[id]`)**:
-   - **Configurable Pipelines**: Create custom sales pipelines and switch between active pipelines.
-   - **Audit Stage Transition History**: Every deal stage change automatically records from/to stages, timestamp, and user in `deal_stage_history` and is visually audited on `/deals/[id]`.
-
-### Dedicated SEO Toolkit Deliverables
-1. **Website SEO Audit (`/seo/audits`)**:
-   - Domain verification via `<meta name="nexusmark-site-verification" content="...">` tag.
-   - Live recursive crawler checking `robots.txt` directives, status codes, title tag length, meta description length, canonical links, H1/H2 heading architecture, images missing alt text, Schema.org JSON-LD structured data, word count, and load time.
-   - Health score computation (0–100) with categorized issues (critical, warning, notice) and actionable fix recommendations.
-   - Downloadable CSV audit report export.
-
-2. **Google Search Console & Google Analytics 4 (`/seo/analytics`)**:
-   - Property selector with date range filtering.
-   - Real query, page, click, impression, CTR, and **Average Position** reporting (never presented as daily rank checks).
-   - GA4 organic sessions and conversion performance tracking.
-   - Clear "Configure Account" state when external OAuth credentials are not connected.
-
-3. **Keyword Research & Workspace (`/seo/keywords`)**:
-   - Search intent classification (`informational`, `commercial`, `transactional`, `navigational`), target URL binding, and notes.
-   - CSV bulk keyword import wizard.
-   - Strict data source attribution: metrics display connected provider name and last updated date. No synthetic search volume or CPC numbers are ever invented.
-   - Downloadable CSV keyword report export.
-
-4. **On-Page SEO Analyzer & Content Briefs (`/seo/on-page`)**:
-   - Live on-demand DOM fetcher and analyzer with optimization score and checklist.
-   - Content brief generator tied to target keywords, target URLs, word count goals, and suggested headings.
-
-5. **Competitors & Backlinks Intelligence (`/seo/competitors`)**:
-   - Live side-by-side URL crawl comparison inspecting content depth, server speed, heading hierarchy, image count, and structured data differentials.
-   - Clear connection status card for external backlink providers (`DataForSEO`, `OpenPageRank`).
-   - Zero simulated backlink graphs policy enforced.
-
-6. **Local SEO & NAP Consistency Audit (`/seo/local`)**:
-   - Business location directory with full address, phone, and website URL.
-   - Live NAP crawler checking Name, Phone digits, and City/Postal code in website markup with automated discrepancy detection.
-
----
-
-## 🔒 Zero Mock Metrics Policy & Required Environment Variables
-
-NexusMark strictly enforces authentic data integrity:
-- When third-party providers (Google Search Console, GA4, DataForSEO) are not yet configured in `seo_integrations`, the UI displays a clean "Configure Provider" state.
-- Numeric SEO metrics (search volume, keyword difficulty, CPC, backlinks) are **never simulated or fabricated**.
-
-### Supported Integration Environment Variables
-```ini
-# Google Search Console & GA4 OAuth
-GOOGLE_CLIENT_ID=your-google-oauth-client-id
-GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
-
-# DataForSEO (Backlink Index & Live SERP Keyword Metrics)
-DATAFORSEO_LOGIN=your-dataforseo-login
-DATAFORSEO_PASSWORD=your-dataforseo-password
-
-# AI Providers (Content Brief Suggestions)
-OPENAI_API_KEY=sk-...
-GEMINI_API_KEY=...
-```
-
-
+- **SSRF Defense**: All outbound webhooks and crawler requests pass through `validateSafePublicUrl` which resolves DNS and rejects loopback, link-local, private RFC 1918 addresses, cloud metadata endpoints (169.254.169.254), and IPv6 unique-local addresses. Redirects are inspected per-hop.
+- **AES-256-GCM Encryption**: Third-party credentials stored in database tables are encrypted with an authenticated cipher.
+- **Consent Compliance**: Marketing broadcasts strictly enforce opt-in consent before dispatching.
+- **Origin Confinement**: SEO crawling is strictly confined to verified website origins.

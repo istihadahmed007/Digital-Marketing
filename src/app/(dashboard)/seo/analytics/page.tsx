@@ -95,12 +95,13 @@ export default function SeoAnalyticsPage() {
         'google_search_console',
         gscClientEmail || 'Google Search Console Account',
         gscPropertyId,
-        { clientEmail: gscClientEmail },
-        true
+        { clientEmail: gscClientEmail }
       );
-      if (res.success) {
-        alert('Google Search Console configuration saved!');
+      if (res.success && res.isConnected) {
+        alert(res.message || 'Google Search Console verified and connected successfully!');
         await fetchData(workspaceId);
+      } else {
+        alert(res.error || 'Failed to verify Google Search Console connection. Please verify credentials.');
       }
     } catch (err: any) {
       alert(err.message || 'Error saving GSC configuration');
@@ -118,12 +119,13 @@ export default function SeoAnalyticsPage() {
         'google_analytics_4',
         'Google Analytics 4 Property',
         ga4PropertyId,
-        {},
-        true
+        {}
       );
-      if (res.success) {
-        alert('Google Analytics 4 configuration saved!');
+      if (res.success && res.isConnected) {
+        alert(res.message || 'Google Analytics 4 verified and connected successfully!');
         await fetchData(workspaceId);
+      } else {
+        alert(res.error || 'Failed to verify GA4 connection. Please verify credentials.');
       }
     } catch (err: any) {
       alert(err.message || 'Error saving GA4 configuration');

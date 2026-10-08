@@ -219,6 +219,14 @@ export async function createContact(
     user_id: user?.id || null,
   });
 
+  // Trigger active workflows registered for contact_created event
+  try {
+    const { dispatchCrmEventTriggers } = await import('@/lib/actions/automations');
+    await dispatchCrmEventTriggers(workspaceId, 'contact_created', data.id, { contactId: data.id });
+  } catch (triggerErr) {
+    console.error('Error triggering automations on contact creation:', triggerErr);
+  }
+
   revalidatePath('/contacts');
   revalidatePath('/dashboard');
   return { success: true, contact: data as Contact };

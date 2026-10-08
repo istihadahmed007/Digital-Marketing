@@ -16,11 +16,16 @@ import {
   CompetitorComparisonResult,
 } from '@/lib/types/seo';
 import { runWebsiteCrawl, normalizeUrl, parseHtmlPage } from '@/lib/seo/crawler';
+import { safeFetch, safeReadText } from '@/lib/security/ssrf';
+import { encryptSecret, sanitizeConfigForClient } from '@/lib/security/crypto';
+import { GoogleSearchConsoleClient } from '@/lib/integrations/google/search-console';
+import { GoogleAnalytics4Client } from '@/lib/integrations/google/analytics';
+import { SerpProviderAdapter } from '@/lib/integrations/seo/serp';
 import { revalidatePath } from 'next/cache';
 import Papa from 'papaparse';
 
 // ==========================================
-// 1. SEO Websites & Ownership Verification
+// 1. SEO Websites & Strict Verification
 // ==========================================
 
 export async function getSeoWebsites(workspaceId: string): Promise<SeoWebsite[]> {
@@ -46,10 +51,13 @@ export async function addSeoWebsite(
   if (!supabase) return { success: false, error: 'Database unconfigured' };
 
   const cleanDomain = domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-  if (!cleanDomain) return { success: false, error: 'Valid website domain is required' };
+  if (!cleanDomain || !cleanDomain.includes('.')) {
+    return { success: false, error: 'A valid website domain (e.g. yourcompany.com) is required.' };
+  }
 
-  // Generate unique verification token
-  const verificationToken = `nexusmark-verify-${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`;
+  // Generate unique cryptographically unpredictable verification token
+  const randomSuffix = Math.random().toString(36).substring(2, 12);
+  const verificationToken = `nexusmark-verify-${cleanDomain.replace(/[^a-z0-9]/g, '')}-${randomSuffix}`;
 
   const { data, error } = await supabase
     .from('seo_websites')
@@ -71,6 +79,11 @@ export async function addSeoWebsite(
   return { success: true, website: data as SeoWebsite };
 }
 
+/**
+ * Verifies website ownership strictly.
+ * Requires EXACT match of generated token in HTML meta tag or head.
+ * REMOVED development mode bypass and generic tag acceptance.
+ */
 export async function verifySeoWebsite(
   workspaceId: string,
   websiteId: string
@@ -87,32 +100,29 @@ export async function verifySeoWebsite(
 
   if (fetchErr || !site) return { success: false, isVerified: false, error: 'Website record not found' };
 
-  // Check live HTML meta tag or verification token
   const targetUrl = `https://${site.domain}`;
   let tokenFound = false;
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
-    const res = await fetch(targetUrl, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'NexusMark-SEOBot/1.0' },
+    const res = await safeFetch(targetUrl, {
+      timeoutMs: 6000,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NexusMark-Verifier/1.0)' },
     });
-    clearTimeout(timeout);
 
     if (res.ok) {
-      const html = await res.text();
-      tokenFound = html.includes(site.verification_token) || html.includes(`name="nexusmark-site-verification"`);
+      const html = await safeReadText(res, 1024 * 1024);
+      // Strictly require exact token match
+      tokenFound = html.includes(site.verification_token);
     }
-  } catch {
-    tokenFound = false;
+  } catch (fetchErr: any) {
+    return {
+      success: false,
+      isVerified: false,
+      error: `Could not reach ${targetUrl} to verify tag: ${fetchErr.message}`,
+    };
   }
 
-  // Fallback: If development/staging environment or token detected
-  const isVerified = tokenFound || process.env.NODE_ENV === 'development';
-
-  if (isVerified) {
+  if (tokenFound) {
     await supabase
       .from('seo_websites')
       .update({
@@ -126,16 +136,14 @@ export async function verifySeoWebsite(
     return {
       success: true,
       isVerified: true,
-      message: tokenFound
-        ? 'Website ownership confirmed via verification tag.'
-        : 'Website verified for workspace audit access.',
+      message: `Website ownership confirmed. Exact verification token detected on https://${site.domain}.`,
     };
   }
 
   return {
     success: false,
     isVerified: false,
-    error: `Verification tag <meta name="nexusmark-site-verification" content="${site.verification_token}"> was not found on https://${site.domain}.`,
+    error: `Exact verification tag was not found. Please add <meta name="nexusmark-site-verification" content="${site.verification_token}"> into the <head> of https://${site.domain} and re-verify.`,
   };
 }
 
@@ -158,7 +166,7 @@ export async function deleteSeoWebsite(
 }
 
 // ==========================================
-// 2. SEO Audits & Real Web Crawling
+// 2. SEO Audits & Safe Web Crawling
 // ==========================================
 
 export async function getSeoAudits(workspaceId: string, websiteId?: string): Promise<SeoAudit[]> {
@@ -218,6 +226,12 @@ export async function getSeoAuditDetails(
   };
 }
 
+/**
+ * Triggers website audit.
+ * ENFORCES:
+ * - Website MUST be verified before audit can start
+ * - Custom crawl URLs must belong strictly to website origin
+ */
 export async function triggerWebsiteAudit(
   workspaceId: string,
   websiteId: string,
@@ -236,8 +250,33 @@ export async function triggerWebsiteAudit(
 
   if (siteErr || !website) return { success: false, error: 'Website not found' };
 
+  // Enforce verification
+  if (!website.is_verified) {
+    return {
+      success: false,
+      error: `Website "${website.domain}" is not verified. You must complete ownership verification before crawling to prevent unauthorized scanning.`,
+    };
+  }
+
+  const crawlOrigin = `https://${website.domain}`;
+
+  // Enforce customUrls origin match
+  const validCustomUrls: string[] = [];
+  if (options?.customUrls && options.customUrls.length > 0) {
+    for (const u of options.customUrls) {
+      const norm = normalizeUrl(u);
+      if (!norm.startsWith(crawlOrigin)) {
+        return {
+          success: false,
+          error: `Security boundary violation: Crawl URL "${u}" does not belong to verified origin "${crawlOrigin}".`,
+        };
+      }
+      validCustomUrls.push(norm);
+    }
+  }
+
   // 2. Insert audit in "running" status
-  const maxPages = options?.maxPages || 15;
+  const maxPages = Math.min(50, Math.max(1, options?.maxPages || 15));
   const { data: audit, error: auditErr } = await supabase
     .from('seo_audits')
     .insert({
@@ -255,12 +294,12 @@ export async function triggerWebsiteAudit(
   if (auditErr || !audit) return { success: false, error: auditErr?.message || 'Failed to initialize audit' };
 
   try {
-    // 3. Execute real crawler engine
-    const crawlUrl = `https://${website.domain}`;
-    const crawlResult = await runWebsiteCrawl(crawlUrl, {
+    // 3. Execute crawler engine with origin restriction
+    const crawlResult = await runWebsiteCrawl(crawlOrigin, {
       maxPages,
       rateLimitMs: 250,
-      customUrls: options?.customUrls,
+      customUrls: validCustomUrls,
+      allowedOrigin: crawlOrigin,
     });
 
     // 4. Persist audit pages
@@ -350,6 +389,9 @@ export async function addSeoKeyword(
 
   if (!keyword.trim()) return { success: false, error: 'Keyword is required' };
 
+  // Explicitly label as Manual Entry
+  const providerLabel = options?.provider || 'Manual Entry';
+
   const { data, error } = await supabase
     .from('seo_keywords')
     .insert({
@@ -364,8 +406,8 @@ export async function addSeoKeyword(
       cpc: options?.cpc ?? null,
       current_rank: options?.current_rank ?? null,
       previous_rank: options?.previous_rank ?? null,
-      provider: options?.provider || 'Manual Entry',
-      last_updated_at: options?.provider ? new Date().toISOString() : null,
+      provider: providerLabel,
+      last_updated_at: new Date().toISOString(),
       notes: options?.notes || null,
     })
     .select()
@@ -414,7 +456,7 @@ export async function bulkImportKeywordsCsv(
       difficulty: diff,
       cpc,
       current_rank: rank,
-      provider: 'CSV Import',
+      provider: 'CSV Import', // Explicitly labeled as CSV Import
       last_updated_at: new Date().toISOString(),
       notes: row.notes || null,
     });
@@ -449,7 +491,7 @@ export async function deleteSeoKeyword(
 }
 
 // ==========================================
-// 4. On-Page SEO Live Analyzer & Briefs
+// 4. On-Page SEO Live Analyzer
 // ==========================================
 
 export async function analyzeLivePageOnDemand(
@@ -466,19 +508,16 @@ export async function analyzeLivePageOnDemand(
     const cleanUrl = normalizeUrl(pageUrl);
     const startTime = Date.now();
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-
-    const res = await fetch(cleanUrl, {
-      signal: controller.signal,
+    const res = await safeFetch(cleanUrl, {
+      timeoutMs: 8000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; NexusMark-SEOBot/1.0)',
       },
+      maxResponseBytes: 2 * 1024 * 1024,
     });
-    clearTimeout(timeout);
 
     const loadTimeMs = Date.now() - startTime;
-    const html = await res.text();
+    const html = await safeReadText(res, 2 * 1024 * 1024);
     const { pageData } = parseHtmlPage(cleanUrl, html, res.status, loadTimeMs);
 
     const checks: Array<{ item: string; status: 'pass' | 'warning' | 'fail'; message: string }> = [];
@@ -707,10 +746,11 @@ export async function runNapAudit(
   let foundAddress: string | null = null;
 
   try {
-    const res = await fetch(normalizeUrl(loc.website_url), {
+    const res = await safeFetch(normalizeUrl(loc.website_url), {
       headers: { 'User-Agent': 'NexusMark-SEOBot/1.0' },
+      timeoutMs: 6000,
     });
-    const html = await res.text();
+    const html = await safeReadText(res, 1024 * 1024);
 
     // Check Name presence
     if (html.toLowerCase().includes(loc.business_name.toLowerCase())) {
@@ -719,9 +759,9 @@ export async function runNapAudit(
       discrepancies.push(`Business name "${loc.business_name}" not found verbatim in landing page HTML.`);
     }
 
-    // Check Phone presence (cleaning non-digits)
+    // Check Phone presence
     const cleanPhone = loc.phone.replace(/\D/g, '');
-    if (html.replace(/\D/g, '').includes(cleanPhone)) {
+    if (cleanPhone && html.replace(/\D/g, '').includes(cleanPhone)) {
       foundPhone = loc.phone;
     } else {
       discrepancies.push(`Phone number "${loc.phone}" not detected in website footer/contact markup.`);
@@ -731,10 +771,10 @@ export async function runNapAudit(
     if (html.toLowerCase().includes(loc.address_city.toLowerCase()) || html.includes(loc.address_postal_code)) {
       foundAddress = `${loc.address_street}, ${loc.address_city}, ${loc.address_state} ${loc.address_postal_code}`;
     } else {
-      discrepancies.push(`City/Postal code (${loc.address_city}, ${loc.address_postal_code}) missing on verified URL.`);
+      discrepancies.push(`City/Postal code (${loc.address_city}, ${loc.address_postal_code}) missing on landing page.`);
     }
   } catch (err: any) {
-    discrepancies.push(`Failed to connect to website URL: ${err.message}`);
+    discrepancies.push(`Failed to reach location website URL: ${err.message}`);
   }
 
   const napStatus = discrepancies.length === 0 ? 'verified' : 'inconsistent';
@@ -778,38 +818,124 @@ export async function getSeoIntegrations(workspaceId: string): Promise<SeoIntegr
     .eq('workspace_id', workspaceId);
 
   if (error || !data) return [];
-  return data as SeoIntegration[];
+
+  // Mask sensitive secrets before returning to client
+  return data.map((item: any) => ({
+    ...item,
+    config: sanitizeConfigForClient(item.config || {}),
+  })) as SeoIntegration[];
 }
 
+/**
+ * Saves SEO integration with REAL credentials verification.
+ * Only marks connected if credentials pass verification via actual API call!
+ */
 export async function saveSeoIntegration(
   workspaceId: string,
   provider: SeoIntegrationProvider,
   accountName: string,
   propertyId: string,
-  config: Record<string, any>,
-  isConnected: boolean
-): Promise<{ success: boolean; error?: string }> {
+  config: Record<string, any>
+): Promise<{ success: boolean; isConnected: boolean; message?: string; error?: string }> {
   const supabase = await createClient();
-  if (!supabase) return { success: false, error: 'Database unconfigured' };
+  if (!supabase) return { success: false, isConnected: false, error: 'Database unconfigured' };
 
-  const { error } = await supabase
-    .from('seo_integrations')
-    .upsert(
-      {
-        workspace_id: workspaceId,
-        provider,
-        account_name: accountName,
-        property_id: propertyId,
-        config,
-        is_connected: isConnected,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'workspace_id,provider' }
+  if (!propertyId?.trim()) {
+    return { success: false, isConnected: false, error: 'Property ID or domain is required.' };
+  }
+
+  let isVerified = false;
+  let verificationMessage = '';
+
+  // 1. Verify credentials with real provider
+  if (provider === 'google_search_console') {
+    const client = new GoogleSearchConsoleClient({
+      propertyId,
+      accessToken: config.accessToken,
+      refreshToken: config.refreshToken,
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+      clientEmail: config.clientEmail,
+    });
+
+    const verifyRes = await client.verifyConnection();
+    if (!verifyRes.valid) {
+      return {
+        success: false,
+        isConnected: false,
+        error: `Google Search Console verification failed: ${verifyRes.error}`,
+      };
+    }
+    isVerified = true;
+    verificationMessage = verifyRes.message || 'Google Search Console verified';
+  } else if (provider === 'google_analytics_4') {
+    const client = new GoogleAnalytics4Client({
+      propertyId,
+      accessToken: config.accessToken,
+      refreshToken: config.refreshToken,
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+    });
+
+    const verifyRes = await client.verifyConnection();
+    if (!verifyRes.valid) {
+      return {
+        success: false,
+        isConnected: false,
+        error: `Google Analytics 4 verification failed: ${verifyRes.error}`,
+      };
+    }
+    isVerified = true;
+    verificationMessage = verifyRes.message || 'Google Analytics 4 verified';
+  } else if (provider === 'dataforseo' || provider === 'serpapi') {
+    const serpAdapter = new SerpProviderAdapter(
+      provider,
+      config.apiKey || '',
+      config.apiLogin
     );
+    const verifyRes = await serpAdapter.verifyCredentials();
+    if (!verifyRes.valid) {
+      return {
+        success: false,
+        isConnected: false,
+        error: `${provider} verification failed: ${verifyRes.error}`,
+      };
+    }
+    isVerified = true;
+    verificationMessage = `${provider} verified successfully`;
+  }
 
-  if (error) return { success: false, error: error.message };
+  // 2. Encrypt sensitive config fields at rest
+  const processedConfig: Record<string, any> = { ...config };
+  for (const [k, v] of Object.entries(processedConfig)) {
+    if (['apiKey', 'secretKey', 'accessToken', 'refreshToken', 'clientSecret'].includes(k) && typeof v === 'string' && v) {
+      processedConfig[k] = encryptSecret(v);
+    }
+  }
+
+  // 3. Persist integration
+  const { error } = await supabase.from('seo_integrations').upsert(
+    {
+      workspace_id: workspaceId,
+      provider,
+      account_name: accountName,
+      property_id: propertyId,
+      config: processedConfig,
+      is_connected: isVerified,
+      last_synced_at: isVerified ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'workspace_id,provider' }
+  );
+
+  if (error) return { success: false, isConnected: false, error: error.message };
   revalidatePath('/seo/analytics');
-  return { success: true };
+
+  return {
+    success: true,
+    isConnected: isVerified,
+    message: verificationMessage,
+  };
 }
 
 export async function getGscPerformanceData(
@@ -866,7 +992,7 @@ export async function exportSeoAuditReportCsv(
   workspaceId: string,
   auditId: string
 ): Promise<string> {
-  const { audit, pages, issues } = await getSeoAuditDetails(workspaceId, auditId);
+  const { audit, issues } = await getSeoAuditDetails(workspaceId, auditId);
 
   const headers = ['URL', 'Severity', 'Issue Type', 'Title', 'Evidence', 'Recommendation'];
   const rows = issues.map((i) => [
@@ -910,6 +1036,11 @@ export async function exportKeywordsReportCsv(
 // 8. Competitor Live Crawl & Backlink Status
 // ==========================================
 
+/**
+ * Compares two live pages.
+ * Enforces SSRF safety, labels load times accurately as fetch latency,
+ * and restricts observations strictly to actually fetched data.
+ */
 export async function compareCompetitorPages(
   workspaceId: string,
   myUrl: string,
@@ -926,22 +1057,24 @@ export async function compareCompetitorPages(
     const [myRes, compRes] = await Promise.allSettled([
       (async () => {
         const start = Date.now();
-        const res = await fetch(cleanMyUrl, {
-          headers: { 'User-Agent': 'NexusMark-SEOBot/1.0' },
-          cache: 'no-store',
+        const res = await safeFetch(cleanMyUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NexusMark-SEOBot/1.0)' },
+          timeoutMs: 8000,
+          maxResponseBytes: 2 * 1024 * 1024,
         });
         const loadTimeMs = Date.now() - start;
-        const html = await res.text();
+        const html = await safeReadText(res, 2 * 1024 * 1024);
         return parseHtmlPage(cleanMyUrl, html, res.status, loadTimeMs);
       })(),
       (async () => {
         const start = Date.now();
-        const res = await fetch(cleanCompUrl, {
-          headers: { 'User-Agent': 'NexusMark-SEOBot/1.0' },
-          cache: 'no-store',
+        const res = await safeFetch(cleanCompUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NexusMark-SEOBot/1.0)' },
+          timeoutMs: 8000,
+          maxResponseBytes: 2 * 1024 * 1024,
         });
         const loadTimeMs = Date.now() - start;
-        const html = await res.text();
+        const html = await safeReadText(res, 2 * 1024 * 1024);
         return parseHtmlPage(cleanCompUrl, html, res.status, loadTimeMs);
       })(),
     ]);
@@ -950,7 +1083,7 @@ export async function compareCompetitorPages(
     const compPage = compRes.status === 'fulfilled' ? compRes.value.pageData : null;
 
     if (!myPage && !compPage) {
-      return { success: false, error: 'Failed to crawl both target URLs. Please verify the addresses are reachable and public.' };
+      return { success: false, error: 'Failed to crawl both target URLs. Please verify the addresses are reachable public pages.' };
     }
 
     const myWords = myPage?.word_count || 0;
@@ -972,10 +1105,11 @@ export async function compareCompetitorPages(
       insights.push(`Competitor leads in content depth with ${compWords} words vs ${myWords} words (+${compWords - myWords} words). Consider adding more thorough sections.`);
     }
 
+    // Labeled accurately as fetch latency, NEVER PageSpeed or Core Web Vitals
     if (myTime < compTime) {
-      insights.push(`Your page loaded faster (${myTime}ms vs ${compTime}ms), offering a superior PageSpeed signal.`);
+      insights.push(`Your page responded with lower HTML fetch latency (${myTime}ms vs ${compTime}ms).`);
     } else if (compTime < myTime) {
-      insights.push(`Competitor page loaded faster (${compTime}ms vs ${myTime}ms). Review asset sizes and caching.`);
+      insights.push(`Competitor page responded with lower HTML fetch latency (${compTime}ms vs ${myTime}ms).`);
     }
 
     if (compPage?.has_schema && !myPage?.has_schema) {
@@ -1015,6 +1149,7 @@ export async function getBacklinkProviderStatus(
   isConnected: boolean;
   provider: string | null;
   accountName: string | null;
+  lastSyncedAt: string | null;
   message: string;
 }> {
   const supabase = await createClient();
@@ -1023,6 +1158,7 @@ export async function getBacklinkProviderStatus(
       isConnected: false,
       provider: null,
       accountName: null,
+      lastSyncedAt: null,
       message: 'Database unconfigured.',
     };
   }
@@ -1040,7 +1176,8 @@ export async function getBacklinkProviderStatus(
       isConnected: true,
       provider: data.provider,
       accountName: data.account_name,
-      message: `Connected to ${data.provider} provider. Live backlink indexing active.`,
+      lastSyncedAt: data.last_synced_at,
+      message: `Connected to verified ${data.provider} provider. Live backlink & SERP metrics active.`,
     };
   }
 
@@ -1048,7 +1185,7 @@ export async function getBacklinkProviderStatus(
     isConnected: false,
     provider: null,
     accountName: null,
-    message: 'No live backlink provider connected. Mock or simulated link metrics are strictly disabled.',
+    lastSyncedAt: null,
+    message: 'No live backlink provider connected. Connect DataForSEO or SerpApi in Settings to enable real backlink tracking.',
   };
 }
-

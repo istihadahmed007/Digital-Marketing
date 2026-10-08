@@ -1,10 +1,12 @@
 import { SeoAuditPage, SeoAuditIssue } from '@/lib/types/seo';
+import { safeFetch, safeReadText } from '@/lib/security/ssrf';
 
 export interface CrawlOptions {
   maxPages?: number;
   rateLimitMs?: number;
   customUrls?: string[];
   userAgent?: string;
+  allowedOrigin?: string; // Enforce origin restriction
 }
 
 export interface CrawlResult {
@@ -24,57 +26,143 @@ export function normalizeUrl(inputUrl: string): string {
   return url.replace(/\/+$/, '');
 }
 
+export interface RobotsRule {
+  path: string;
+  allow: boolean;
+}
+
 /**
- * Checks robots.txt permission for the crawler user agent
+ * Checks if a path is allowed given a list of Allow / Disallow rules.
+ * Longest matching path rule takes precedence. If same length, Allow takes precedence.
+ */
+export function isPathAllowedByRules(pathname: string, rules: RobotsRule[]): boolean {
+  if (rules.length === 0) return true;
+
+  let bestMatch: RobotsRule | null = null;
+
+  for (const rule of rules) {
+    // Basic prefix or wildcard match
+    const rulePath = rule.path;
+    if (!rulePath) continue;
+
+    let matched = false;
+    if (rulePath.includes('*') || rulePath.endsWith('$')) {
+      // Regex conversion for wildcards
+      try {
+        const regexPattern = '^' + rulePath.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+        const reg = new RegExp(regexPattern);
+        matched = reg.test(pathname);
+      } catch {
+        matched = pathname.startsWith(rulePath);
+      }
+    } else {
+      matched = pathname.startsWith(rulePath);
+    }
+
+    if (matched) {
+      if (!bestMatch || rulePath.length > bestMatch.path.length) {
+        bestMatch = rule;
+      } else if (rulePath.length === bestMatch.path.length && rule.allow) {
+        bestMatch = rule;
+      }
+    }
+  }
+
+  return bestMatch ? bestMatch.allow : true;
+}
+
+/**
+ * Checks robots.txt permission for the crawler user agent.
+ * Parses user-agent groups, path-specific Allow/Disallow rules, and discovers sitemaps.
  */
 export async function checkRobotsTxt(
   baseUrl: string,
   userAgent: string = 'NexusMark-SEOBot'
-): Promise<{ allowed: boolean; sitemapUrl: string | null }> {
+): Promise<{ allowed: boolean; sitemapUrls: string[] }> {
   try {
     const origin = new URL(baseUrl).origin;
     const robotsUrl = `${origin}/robots.txt`;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
-
-    const res = await fetch(robotsUrl, {
-      signal: controller.signal,
+    const res = await safeFetch(robotsUrl, {
+      timeoutMs: 5000,
       headers: { 'User-Agent': `${userAgent}/1.0` },
-    });
-    clearTimeout(timeout);
+    }).catch(() => null);
 
-    if (!res.ok) {
-      return { allowed: true, sitemapUrl: null };
+    if (!res || !res.ok) {
+      return { allowed: true, sitemapUrls: [] };
     }
 
-    const text = await res.text();
-    let sitemapUrl: string | null = null;
-    let isDisallowed = false;
+    const text = await safeReadText(res, 512 * 1024); // max 512KB for robots.txt
+    const sitemapUrls: string[] = [];
 
     const lines = text.split('\n');
-    let appliesToBot = false;
+    const specificRules: RobotsRule[] = [];
+    const globalRules: RobotsRule[] = [];
+
+    const currentAgents: string[] = [];
 
     for (const rawLine of lines) {
       const line = rawLine.trim();
       if (!line || line.startsWith('#')) continue;
 
-      if (line.toLowerCase().startsWith('user-agent:')) {
-        const agent = line.split(':')[1]?.trim() || '';
-        appliesToBot = agent === '*' || agent.toLowerCase().includes(userAgent.toLowerCase());
-      } else if (line.toLowerCase().startsWith('disallow:') && appliesToBot) {
-        const path = line.split(':')[1]?.trim() || '';
-        if (path === '/') {
-          isDisallowed = true;
+      const colonIdx = line.indexOf(':');
+      if (colonIdx === -1) continue;
+
+      const directive = line.slice(0, colonIdx).trim().toLowerCase();
+      const value = line.slice(colonIdx + 1).trim();
+
+      if (directive === 'user-agent') {
+        currentAgents.push(value.toLowerCase());
+      } else if (directive === 'disallow' || directive === 'allow') {
+        const isAllow = directive === 'allow';
+        const isForSpecific = currentAgents.some((a) => a.includes(userAgent.toLowerCase()));
+        const isForGlobal = currentAgents.some((a) => a === '*');
+
+        if (isForSpecific) {
+          specificRules.push({ path: value || '/', allow: isAllow });
+        } else if (isForGlobal) {
+          globalRules.push({ path: value || '/', allow: isAllow });
         }
-      } else if (line.toLowerCase().startsWith('sitemap:')) {
-        sitemapUrl = line.substring(line.indexOf(':') + 1).trim();
+      } else if (directive === 'sitemap') {
+        if (value.startsWith('http')) {
+          sitemapUrls.push(value);
+        }
       }
     }
 
-    return { allowed: !isDisallowed, sitemapUrl };
+    const activeRules = specificRules.length > 0 ? specificRules : globalRules;
+    const pathname = new URL(baseUrl).pathname || '/';
+    const allowed = isPathAllowedByRules(pathname, activeRules);
+
+    return { allowed, sitemapUrls };
   } catch {
-    return { allowed: true, sitemapUrl: null };
+    return { allowed: true, sitemapUrls: [] };
+  }
+}
+
+/**
+ * Safely fetches URLs from XML sitemap if provided and within origin.
+ */
+export async function parseSitemapUrls(sitemapUrl: string, origin: string, max: number = 20): Promise<string[]> {
+  try {
+    const res = await safeFetch(sitemapUrl, { timeoutMs: 6000 });
+    if (!res.ok) return [];
+
+    const xml = await safeReadText(res, 1024 * 1024);
+    const urls: string[] = [];
+    const locMatches = xml.matchAll(/<loc>([^<]+)<\/loc>/gi);
+
+    for (const match of locMatches) {
+      const loc = match[1]?.trim();
+      if (loc && loc.startsWith(origin)) {
+        urls.push(normalizeUrl(loc));
+        if (urls.length >= max) break;
+      }
+    }
+
+    return urls;
+  } catch {
+    return [];
   }
 }
 
@@ -103,7 +191,7 @@ export function parseHtmlPage(
       severity: 'critical',
       title: `Page returned HTTP error status (${statusCode})`,
       evidence: `HTTP Status: ${statusCode}`,
-      recommendation: `Fix the broken link or configure a 301 redirect to an active URL.`,
+      recommendation: `Fix broken link or configure 301 redirect to active destination.`,
     });
   }
 
@@ -158,7 +246,7 @@ export function parseHtmlPage(
       severity: 'warning',
       title: 'Missing meta description',
       evidence: 'No <meta name="description"> tag detected in HTML head.',
-      recommendation: 'Add a compelling meta description between 120 and 155 characters that describes page value.',
+      recommendation: 'Add a compelling meta description between 120 and 155 characters describing page value.',
     });
   } else if (metaDescriptionLength < 70) {
     issues.push({
@@ -178,7 +266,7 @@ export function parseHtmlPage(
       severity: 'warning',
       title: `Meta description may be truncated (${metaDescriptionLength} chars)`,
       evidence: `${metaDescription.slice(0, 160)}...`,
-      recommendation: 'Shorten to 155 characters or fewer to avoid search engine snippet clipping.',
+      recommendation: 'Shorten to 155 characters or fewer to avoid search snippet clipping.',
     });
   }
 
@@ -194,7 +282,7 @@ export function parseHtmlPage(
       severity: 'warning',
       title: 'Missing canonical URL link',
       evidence: 'No <link rel="canonical"> specified.',
-      recommendation: 'Add a self-referencing canonical URL tag to prevent duplicate content indexing issues.',
+      recommendation: 'Add a self-referencing canonical URL tag to prevent duplicate content indexing.',
     });
   }
 
@@ -223,7 +311,7 @@ export function parseHtmlPage(
       severity: 'notice',
       title: `Multiple <h1> tags found (${h1Matches.length})`,
       evidence: `Found ${h1Matches.length} H1 tags in document.`,
-      recommendation: 'Use a single H1 for the page title and structure sub-topics under H2 and H3 headings.',
+      recommendation: 'Use a single H1 for page title and structure sub-topics with H2 and H3 headings.',
     });
   }
 
@@ -247,7 +335,7 @@ export function parseHtmlPage(
       severity: 'warning',
       title: `${imagesMissingAlt} image(s) missing alt text`,
       evidence: `${imagesMissingAlt} of ${imagesCount} images have no alt attribute.`,
-      recommendation: 'Add descriptive alt text to all informative images for accessibility and image search indexing.',
+      recommendation: 'Add descriptive alt text to informative images for accessibility and image search.',
     });
   }
 
@@ -263,11 +351,11 @@ export function parseHtmlPage(
       severity: 'critical',
       title: 'Page contains "noindex" meta tag',
       evidence: `<meta name="robots" content="${robotsDirectives}">`,
-      recommendation: 'Remove the noindex tag if this page is intended to be found in search engines.',
+      recommendation: 'Remove the noindex tag if this page is intended to be indexed in search engines.',
     });
   }
 
-  // 7. Structured Data (Schema.org / JSON-LD)
+  // 7. Structured Data (JSON-LD)
   const jsonLdMatches = html.match(/<script\s+[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
   const hasSchema = jsonLdMatches.length > 0;
   const structuredDataTypes: string[] = [];
@@ -292,7 +380,7 @@ export function parseHtmlPage(
       severity: 'notice',
       title: 'No structured data (JSON-LD) detected',
       evidence: 'No application/ld+json script blocks found.',
-      recommendation: 'Add schema.org markup (Organization, WebSite, Article, or Product) to be eligible for rich snippets.',
+      recommendation: 'Add schema.org markup (Organization, WebSite, Article, or Product) for rich snippet eligibility.',
     });
   }
 
@@ -313,7 +401,7 @@ export function parseHtmlPage(
       severity: 'warning',
       title: `Thin content detected (${wordCount} words)`,
       evidence: `Body content word count: ${wordCount} words.`,
-      recommendation: 'Provide comprehensive, in-depth copy to answer search intent and rank competitively.',
+      recommendation: 'Provide comprehensive copy to satisfy user search intent.',
     });
   }
 
@@ -376,18 +464,21 @@ export function parseHtmlPage(
 }
 
 /**
- * Main Crawler Runner
- * Crawls a website honoring robots.txt, rate limits, and page limits.
+ * Main Crawler Runner with Origin Restriction, SSRF Guard, and Response Clamping.
  */
 export async function runWebsiteCrawl(
   targetUrl: string,
   options?: CrawlOptions
 ): Promise<CrawlResult> {
-  const maxPages = options?.maxPages || 15;
-  const rateLimitMs = options?.rateLimitMs || 300;
   const normalizedRoot = normalizeUrl(targetUrl);
+  const targetOrigin = options?.allowedOrigin || new URL(normalizedRoot).origin;
 
-  const { allowed, sitemapUrl } = await checkRobotsTxt(normalizedRoot);
+  // Clamp page count between 1 and 50
+  const maxPages = Math.min(50, Math.max(1, options?.maxPages || 15));
+  const rateLimitMs = Math.min(2000, Math.max(100, options?.rateLimitMs || 300));
+
+  // Check robots.txt permissions
+  const { allowed, sitemapUrls } = await checkRobotsTxt(normalizedRoot);
   if (!allowed) {
     return {
       pages: [],
@@ -398,7 +489,7 @@ export async function runWebsiteCrawl(
           issue_type: 'robots_txt_blocked',
           severity: 'critical',
           title: 'Crawl blocked by site robots.txt',
-          evidence: 'Disallow: / matches crawler user-agent.',
+          evidence: 'Robots.txt Disallow rule matched crawler user-agent for this origin.',
           recommendation: 'Update robots.txt permissions to permit audit crawlers.',
         },
       ],
@@ -406,9 +497,31 @@ export async function runWebsiteCrawl(
     };
   }
 
-  const queue: string[] = options?.customUrls && options.customUrls.length > 0
-    ? options.customUrls.map(normalizeUrl)
-    : [normalizedRoot];
+  // Populate initial crawl queue (strictly restricted to target origin)
+  const queue: string[] = [];
+
+  if (options?.customUrls && options.customUrls.length > 0) {
+    for (const u of options.customUrls) {
+      const norm = normalizeUrl(u);
+      if (norm.startsWith(targetOrigin)) {
+        queue.push(norm);
+      }
+    }
+  }
+
+  if (queue.length === 0) {
+    queue.push(normalizedRoot);
+  }
+
+  // Also include discovered sitemap URLs if queue is small
+  if (sitemapUrls.length > 0 && queue.length < maxPages) {
+    for (const sm of sitemapUrls) {
+      const sitemapLinks = await parseSitemapUrls(sm, targetOrigin, maxPages - queue.length);
+      for (const sl of sitemapLinks) {
+        if (!queue.includes(sl)) queue.push(sl);
+      }
+    }
+  }
 
   const visited = new Set<string>();
   const pages: Omit<SeoAuditPage, 'id' | 'audit_id' | 'created_at'>[] = [];
@@ -417,30 +530,33 @@ export async function runWebsiteCrawl(
   while (queue.length > 0 && visited.size < maxPages) {
     const currentUrl = queue.shift()!;
     if (visited.has(currentUrl)) continue;
+
+    // Strict origin boundary enforcement
+    if (!currentUrl.startsWith(targetOrigin)) {
+      continue;
+    }
+
     visited.add(currentUrl);
-
     const startTime = Date.now();
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
 
-      const res = await fetch(currentUrl, {
+    try {
+      const res = await safeFetch(currentUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; NexusMark-SEOBot/1.0; +https://nexusmark.local/bot)',
           'Accept': 'text/html,application/xhtml+xml',
         },
-        signal: controller.signal,
+        timeoutMs: 8000,
+        maxResponseBytes: 2 * 1024 * 1024, // 2MB clamp
       });
-      clearTimeout(timeout);
 
       const loadTimeMs = Date.now() - startTime;
       const contentType = res.headers.get('content-type') || '';
 
       if (!contentType.includes('text/html')) {
-        continue;
+        continue; // Skip non-HTML files (images, PDFs, binaries)
       }
 
-      const html = await res.text();
+      const html = await safeReadText(res, 2 * 1024 * 1024);
       const { pageData, pageIssues, discoveredLinks } = parseHtmlPage(
         currentUrl,
         html,
@@ -451,9 +567,14 @@ export async function runWebsiteCrawl(
       pages.push(pageData);
       allIssues.push(...pageIssues);
 
-      // Add newly discovered internal links to the crawl queue
+      // Add newly discovered internal links matching origin
       for (const link of discoveredLinks) {
-        if (!visited.has(link) && !queue.includes(link) && queue.length + visited.size < maxPages * 2) {
+        if (
+          link.startsWith(targetOrigin) &&
+          !visited.has(link) &&
+          !queue.includes(link) &&
+          queue.length + visited.size < maxPages * 2
+        ) {
           queue.push(link);
         }
       }
@@ -486,7 +607,7 @@ export async function runWebsiteCrawl(
         issue_type: 'network_fetch_error',
         severity: 'critical',
         title: 'Failed to connect to page',
-        evidence: err.name === 'AbortError' ? 'Connection timed out after 6 seconds' : err.message,
+        evidence: err.message || 'Fetch failed',
         recommendation: 'Check server availability, DNS records, and SSL certificate validity.',
       });
     }
@@ -506,8 +627,8 @@ export async function runWebsiteCrawl(
     const warningCount = allIssues.filter((i) => i.severity === 'warning').length;
     const noticeCount = allIssues.filter((i) => i.severity === 'notice').length;
 
-    const penalty = (criticalCount * 12) + (warningCount * 4) + (noticeCount * 1);
-    healthScore = Math.max(10, Math.min(100, Math.round(100 - (penalty / totalPages))));
+    const penalty = criticalCount * 12 + warningCount * 4 + noticeCount * 1;
+    healthScore = Math.max(10, Math.min(100, Math.round(100 - penalty / totalPages)));
   }
 
   return {
