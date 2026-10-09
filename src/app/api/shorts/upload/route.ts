@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
     const contentType = request.headers.get('content-type') || '';
     let workspaceId = 'ws-default';
     let title = '';
@@ -55,8 +57,74 @@ export async function POST(request: NextRequest) {
     let fileSizeBytes = 0;
     let storagePath: string | undefined;
 
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData();
+    // CASE 1: Direct Binary Stream Upload (Bypasses FormData parsing entirely)
+    if (
+      action === 'stream-upload' ||
+      contentType.startsWith('video/') ||
+      contentType === 'application/octet-stream'
+    ) {
+      const fileName = searchParams.get('fileName') || 'upload.mp4';
+      workspaceId = searchParams.get('workspaceId') || 'ws-default';
+      title = (searchParams.get('title') || '').trim() || fileName.replace(/\.[^/.]+$/, '');
+
+      const arrayBuffer = await request.arrayBuffer();
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Empty video payload received.' },
+          { status: 400 }
+        );
+      }
+
+      if (arrayBuffer.byteLength > MAX_VIDEO_SIZE_BYTES) {
+        return NextResponse.json(
+          { success: false, error: `File size exceeds the 500 MB limit (${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)} MB).` },
+          { status: 400 }
+        );
+      }
+
+      fileSizeBytes = arrayBuffer.byteLength;
+      const buffer = Buffer.from(arrayBuffer);
+
+      const storageRes = await persistVideoFile({
+        workspaceId,
+        fileName,
+        buffer,
+        contentType: contentType || 'video/mp4',
+      });
+
+      if (!storageRes.success) {
+        return NextResponse.json(
+          { success: false, error: storageRes.error || 'Failed to save video to storage.' },
+          { status: 500 }
+        );
+      }
+
+      videoUrl = storageRes.url;
+      storagePath = storageRes.storagePath;
+
+      const localPath = path.join(process.cwd(), 'public', 'uploads', 'videos', storagePath || '');
+      if (fs.existsSync(localPath)) {
+        const probe = await probeVideoFile(localPath);
+        if (probe.durationSeconds > 0) {
+          durationSeconds = probe.durationSeconds;
+        }
+      }
+    }
+    // CASE 2: Multipart Form Data (Safely wrapped)
+    else if (contentType.includes('multipart/form-data')) {
+      let formData: FormData;
+      try {
+        formData = await request.formData();
+      } catch (formErr: any) {
+        console.error('Failed to parse body as FormData:', formErr);
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to parse video multipart upload stream. Please use direct cloud upload or check network connection.',
+          },
+          { status: 400 }
+        );
+      }
       workspaceId = (formData.get('workspaceId') as string) || 'ws-default';
       title = ((formData.get('title') as string) || '').trim();
       const rawFile = formData.get('file') as File | null;

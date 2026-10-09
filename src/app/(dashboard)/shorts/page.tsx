@@ -347,61 +347,140 @@ export default function ShortsStudioPage() {
 
     try {
       if (uploadMode === 'file' && selectedFile) {
-        // Real upload via XMLHttpRequest to track network progress accurately
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          const formData = new FormData();
-          formData.append('file', selectedFile);
-          formData.append('title', uploadTitle.trim() || selectedFile.name.replace(/\.[^/.]+$/, ''));
-          formData.append('workspaceId', workspaceId);
+        let directStorageDone = false;
+        let uploadedStoragePath: string | null = null;
 
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const pct = Math.round((event.loaded / event.total) * 85);
-              setUploadProgress(Math.max(5, pct));
-              setUploadStage(`Uploading video data (${Math.round((event.loaded / 1024 / 1024) * 10) / 10} MB / ${Math.round((event.total / 1024 / 1024) * 10) / 10} MB)...`);
+        // Step 1: Attempt direct upload to Supabase Storage via signed URL (bypasses Next.js server limits)
+        try {
+          setUploadStage('Obtaining secure direct storage upload ticket...');
+          const ticketRes = await fetch(
+            `/api/shorts/upload?action=signed-upload-url&fileName=${encodeURIComponent(selectedFile.name)}&workspaceId=${encodeURIComponent(workspaceId)}`
+          );
+          if (ticketRes.ok) {
+            const ticketData = await ticketRes.json();
+            if (ticketData.success && ticketData.signedUrl) {
+              await new Promise<void>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.upload.onprogress = (event) => {
+                  if (event.lengthComputable) {
+                    const pct = Math.round((event.loaded / event.total) * 85);
+                    setUploadProgress(Math.max(5, pct));
+                    setUploadStage(
+                      `Uploading directly to storage (${(event.loaded / 1024 / 1024).toFixed(1)} MB / ${(event.total / 1024 / 1024).toFixed(1)} MB)...`
+                    );
+                  }
+                };
+                xhr.onload = () => {
+                  if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve();
+                  } else {
+                    reject(new Error(`Storage rejected direct upload with status ${xhr.status}`));
+                  }
+                };
+                xhr.onerror = () => reject(new Error('Network error during direct storage upload.'));
+                xhr.open('PUT', ticketData.signedUrl);
+                xhr.setRequestHeader('Content-Type', selectedFile.type || 'video/mp4');
+                xhr.send(selectedFile);
+              });
+
+              directStorageDone = true;
+              uploadedStoragePath = ticketData.storagePath;
             }
-          };
+          }
+        } catch (ticketErr) {
+          console.warn('Direct signed storage upload unavailable, falling back to direct stream:', ticketErr);
+        }
 
-          xhr.onload = async () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const res = JSON.parse(xhr.responseText);
-                setUploadProgress(95);
-                setUploadStage('Transcribing audio & detecting 30–60s viral moments...');
-                await new Promise((r) => setTimeout(r, 600));
+        if (directStorageDone && uploadedStoragePath) {
+          // Tell server storage upload is complete; process project metadata and detect moments
+          setUploadProgress(88);
+          setUploadStage('Transcribing audio & detecting 30–60s viral moments...');
+          const finishRes = await fetch('/api/shorts/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              storagePath: uploadedStoragePath,
+              title: uploadTitle.trim() || selectedFile.name.replace(/\.[^/.]+$/, ''),
+              workspaceId,
+              fileSizeBytes: selectedFile.size,
+            }),
+          });
+          const finishData = await finishRes.json();
+          if (!finishRes.ok || !finishData.success) {
+            throw new Error(finishData.error || 'Failed to complete project processing.');
+          }
 
-                setUploadProgress(100);
-                setUploadStage('Processing complete!');
-                await loadData(workspaceId);
-                if (res.project) {
-                  setSelectedProjectId(res.project.id);
-                  setActiveClipTitle(`Key Takeaway: ${res.project.title}`);
+          setUploadProgress(100);
+          setUploadStage('Processing complete!');
+          await loadData(workspaceId);
+          if (finishData.project) {
+            setSelectedProjectId(finishData.project.id);
+            setActiveClipTitle(`Key Takeaway: ${finishData.project.title}`);
+          }
+          setIsUploadModalOpen(false);
+          setSelectedFile(null);
+          setUploadTitle('');
+        } else {
+          // Fallback: Direct Binary Stream Upload (bypasses FormData parsing)
+          await new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable) {
+                const pct = Math.round((event.loaded / event.total) * 85);
+                setUploadProgress(Math.max(5, pct));
+                setUploadStage(
+                  `Uploading video stream (${(event.loaded / 1024 / 1024).toFixed(1)} MB / ${(event.total / 1024 / 1024).toFixed(1)} MB)...`
+                );
+              }
+            };
+
+            xhr.onload = async () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const res = JSON.parse(xhr.responseText);
+                  setUploadProgress(95);
+                  setUploadStage('Transcribing audio & detecting 30–60s viral moments...');
+                  await new Promise((r) => setTimeout(r, 600));
+
+                  setUploadProgress(100);
+                  setUploadStage('Processing complete!');
+                  await loadData(workspaceId);
+                  if (res.project) {
+                    setSelectedProjectId(res.project.id);
+                    setActiveClipTitle(`Key Takeaway: ${res.project.title}`);
+                  }
+                  setIsUploadModalOpen(false);
+                  setSelectedFile(null);
+                  setUploadTitle('');
+                  resolve();
+                } catch {
+                  reject(new Error('Invalid response received from upload server.'));
                 }
-                setIsUploadModalOpen(false);
-                setSelectedFile(null);
-                setUploadTitle('');
-                resolve();
-              } catch (parseErr) {
-                reject(new Error('Invalid response received from upload server.'));
+              } else {
+                try {
+                  const errData = JSON.parse(xhr.responseText);
+                  reject(new Error(errData.error || `Upload failed with HTTP ${xhr.status}`));
+                } catch {
+                  reject(new Error(`Upload failed with HTTP ${xhr.status}`));
+                }
               }
-            } else {
-              try {
-                const errData = JSON.parse(xhr.responseText);
-                reject(new Error(errData.error || `Upload failed with HTTP ${xhr.status}`));
-              } catch {
-                reject(new Error(`Upload failed with HTTP ${xhr.status}`));
-              }
-            }
-          };
+            };
 
-          xhr.onerror = () => {
-            reject(new Error('Network connection error during upload. Please check your network and retry.'));
-          };
+            xhr.onerror = () => {
+              reject(new Error('Network connection error during upload. Please check your network and retry.'));
+            };
 
-          xhr.open('POST', '/api/shorts/upload');
-          xhr.send(formData);
-        });
+            const streamUrl = `/api/shorts/upload?action=stream-upload&fileName=${encodeURIComponent(
+              selectedFile.name
+            )}&workspaceId=${encodeURIComponent(workspaceId)}&title=${encodeURIComponent(
+              uploadTitle.trim() || selectedFile.name.replace(/\.[^/.]+$/, '')
+            )}`;
+
+            xhr.open('POST', streamUrl);
+            xhr.setRequestHeader('Content-Type', selectedFile.type || 'video/mp4');
+            xhr.send(selectedFile);
+          });
+        }
       } else {
         // Direct Video URL flow
         setUploadProgress(25);

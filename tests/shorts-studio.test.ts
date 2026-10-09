@@ -21,6 +21,8 @@ import {
 import { validateVideoFileUrl } from '../src/lib/video/url-validator';
 import { persistVideoFile } from '../src/lib/video/storage';
 import { createSampleVideoFixture } from './fixtures/sample-video';
+import { NextRequest } from 'next/server';
+import { POST as handleUploadPost } from '../src/app/api/shorts/upload/route';
 import { YouTubeDataApiClient } from '../src/lib/integrations/social/youtube';
 import { MetaGraphApiClient } from '../src/lib/integrations/social/meta';
 
@@ -160,6 +162,28 @@ describe('Shorts Studio — Video Quality, Validation & Publishing Engine', () =
       expect(persistRes.url).toBeDefined();
       expect(persistRes.url.length).toBeGreaterThan(0);
       expect(persistRes.url.includes('.mp4')).toBe(true);
+    });
+
+    it('handles binary stream upload route without FormData parsing errors', async () => {
+      const fixtureBuffer = createSampleVideoFixture();
+      const ws = `ws-stream-${Date.now()}`;
+      const req = new NextRequest(
+        `http://localhost:3000/api/shorts/upload?action=stream-upload&fileName=test.mp4&workspaceId=${ws}&title=Stream+Uploaded`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'video/mp4',
+          },
+          body: new Uint8Array(fixtureBuffer),
+        }
+      );
+
+      const res = await handleUploadPost(req);
+      const json = await res.json();
+      expect(res.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(json.project).toBeDefined();
+      expect(json.project.title).toBe('Stream Uploaded');
     });
   });
 

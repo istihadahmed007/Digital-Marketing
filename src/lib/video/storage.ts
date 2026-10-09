@@ -144,9 +144,17 @@ export async function createSignedVideoUploadUrl(params: {
       return { success: false, error: error?.message || 'Failed to create signed upload URL' };
     }
 
+    let fullSignedUrl = data.signedUrl;
+    if (fullSignedUrl && !fullSignedUrl.startsWith('http')) {
+      const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/+$/, '');
+      if (supabaseUrl) {
+        fullSignedUrl = `${supabaseUrl}/storage/v1${fullSignedUrl.startsWith('/') ? '' : '/'}${fullSignedUrl}`;
+      }
+    }
+
     return {
       success: true,
-      signedUrl: data.signedUrl,
+      signedUrl: fullSignedUrl,
       token: data.token,
       path: data.path,
       storagePath,
