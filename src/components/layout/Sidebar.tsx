@@ -180,10 +180,10 @@ export function Sidebar({
             >
               <div className="flex items-center gap-3">
                 <Video className="w-4 h-4 text-purple-500" />
-                <span>Shorts Studio</span>
+                <span>Video Studio</span>
               </div>
               <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                New
+                Shorts
               </span>
             </Link>
 

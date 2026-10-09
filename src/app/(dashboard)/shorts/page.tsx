@@ -440,10 +440,10 @@ export default function ShortsStudioPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-              Shorts Studio
+              Video Studio
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Turn Long Videos into 30–60s Shorts
+              Video Studio: Turn Long Videos into 30–60s Shorts
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">

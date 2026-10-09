@@ -103,7 +103,7 @@ export default async function DashboardPage() {
             className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition-all shadow-xs"
           >
             <Video className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-            <span>Make Shorts</span>
+            <span>Video Studio</span>
           </Link>
         </div>
       </div>
@@ -184,11 +184,11 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Shorts Studio Clips */}
+        {/* Video Studio Clips */}
         <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              Shorts Created
+              Video Studio
             </span>
             <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
               <Video className="w-4 h-4" />
@@ -205,7 +205,7 @@ export default async function DashboardPage() {
               href="/shorts"
               className="text-purple-600 dark:text-purple-400 font-semibold hover:underline flex items-center gap-0.5"
             >
-              <span>Open Shorts Studio</span>
+              <span>Open Video Studio</span>
               <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>
