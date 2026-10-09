@@ -71,6 +71,29 @@ function convertStepsToGraph(
   return { nodes, edges };
 }
 
+function normalizeWorkflowRow(item: any): AutomationWorkflow {
+  let nodes = item.nodes;
+  let edges = item.edges;
+
+  // Backward compatibility conversion
+  if ((!nodes || nodes.length === 0) && Array.isArray(item.steps) && item.steps.length > 0) {
+    const converted = convertStepsToGraph(item.trigger_type, item.trigger_config, item.steps);
+    nodes = converted.nodes;
+    edges = converted.edges;
+  }
+
+  const resolvedTriggerType = (item.trigger_config?.actual_trigger_type || item.trigger_type) as AutomationTriggerType;
+
+  return {
+    ...item,
+    trigger_type: resolvedTriggerType,
+    nodes: nodes || [],
+    edges: edges || [],
+    status: item.status || (item.is_active ? 'active' : 'draft'),
+    execution_count: item.workflow_executions?.[0]?.count ?? 0,
+  } as AutomationWorkflow;
+}
+
 export async function getWorkflows(workspaceId: string): Promise<AutomationWorkflow[]> {
   const supabase = await createClient();
   if (!supabase) return [];
@@ -97,25 +120,7 @@ export async function getWorkflows(workspaceId: string): Promise<AutomationWorkf
     return [];
   }
 
-  return data.map((item: any) => {
-    let nodes = item.nodes;
-    let edges = item.edges;
-
-    // Backward compatibility conversion
-    if ((!nodes || nodes.length === 0) && Array.isArray(item.steps) && item.steps.length > 0) {
-      const converted = convertStepsToGraph(item.trigger_type, item.trigger_config, item.steps);
-      nodes = converted.nodes;
-      edges = converted.edges;
-    }
-
-    return {
-      ...item,
-      nodes: nodes || [],
-      edges: edges || [],
-      status: item.status || (item.is_active ? 'active' : 'draft'),
-      execution_count: item.workflow_executions?.[0]?.count ?? 0,
-    };
-  }) as AutomationWorkflow[];
+  return data.map(normalizeWorkflowRow);
 }
 
 export async function getWorkflow(
@@ -134,21 +139,7 @@ export async function getWorkflow(
 
   if (error || !data) return null;
 
-  let nodes = data.nodes;
-  let edges = data.edges;
-
-  if ((!nodes || nodes.length === 0) && Array.isArray(data.steps) && data.steps.length > 0) {
-    const converted = convertStepsToGraph(data.trigger_type, data.trigger_config, data.steps);
-    nodes = converted.nodes;
-    edges = converted.edges;
-  }
-
-  return {
-    ...data,
-    nodes: nodes || [],
-    edges: edges || [],
-    status: data.status || (data.is_active ? 'active' : 'draft'),
-  } as AutomationWorkflow;
+  return normalizeWorkflowRow(data);
 }
 
 export async function createWorkflow(
@@ -169,7 +160,7 @@ export async function createWorkflow(
   if (!user) return { success: false, error: 'Unauthorized' };
 
   const name = payload.name?.trim() || 'Untitled Workflow';
-  const triggerType = payload.trigger_type || 'manual';
+  const triggerType = payload.trigger_type || 'contact_created';
 
   let defaultGraph: WorkflowGraph = payload.graph || {
     nodes: [
@@ -197,38 +188,57 @@ export async function createWorkflow(
   const webhookSlug = `flow-${crypto.randomBytes(6).toString('hex')}`;
   const webhookToken = crypto.randomBytes(16).toString('hex');
 
+  const insertPayload: Record<string, any> = {
+    workspace_id: workspaceId,
+    name,
+    description: payload.description || null,
+    trigger_type: triggerType,
+    trigger_config: {},
+    steps: payload.steps || [],
+    nodes: defaultGraph.nodes,
+    edges: defaultGraph.edges,
+    viewport: defaultGraph.viewport || { x: 0, y: 0, zoom: 1 },
+    status: payload.is_active ? 'active' : 'draft',
+    is_active: payload.is_active ?? false,
+    version: 1,
+    webhook_slug: webhookSlug,
+    webhook_token: webhookToken,
+    published_by: user.id,
+  };
+
   let { data, error } = await supabase
     .from('automation_workflows')
-    .insert({
-      workspace_id: workspaceId,
-      name,
-      description: payload.description || null,
-      trigger_type: triggerType,
-      trigger_config: {},
-      steps: payload.steps || [],
-      nodes: defaultGraph.nodes,
-      edges: defaultGraph.edges,
-      viewport: defaultGraph.viewport || { x: 0, y: 0, zoom: 1 },
-      status: payload.is_active ? 'active' : 'draft',
-      is_active: payload.is_active ?? false,
-      version: 1,
-      webhook_slug: webhookSlug,
-      webhook_token: webhookToken,
-      published_by: user.id,
-    })
+    .insert(insertPayload)
     .select()
     .single();
 
+  // If DB check constraint violation occurs (legacy DB expecting only 4 triggers)
+  if (error && error.message.includes('automation_workflows_trigger_type_check')) {
+    insertPayload.trigger_type = 'contact_created';
+    insertPayload.trigger_config = {
+      ...(insertPayload.trigger_config || {}),
+      actual_trigger_type: triggerType,
+    };
+    const retry = await supabase
+      .from('automation_workflows')
+      .insert(insertPayload)
+      .select()
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
+
   if (error && (error.message.includes('edges') || error.message.includes('schema cache') || error.message.includes('column'))) {
     // Fallback if visual workflow migration columns are not yet migrated in Supabase
+    const isLegacyTrigger = ['form_submission', 'contact_created', 'deal_stage_changed', 'tag_added'].includes(triggerType);
     const fallbackRes = await supabase
       .from('automation_workflows')
       .insert({
         workspace_id: workspaceId,
         name,
         description: payload.description || null,
-        trigger_type: triggerType,
-        trigger_config: {},
+        trigger_type: isLegacyTrigger ? triggerType : 'contact_created',
+        trigger_config: isLegacyTrigger ? {} : { actual_trigger_type: triggerType },
         steps: payload.steps || [],
         is_active: payload.is_active ?? false,
       })
@@ -257,7 +267,7 @@ export async function createWorkflow(
   }
 
   revalidatePath('/automations');
-  return { success: true, workflow: data as AutomationWorkflow };
+  return { success: true, workflow: normalizeWorkflowRow(data) };
 }
 
 export async function saveWorkflowGraph(
@@ -310,7 +320,7 @@ export async function saveWorkflowGraph(
     updateData.trigger_config = triggerNode.data || {};
   }
 
-  const { data: updatedWf, error: updateErr } = await supabase
+  let { data: updatedWf, error: updateErr } = await supabase
     .from('automation_workflows')
     .update(updateData)
     .eq('workspace_id', workspaceId)
@@ -318,26 +328,50 @@ export async function saveWorkflowGraph(
     .select()
     .single();
 
+  // Fallback if DB check constraint is violated
+  if (updateErr && updateErr.message.includes('automation_workflows_trigger_type_check')) {
+    if (triggerNode) {
+      updateData.trigger_type = 'contact_created';
+      updateData.trigger_config = {
+        ...(triggerNode.data || {}),
+        actual_trigger_type: triggerNode.type,
+      };
+    }
+    const retry = await supabase
+      .from('automation_workflows')
+      .update(updateData)
+      .eq('workspace_id', workspaceId)
+      .eq('id', id)
+      .select()
+      .single();
+    updatedWf = retry.data;
+    updateErr = retry.error;
+  }
+
   if (updateErr) {
     return { success: false, error: updateErr.message };
   }
 
   // Audit entry
-  await supabase.from('workflow_audit_logs').insert({
-    workspace_id: workspaceId,
-    workflow_id: id,
-    user_id: user.id,
-    action: 'updated',
-    version: newVersion,
-    details: {
-      nodeCount: payload.graph.nodes.length,
-      edgeCount: payload.graph.edges.length,
-    },
-  });
+  try {
+    await supabase.from('workflow_audit_logs').insert({
+      workspace_id: workspaceId,
+      workflow_id: id,
+      user_id: user.id,
+      action: 'updated',
+      version: newVersion,
+      details: {
+        nodeCount: payload.graph.nodes.length,
+        edgeCount: payload.graph.edges.length,
+      },
+    });
+  } catch {
+    // Table may not exist yet
+  }
 
   revalidatePath('/automations');
   revalidatePath(`/automations/${id}`);
-  return { success: true, workflow: updatedWf as AutomationWorkflow };
+  return { success: true, workflow: normalizeWorkflowRow(updatedWf) };
 }
 
 export async function publishWorkflow(
@@ -769,12 +803,18 @@ export async function dispatchCrmEventTriggers(
     .from('automation_workflows')
     .select('*')
     .eq('workspace_id', workspaceId)
-    .eq('trigger_type', triggerType)
     .eq('is_active', true);
 
   if (!workflows || workflows.length === 0) return;
 
-  for (const wf of workflows) {
+  const matchingWorkflows = workflows.filter((wf: any) => {
+    const actual = wf.trigger_config?.actual_trigger_type || wf.trigger_type;
+    return actual === triggerType;
+  });
+
+  if (matchingWorkflows.length === 0) return;
+
+  for (const wf of matchingWorkflows) {
     // Stage check for deal_stage_changed
     if (triggerType === 'deal_stage_changed' && wf.trigger_config?.target_stage) {
       if (
@@ -857,6 +897,25 @@ export async function updateWorkflow(
     .select()
     .single();
 
+  if (error && error.message.includes('automation_workflows_trigger_type_check')) {
+    if (payload.trigger_type) {
+      updateData.trigger_type = 'contact_created';
+      updateData.trigger_config = {
+        ...(payload.trigger_config || {}),
+        actual_trigger_type: payload.trigger_type,
+      };
+      const retry = await supabase
+        .from('automation_workflows')
+        .update(updateData)
+        .eq('workspace_id', workspaceId)
+        .eq('id', id)
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
+  }
+
   if (error && (error.message.includes('edges') || error.message.includes('schema cache') || error.message.includes('column'))) {
     delete updateData.nodes;
     delete updateData.edges;
@@ -877,7 +936,7 @@ export async function updateWorkflow(
   if (error) return { success: false, error: error.message };
 
   revalidatePath('/automations');
-  return { success: true, workflow: data as AutomationWorkflow };
+  return { success: true, workflow: normalizeWorkflowRow(data) };
 }
 
 export async function testRunWorkflow(

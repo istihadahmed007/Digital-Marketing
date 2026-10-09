@@ -247,8 +247,12 @@ export function AutomationModal({
               >
                 <option value="form_submission">Form Submitted (New lead captures)</option>
                 <option value="contact_created">Contact Created (New prospect added)</option>
+                <option value="contact_updated">Contact Updated (Profile/Lifecycle change)</option>
                 <option value="deal_stage_changed">Deal Stage Changed (e.g. Won or Proposal)</option>
                 <option value="tag_added">Tag Added to Contact</option>
+                <option value="schedule">Scheduled / Time Trigger (Periodic automation)</option>
+                <option value="webhook_incoming">Incoming Webhook (External API triggers)</option>
+                <option value="manual">Manual Execution (On-demand runs)</option>
               </select>
             </div>
           </div>

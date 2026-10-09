@@ -255,7 +255,16 @@ create table if not exists public.automation_workflows (
     workspace_id uuid not null references public.workspaces(id) on delete cascade,
     name text not null,
     description text,
-    trigger_type text not null check (trigger_type in ('form_submission', 'contact_created', 'deal_stage_changed', 'tag_added')),
+    trigger_type text not null check (trigger_type in (
+        'form_submission',
+        'contact_created',
+        'contact_updated',
+        'deal_stage_changed',
+        'tag_added',
+        'manual',
+        'schedule',
+        'webhook_incoming'
+    )),
     trigger_config jsonb not null default '{}'::jsonb,
     steps jsonb not null default '[]'::jsonb,
     is_active boolean not null default false,

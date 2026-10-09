@@ -65,11 +65,14 @@ export async function GET(request: NextRequest) {
   }
 
   // 2. Scheduled Triggers Check (run active workflows with 'schedule' trigger)
-  const { data: scheduledWorkflows } = await adminSupabase
+  const { data: allActiveWorkflows } = await adminSupabase
     .from('automation_workflows')
     .select('*')
-    .eq('trigger_type', 'schedule')
     .eq('status', 'active');
+
+  const scheduledWorkflows = (allActiveWorkflows || []).filter(
+    (wf: any) => (wf.trigger_config?.actual_trigger_type || wf.trigger_type) === 'schedule'
+  );
 
   let scheduledRunsCount = 0;
   if (scheduledWorkflows && scheduledWorkflows.length > 0) {

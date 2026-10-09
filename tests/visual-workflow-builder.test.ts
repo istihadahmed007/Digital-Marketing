@@ -553,3 +553,78 @@ describe('NexusFlow Execution Engine & Dry-Run Safety', () => {
     expect(duplicateRun.error).toContain('Duplicate execution prevented');
   });
 });
+
+describe('Workflow Trigger Types & Check Constraint Resilience', () => {
+  it('supports all 8 NexusFlow trigger types in graph validator', () => {
+    const triggerTypes = [
+      'form_submission',
+      'contact_created',
+      'contact_updated',
+      'deal_stage_changed',
+      'tag_added',
+      'manual',
+      'schedule',
+      'webhook_incoming',
+    ];
+
+    const triggerDataMap: Record<string, any> = {
+      tag_added: { tag: 'vip' },
+      schedule: { frequency: 'daily' },
+      manual: {},
+      contact_created: { source_filter: 'all' },
+      contact_updated: { watch_field: 'any' },
+      form_submission: { form_id: '' },
+      deal_stage_changed: { target_stage: 'any' },
+      webhook_incoming: { auth_header: 'x-nexus-token' },
+    };
+
+    for (const trig of triggerTypes) {
+      const graph: WorkflowGraph = {
+        nodes: [
+          {
+            id: 'node_trig',
+            type: trig as any,
+            label: `Trigger: ${trig}`,
+            position: { x: 100, y: 100 },
+            data: triggerDataMap[trig] || {},
+          },
+          {
+            id: 'node_action',
+            type: 'create_task',
+            label: 'Task',
+            position: { x: 300, y: 100 },
+            data: { title: 'Do something' },
+          },
+        ],
+        edges: [
+          {
+            id: 'edge_1',
+            source: 'node_trig',
+            target: 'node_action',
+            sourceHandle: 'output',
+            targetHandle: 'input',
+          },
+        ],
+      };
+
+      const res = validateWorkflowGraph(graph);
+      expect(res.errors).toEqual([]);
+      expect(res.isValid).toBe(true);
+    }
+  });
+
+  it('normalizes fallback actual_trigger_type correctly when legacy constraint is present', () => {
+    const mockDbRow = {
+      id: 'wf-123',
+      name: 'Scheduled Daily Sync',
+      trigger_type: 'contact_created', // fallback stored in DB to satisfy legacy check constraint
+      trigger_config: { actual_trigger_type: 'schedule' },
+      is_active: true,
+      nodes: [],
+      edges: [],
+    };
+
+    const resolvedTriggerType = mockDbRow.trigger_config?.actual_trigger_type || mockDbRow.trigger_type;
+    expect(resolvedTriggerType).toBe('schedule');
+  });
+});

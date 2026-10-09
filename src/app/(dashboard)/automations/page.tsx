@@ -97,7 +97,7 @@ export default function AutomationsPage() {
       const res = await createWorkflow(workspaceId, {
         name: 'New Visual Workflow',
         description: 'Automated event-driven execution pipeline',
-        trigger_type: 'manual',
+        trigger_type: 'contact_created',
       });
       if (res.success && res.workflow) {
         router.push(`/automations/${res.workflow.id}`);
