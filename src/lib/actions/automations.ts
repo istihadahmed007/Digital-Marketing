@@ -18,6 +18,13 @@ import { ResendEmailProvider } from '@/lib/integrations/email/resend';
 import { decryptSecret } from '@/lib/security/crypto';
 import crypto from 'crypto';
 
+const LEGACY_ALLOWED_TRIGGERS = new Set<string>([
+  'form_submission',
+  'contact_created',
+  'deal_stage_changed',
+  'tag_added',
+]);
+
 /**
  * Converts legacy linear steps into a graph if nodes are not present.
  */
@@ -188,12 +195,16 @@ export async function createWorkflow(
   const webhookSlug = `flow-${crypto.randomBytes(6).toString('hex')}`;
   const webhookToken = crypto.randomBytes(16).toString('hex');
 
+  const isLegacyAllowed = LEGACY_ALLOWED_TRIGGERS.has(triggerType);
+  const dbTriggerType = isLegacyAllowed ? triggerType : 'contact_created';
+  const dbTriggerConfig = isLegacyAllowed ? {} : { actual_trigger_type: triggerType };
+
   const insertPayload: Record<string, any> = {
     workspace_id: workspaceId,
     name,
     description: payload.description || null,
-    trigger_type: triggerType,
-    trigger_config: {},
+    trigger_type: dbTriggerType,
+    trigger_config: dbTriggerConfig,
     steps: payload.steps || [],
     nodes: defaultGraph.nodes,
     edges: defaultGraph.edges,
@@ -212,8 +223,8 @@ export async function createWorkflow(
     .select()
     .single();
 
-  // If DB check constraint violation occurs (legacy DB expecting only 4 triggers)
-  if (error && error.message.includes('automation_workflows_trigger_type_check')) {
+  // Defensive fallback if DB check constraint is triggered
+  if (error && (error.message.includes('automation_workflows_trigger_type_check') || error.code === '23514')) {
     insertPayload.trigger_type = 'contact_created';
     insertPayload.trigger_config = {
       ...(insertPayload.trigger_config || {}),
@@ -316,8 +327,12 @@ export async function saveWorkflowGraph(
   if (payload.name) updateData.name = payload.name.trim();
   if (payload.description !== undefined) updateData.description = payload.description?.trim() || null;
   if (triggerNode) {
-    updateData.trigger_type = triggerNode.type;
-    updateData.trigger_config = triggerNode.data || {};
+    const isLegacy = LEGACY_ALLOWED_TRIGGERS.has(triggerNode.type);
+    updateData.trigger_type = isLegacy ? triggerNode.type : 'contact_created';
+    updateData.trigger_config = {
+      ...(triggerNode.data || {}),
+      actual_trigger_type: triggerNode.type,
+    };
   }
 
   let { data: updatedWf, error: updateErr } = await supabase
@@ -329,7 +344,7 @@ export async function saveWorkflowGraph(
     .single();
 
   // Fallback if DB check constraint is violated
-  if (updateErr && updateErr.message.includes('automation_workflows_trigger_type_check')) {
+  if (updateErr && (updateErr.message.includes('automation_workflows_trigger_type_check') || updateErr.code === '23514')) {
     if (triggerNode) {
       updateData.trigger_type = 'contact_created';
       updateData.trigger_config = {
@@ -888,6 +903,14 @@ export async function updateWorkflow(
   }
   if (payload.nodes !== undefined) updateData.nodes = payload.nodes;
   if (payload.edges !== undefined) updateData.edges = payload.edges;
+  if (payload.trigger_type !== undefined) {
+    const isLegacy = LEGACY_ALLOWED_TRIGGERS.has(payload.trigger_type);
+    updateData.trigger_type = isLegacy ? payload.trigger_type : 'contact_created';
+    updateData.trigger_config = {
+      ...(payload.trigger_config || {}),
+      actual_trigger_type: payload.trigger_type,
+    };
+  }
 
   let { data, error } = await supabase
     .from('automation_workflows')
@@ -897,7 +920,7 @@ export async function updateWorkflow(
     .select()
     .single();
 
-  if (error && error.message.includes('automation_workflows_trigger_type_check')) {
+  if (error && (error.message.includes('automation_workflows_trigger_type_check') || error.code === '23514')) {
     if (payload.trigger_type) {
       updateData.trigger_type = 'contact_created';
       updateData.trigger_config = {
