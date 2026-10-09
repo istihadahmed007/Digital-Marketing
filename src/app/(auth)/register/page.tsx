@@ -44,9 +44,17 @@ export default function RegisterPage() {
     }
 
     try {
+      const siteUrl = (
+        process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+      ).replace(/\/+$/, '');
+      const emailRedirectTo = `${siteUrl}/auth/callback?next=/workspaces/new`;
+
       const { data, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
+        options: {
+          emailRedirectTo,
+        },
       });
 
       if (authError) {

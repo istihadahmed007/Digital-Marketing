@@ -6,16 +6,21 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const next = searchParams.get('next') || '/dashboard';
 
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') ||
+    (forwardedHost ? `${forwardedProto}://${forwardedHost}` : origin);
+
   if (code) {
     const supabase = await createClient();
     if (supabase) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
-        return NextResponse.redirect(`${origin}${next}`);
+        return NextResponse.redirect(`${siteUrl}${next.startsWith('/') ? next : `/${next}`}`);
       }
     }
   }
 
   // Return to login with error
-  return NextResponse.redirect(`${origin}/login?error=auth-callback-failed`);
+  return NextResponse.redirect(`${siteUrl}/login?error=auth-callback-failed`);
 }
