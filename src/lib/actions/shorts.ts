@@ -15,6 +15,9 @@ import { YouTubeDataApiClient } from '@/lib/integrations/social/youtube';
 import { MetaGraphApiClient } from '@/lib/integrations/social/meta';
 import { decryptSecret } from '@/lib/security/crypto';
 
+import { suggestCoherentMoments } from '@/lib/video/processor';
+import { renderVerticalShort } from '@/lib/video/renderer';
+
 function safeRevalidate(path: string) {
   try {
     revalidatePath(path);
@@ -23,7 +26,7 @@ function safeRevalidate(path: string) {
   }
 }
 
-// In-memory workspace fallback cache when PostgreSQL tables are being provisioned
+// In-memory workspace fallback cache for isolated testing and local resilience
 const memoryStore: {
   projects: Map<string, ShortsProject[]>;
   clips: Map<string, ShortsClip[]>;
@@ -36,95 +39,14 @@ const memoryStore: {
 
 function getWorkspaceProjects(wsId: string): ShortsProject[] {
   if (!memoryStore.projects.has(wsId)) {
-    // Seed initial demo project so first-time users can immediately preview the studio
-    const initialDemoProject: ShortsProject = {
-      id: `proj-demo-${wsId.slice(0, 8)}`,
-      workspace_id: wsId,
-      title: 'Customer Onboarding & Growth Masterclass',
-      source_video_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      duration_seconds: 184,
-      aspect_ratio: '16:9',
-      status: 'ready',
-      progress: 100,
-      transcript: [
-        {
-          id: 'seg-1',
-          start: 0,
-          end: 14.5,
-          text: 'Welcome everyone! In this masterclass we are going to dive straight into turning raw leads into active lifelong customers.',
-        },
-        {
-          id: 'seg-2',
-          start: 15.0,
-          end: 52.0,
-          text: 'The secret is not spending more on acquisition ads. The secret is automated follow-ups within the first sixty seconds of signup. When you reach a lead inside one minute, your conversion probability skyrockets by three hundred percent.',
-        },
-        {
-          id: 'seg-3',
-          start: 55.0,
-          end: 98.0,
-          text: 'Next, let us look at your pipeline stages. Most teams have seven or eight complex stages that confuse sales reps. You only need four clear milestones: New Lead, Qualified Demo, Proposal Sent, and Closed Won.',
-        },
-        {
-          id: 'seg-4',
-          start: 102.0,
-          end: 145.0,
-          text: 'Finally, repurposing long videos into vertical Shorts allows you to dominate YouTube and Facebook algorithms without filming thirty separate pieces of content each week.',
-        },
-      ],
-      created_at: new Date(Date.now() - 3600000).toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    memoryStore.projects.set(wsId, [initialDemoProject]);
+    memoryStore.projects.set(wsId, []);
   }
   return memoryStore.projects.get(wsId)!;
 }
 
 function getWorkspaceClips(wsId: string): ShortsClip[] {
   if (!memoryStore.clips.has(wsId)) {
-    const projects = getWorkspaceProjects(wsId);
-    const demoProj = projects[0];
-    const initialClip: ShortsClip = {
-      id: `clip-demo-${wsId.slice(0, 8)}`,
-      workspace_id: wsId,
-      project_id: demoProj.id,
-      title: 'The 60-Second Follow-up Secret That 3x Conversions',
-      caption: 'Why speed to lead is the single most profitable growth lever in 2026. #Shorts #GrowthHacks',
-      start_time: 15.0,
-      end_time: 52.0,
-      duration_seconds: 37.0,
-      virality_score: 94,
-      hook_summary: 'High energy revelation on 60-second follow-up response times.',
-      crop_mode: 'blur_padding',
-      subtitles_enabled: true,
-      subtitles_style: {
-        fontSize: 38,
-        color: '#FFFFFF',
-        background: 'rgba(0,0,0,0.75)',
-        fontFamily: 'Inter',
-        positionY: 72,
-      },
-      render_status: 'rendered',
-      render_progress: 100,
-      rendered_video_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      thumbnail_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',
-      validation_status: 'passed',
-      validation_details: {
-        passed: true,
-        durationSeconds: 37.0,
-        aspectRatio: '9:16',
-        width: 1080,
-        height: 1920,
-        hasAudio: true,
-        hasVideo: true,
-        decodedSuccessfully: true,
-        errors: [],
-        warnings: [],
-      },
-      created_at: new Date(Date.now() - 1800000).toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    memoryStore.clips.set(wsId, [initialClip]);
+    memoryStore.clips.set(wsId, []);
   }
   return memoryStore.clips.get(wsId)!;
 }
@@ -178,32 +100,11 @@ export async function createShortsProject(
     sampleTranscript?: TranscriptSegment[];
   }
 ): Promise<{ success: boolean; project?: ShortsProject; error?: string }> {
-  const duration = data.durationSeconds || 120;
-
-  // Generate or use transcript
-  const transcript: TranscriptSegment[] = data.sampleTranscript || [
-    {
-      id: 'seg-1',
-      start: 0,
-      end: 18,
-      text: `Let's break down the core mechanics of ${data.title}. Here is why this works so effectively for modern growth.`,
-    },
-    {
-      id: 'seg-2',
-      start: 18.5,
-      end: 55.0,
-      text: 'When we tested this across several customer cohorts, engagement increased dramatically. You never want to over-complicate your workflow.',
-    },
-    {
-      id: 'seg-3',
-      start: 56.0,
-      end: 98.0,
-      text: 'Focus on one clear action item per week. Consistency is what separates the top 1% of digital marketing brands.',
-    },
-  ];
+  const duration = data.durationSeconds || 60;
+  const transcript: TranscriptSegment[] = data.sampleTranscript || [];
 
   const newProject: ShortsProject = {
-    id: `proj-${Date.now()}`,
+    id: `proj-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     workspace_id: workspaceId,
     title: data.title,
     source_video_url: data.sourceVideoUrl,
@@ -219,9 +120,12 @@ export async function createShortsProject(
   const supabase = await createClient();
   if (supabase) {
     try {
-      await supabase.from('shorts_projects').insert(newProject);
-    } catch {
-      // Continue with memory store fallback
+      const { error } = await supabase.from('shorts_projects').insert(newProject);
+      if (error) {
+        console.error('Error persisting shorts_project in Supabase:', error.message);
+      }
+    } catch (err: any) {
+      console.error('Exception persisting shorts_project in Supabase:', err.message);
     }
   }
 
@@ -245,61 +149,11 @@ export async function generateClipSuggestions(
     return { success: false, suggestions: [], error: 'Project not found.' };
   }
 
-  const suggestions: Partial<ShortsClip>[] = [];
-
-  // Algorithm: Scan transcript segments and bundle into 30-60 second clips
-  let currentStart = 15;
-  const targetMoments = [
-    {
-      title: 'The #1 Mistake Most Creators Make',
-      caption: 'Stop losing 70% of viewers in the first 3 seconds. Try this hook formula instead! #Shorts #CreatorTips',
-      duration: 38,
-      hook: 'Immediate contrarian hook followed by practical advice.',
-      score: 96,
-    },
-    {
-      title: 'Simple Strategy That 3x Our Revenue',
-      caption: 'We replaced complex funnels with this 60-second follow-up routine. Full breakdown here. #BusinessGrowth',
-      duration: 44,
-      hook: 'Data-driven result breakdown with high retention.',
-      score: 91,
-    },
-    {
-      title: 'Watch This Before You Launch Your Next Campaign',
-      caption: 'The single most overlooked setting in your marketing dashboard. #MarketingHacks #Shorts',
-      duration: 32,
-      hook: 'Urgency-based opener with step-by-step guidance.',
-      score: 88,
-    },
-  ];
-
-  for (const moment of targetMoments) {
-    const end = Math.min(project.duration_seconds || 120, currentStart + moment.duration);
-    suggestions.push({
-      project_id: projectId,
-      workspace_id: workspaceId,
-      title: moment.title,
-      caption: moment.caption,
-      start_time: currentStart,
-      end_time: end,
-      duration_seconds: end - currentStart,
-      virality_score: moment.score,
-      hook_summary: moment.hook,
-      crop_mode: 'blur_padding',
-      subtitles_enabled: true,
-      subtitles_style: {
-        fontSize: 38,
-        color: '#FFFFFF',
-        background: 'rgba(0,0,0,0.75)',
-        fontFamily: 'Inter',
-        positionY: 72,
-      },
-      render_status: 'draft',
-      render_progress: 0,
-      validation_status: 'unverified',
-    });
-    currentStart = Math.min(project.duration_seconds - 30, currentStart + 40);
-  }
+  const suggestions = suggestCoherentMoments(
+    project.transcript || [],
+    project.duration_seconds || 60,
+    project.title
+  );
 
   return { success: true, suggestions };
 }
@@ -345,18 +199,11 @@ export async function saveShortsClip(
   workspaceId: string,
   clipData: Partial<ShortsClip>
 ): Promise<{ success: boolean; clip?: ShortsClip; error?: string }> {
-  const startTime = Number(clipData.start_time || 0);
-  const endTime = Number(clipData.end_time || 30);
-  const duration = endTime - startTime;
+  const startTime = Number(clipData.start_time ?? 0);
+  const endTime = Number(clipData.end_time ?? (startTime + (clipData.duration_seconds || 30)));
+  const duration = Number(clipData.duration_seconds || (endTime - startTime));
 
-  if (duration < 15 || duration > 60) {
-    return {
-      success: false,
-      error: `Invalid clip duration (${duration.toFixed(1)}s). Shorts and Reels require between 15.0 and 60.0 seconds.`,
-    };
-  }
-
-  // Pre-validate clip
+  // Pre-validate clip for publishing readiness
   const validation = validateVideoClip({
     durationSeconds: duration,
     width: 1080,
@@ -366,7 +213,8 @@ export async function saveShortsClip(
     isDecoded: true,
   });
 
-  const existingId = clipData.id || `clip-${Date.now()}`;
+  const existingId =
+    clipData.id || `clip-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const newClip: ShortsClip = {
     id: existingId,
     workspace_id: workspaceId,
@@ -387,10 +235,10 @@ export async function saveShortsClip(
       fontFamily: 'Inter',
       positionY: 72,
     },
-    render_status: clipData.render_status || 'rendered',
-    render_progress: 100,
-    rendered_video_url: clipData.rendered_video_url || 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    thumbnail_url: clipData.thumbnail_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',
+    render_status: clipData.render_status || 'draft',
+    render_progress: clipData.render_progress ?? 0,
+    rendered_video_url: clipData.rendered_video_url || null,
+    thumbnail_url: clipData.thumbnail_url || null,
     validation_status: validation.passed ? 'passed' : 'failed',
     validation_details: validation,
     created_at: clipData.created_at || new Date().toISOString(),
@@ -439,6 +287,74 @@ export async function deleteShortsClip(
 
   safeRevalidate('/shorts');
   return { success: true };
+}
+
+/**
+ * Renders an authentic vertical 1080x1920 (9:16) MP4 video clip from source video using FFmpeg.
+ * Applies selected crop mode and subtitles, and verifies real media streams and decoding.
+ */
+export async function renderShortsClipAction(
+  workspaceId: string,
+  data: {
+    clipId: string;
+    projectId: string;
+    title: string;
+    caption?: string;
+    startTime: number;
+    endTime: number;
+    cropMode?: 'blur_padding' | 'smart_crop' | 'fit';
+    subtitlesEnabled?: boolean;
+    subtitlesStyle?: any;
+  }
+): Promise<{
+  success: boolean;
+  clip?: ShortsClip;
+  renderedVideoUrl?: string;
+  validation?: ClipValidationResult;
+  error?: string;
+}> {
+  const project = await getShortsProject(workspaceId, data.projectId);
+  if (!project || !project.source_video_url) {
+    return { success: false, error: 'Source project or video file not found.' };
+  }
+
+  const renderRes = await renderVerticalShort({
+    workspaceId,
+    clipId: data.clipId,
+    sourceVideoPathOrUrl: project.source_video_url,
+    startTime: data.startTime,
+    endTime: data.endTime,
+    cropMode: data.cropMode || 'blur_padding',
+  });
+
+  if (!renderRes.success) {
+    return { success: false, error: renderRes.error || 'Video rendering failed.' };
+  }
+
+  const savedClip = await saveShortsClip(workspaceId, {
+    id: data.clipId,
+    project_id: data.projectId,
+    title: data.title,
+    caption: data.caption,
+    start_time: data.startTime,
+    end_time: data.endTime,
+    crop_mode: data.cropMode || 'blur_padding',
+    subtitles_enabled: data.subtitlesEnabled,
+    subtitles_style: data.subtitlesStyle,
+    render_status: 'rendered',
+    render_progress: 100,
+    rendered_video_url: renderRes.renderedVideoUrl,
+    validation_status: renderRes.validation?.passed ? 'passed' : 'failed',
+    validation_details: renderRes.validation,
+  });
+
+  safeRevalidate('/shorts');
+  return {
+    success: true,
+    clip: savedClip.clip,
+    renderedVideoUrl: renderRes.renderedVideoUrl,
+    validation: renderRes.validation,
+  };
 }
 
 // ==========================================
@@ -516,6 +432,7 @@ export async function publishClipNow(
   if (duplicate) {
     return {
       success: true,
+      job: duplicate,
       publishedUrl: duplicate.platform_url || undefined,
       error: `This clip was already successfully published to ${data.platform} at ${duplicate.published_at}. Duplicate post prevented.`,
     };
@@ -526,11 +443,8 @@ export async function publishClipNow(
     success: false,
   };
 
-  const isTestSandbox = Boolean(
-    data.mockPublish ||
-    process.env.NODE_ENV === 'test' ||
-    (!process.env.GOOGLE_REFRESH_TOKEN && !process.env.META_ACCESS_TOKEN)
-  );
+  // Only use test sandbox when explicitly requested via mockPublish in test environments
+  const isTestSandbox = Boolean(data.mockPublish);
 
   if (data.platform === 'youtube') {
     if (isTestSandbox) {
@@ -541,18 +455,27 @@ export async function publishClipNow(
       };
     } else {
       const ytClient = await getYouTubeClient(workspaceId);
-      const uploadRes = await ytClient.publishShort({
-        title: data.title || clip.title,
-        description: data.caption || clip.caption || '',
-        tags: data.hashtags || ['Shorts', 'Viral'],
-        videoUrl: clip.rendered_video_url || undefined,
-      });
-      publishResult = {
-        success: uploadRes.success,
-        url: uploadRes.videoUrl,
-        id: uploadRes.videoId,
-        error: uploadRes.error,
-      };
+      const token = await ytClient.getAccessToken();
+      if (!token) {
+        publishResult = {
+          success: false,
+          error:
+            'YouTube account is not connected. Please connect your Google / YouTube channel in Settings or click "Connect YouTube" before publishing.',
+        };
+      } else {
+        const uploadRes = await ytClient.publishShort({
+          title: data.title || clip.title,
+          description: data.caption || clip.caption || '',
+          tags: data.hashtags || ['Shorts', 'Viral'],
+          videoUrl: clip.rendered_video_url || undefined,
+        });
+        publishResult = {
+          success: uploadRes.success,
+          url: uploadRes.videoUrl,
+          id: uploadRes.videoId,
+          error: uploadRes.error,
+        };
+      }
     }
   } else if (data.platform === 'facebook') {
     if (isTestSandbox) {
@@ -578,7 +501,7 @@ export async function publishClipNow(
   }
 
   const jobRecord: ShortsPublishingJob = {
-    id: `job-${Date.now()}`,
+    id: `job-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     workspace_id: workspaceId,
     clip_id: clip.id,
     platform: data.platform,
@@ -629,7 +552,7 @@ export async function publishClipNow(
  * Helper to construct an authenticated YouTubeDataApiClient using either workspace DB credentials or environment variables.
  */
 export async function getYouTubeClient(workspaceId?: string): Promise<YouTubeDataApiClient> {
-  let credentials: { accessToken?: string; refreshToken?: string; clientId?: string; clientSecret?: string } = {
+  const credentials: { accessToken?: string; refreshToken?: string; clientId?: string; clientSecret?: string } = {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
@@ -802,4 +725,232 @@ export async function schedulePublishingJob(
   safeRevalidate('/shorts');
   return { success: true, job: jobRecord };
 }
+
+export interface BulkPublishPayload {
+  clipIds: string[];
+  sharedSettings: {
+    description?: string;
+    tags?: string[];
+    privacyStatus?: 'public' | 'unlisted' | 'private';
+    categoryId?: string;
+    scheduledAt?: string;
+  };
+  individualTitles: Record<string, string>;
+  mockPublish?: boolean;
+}
+
+/**
+ * Bulk publishes multiple selected Shorts to YouTube with individual titles and bounded execution.
+ */
+export async function bulkPublishShorts(
+  workspaceId: string,
+  payload: BulkPublishPayload
+): Promise<{
+  success: boolean;
+  total: number;
+  publishedCount: number;
+  failedCount: number;
+  results: Record<string, { success: boolean; url?: string; error?: string; job?: ShortsPublishingJob }>;
+}> {
+  const clips = await getShortsClips(workspaceId);
+  const targetClips = clips.filter((c) => payload.clipIds.includes(c.id));
+
+  const results: Record<string, { success: boolean; url?: string; error?: string; job?: ShortsPublishingJob }> = {};
+  let publishedCount = 0;
+  let failedCount = 0;
+
+  const isTestSandbox = Boolean(payload.mockPublish);
+
+  const ytClient = await getYouTubeClient(workspaceId);
+
+  for (const clip of targetClips) {
+    // 1. Pre-publish validation check
+    const validation = validateVideoClip({
+      durationSeconds: clip.duration_seconds,
+      width: 1080,
+      height: 1920,
+      hasAudio: true,
+      hasVideo: true,
+      isDecoded: true,
+    });
+
+    if (!validation.passed) {
+      failedCount++;
+      results[clip.id] = {
+        success: false,
+        error: `Pre-publish validation failed: ${validation.errors.join('; ')}`,
+      };
+      continue;
+    }
+
+    const title = payload.individualTitles[clip.id] || clip.title;
+    const idempotencyKey = `bulk_pub_${workspaceId}_${clip.id}_youtube`;
+
+    // 2. Prevent duplicate publications
+    const existingJobs = await getPublishingJobs(workspaceId);
+    const alreadyPublished = existingJobs.find(
+      (j) => j.clip_id === clip.id && j.platform === 'youtube' && j.status === 'published'
+    );
+
+    if (alreadyPublished) {
+      results[clip.id] = {
+        success: true,
+        url: alreadyPublished.platform_url || undefined,
+        job: alreadyPublished,
+      };
+      publishedCount++;
+      continue;
+    }
+
+    const jobRecord: ShortsPublishingJob = {
+      id: `job-bulk-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      workspace_id: workspaceId,
+      clip_id: clip.id,
+      platform: 'youtube',
+      title,
+      caption: payload.sharedSettings.description || clip.caption || '',
+      hashtags: payload.sharedSettings.tags || ['#Shorts'],
+      scheduled_at: payload.sharedSettings.scheduledAt || null,
+      status: 'publishing',
+      retry_count: 0,
+      idempotency_key: idempotencyKey,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (isTestSandbox) {
+      jobRecord.status = 'published';
+      jobRecord.platform_post_id = `yt_bulk_${Date.now()}`;
+      jobRecord.platform_url = `https://www.youtube.com/shorts/${jobRecord.platform_post_id}`;
+      jobRecord.published_at = new Date().toISOString();
+
+      publishedCount++;
+      results[clip.id] = {
+        success: true,
+        url: jobRecord.platform_url,
+        job: jobRecord,
+      };
+    } else {
+      const token = await ytClient.getAccessToken();
+      if (!token) {
+        jobRecord.status = 'failed';
+        jobRecord.error_message =
+          'YouTube account is not connected. Connect your YouTube account in Settings or click "Connect YouTube" before publishing.';
+        failedCount++;
+        results[clip.id] = {
+          success: false,
+          error: jobRecord.error_message,
+          job: jobRecord,
+        };
+      } else {
+        try {
+          const uploadRes = await ytClient.publishShort({
+            title,
+            description: payload.sharedSettings.description || clip.caption || '',
+            tags: payload.sharedSettings.tags,
+            privacyStatus: payload.sharedSettings.privacyStatus || 'public',
+            categoryId: payload.sharedSettings.categoryId || '22',
+            publishAt: payload.sharedSettings.scheduledAt,
+            videoUrl: clip.rendered_video_url || undefined,
+            idempotencyKey,
+          });
+
+        if (uploadRes.success) {
+          jobRecord.status = 'published';
+          jobRecord.platform_post_id = uploadRes.videoId || null;
+          jobRecord.platform_url = uploadRes.videoUrl || null;
+          jobRecord.published_at = new Date().toISOString();
+
+          publishedCount++;
+          results[clip.id] = {
+            success: true,
+            url: uploadRes.videoUrl,
+            job: jobRecord,
+          };
+        } else {
+          jobRecord.status = 'failed';
+          jobRecord.error_message = uploadRes.error || 'YouTube upload rejected';
+          failedCount++;
+          results[clip.id] = {
+            success: false,
+            error: uploadRes.error,
+            job: jobRecord,
+          };
+        }
+      } catch (err: any) {
+        jobRecord.status = 'failed';
+        jobRecord.error_message = err.message || 'YouTube upload exception';
+        failedCount++;
+        results[clip.id] = {
+          success: false,
+          error: err.message,
+          job: jobRecord,
+        };
+      }
+    }
+  }
+
+  // Persist jobRecord
+    const supabase = await createClient();
+    if (supabase) {
+      try {
+        await supabase.from('shorts_publishing_jobs').insert(jobRecord);
+      } catch {}
+    }
+    const jobsList = getWorkspaceJobs(workspaceId);
+    jobsList.unshift(jobRecord);
+  }
+
+  safeRevalidate('/shorts');
+
+  return {
+    success: failedCount === 0,
+    total: targetClips.length,
+    publishedCount,
+    failedCount,
+    results,
+  };
+}
+
+/**
+ * Checks YouTube transcoding and processing status for an existing publishing job.
+ */
+export async function checkYouTubeJobStatus(
+  workspaceId: string,
+  jobId: string
+): Promise<{ status: string; url?: string; error?: string }> {
+  const jobs = await getPublishingJobs(workspaceId);
+  const targetJob = jobs.find((j) => j.id === jobId);
+
+  if (!targetJob || !targetJob.platform_post_id) {
+    return { status: 'not_found', error: 'Job or YouTube video ID not found' };
+  }
+
+  // Handle mock and test sandbox jobs in unit tests without requiring external Google API calls
+  if (targetJob.platform_post_id.startsWith('yt_') && process.env.NODE_ENV === 'test') {
+    return {
+      status: targetJob.status || 'published',
+      url: targetJob.platform_url || undefined,
+    };
+  }
+
+  const ytClient = await getYouTubeClient(workspaceId);
+  const statusRes = await ytClient.checkProcessingStatus(targetJob.platform_post_id);
+
+  if (statusRes.status === 'processed' || statusRes.status === 'uploaded') {
+    targetJob.status = 'published';
+    targetJob.error_message = null;
+  } else if (statusRes.status === 'failed' || statusRes.status === 'rejected') {
+    targetJob.status = 'failed';
+    targetJob.error_message = statusRes.error || statusRes.rejectionReason || 'Processing failed on YouTube';
+  }
+
+  safeRevalidate('/shorts');
+  return {
+    status: targetJob.status,
+    url: targetJob.platform_url || undefined,
+    error: targetJob.error_message || undefined,
+  };
+}
+
 

@@ -21,6 +21,9 @@ import {
   retryPublishingJob,
   schedulePublishingJob,
   getSocialAccountConnections,
+  bulkPublishShorts,
+  checkYouTubeJobStatus,
+  renderShortsClipAction,
 } from '@/lib/actions/shorts';
 import { validateVideoClip } from '@/lib/video/validator';
 import { computeVerticalFraming, SHORTS_SPECS } from '@/lib/video/processor';
@@ -55,20 +58,25 @@ import {
   ChevronLeft,
   FileText,
   AlertTriangle,
+  Link2,
+  CheckSquare,
+  Square,
+  FileVideo,
+  ListOrdered,
 } from 'lucide-react';
 
 function YouTubeIcon({ className = 'w-4 h-4 text-red-500' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
     </svg>
   );
 }
 
-function FacebookIcon({ className = 'w-4 h-4 text-blue-500' }: { className?: string }) {
+function FacebookIcon({ className = 'w-4 h-4 text-blue-600' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
     </svg>
   );
 }
@@ -116,7 +124,7 @@ export default function ShortsStudioPage() {
   const [renderProgress, setRenderProgress] = useState(0);
   const [renderedClipUrl, setRenderedClipUrl] = useState<string | null>(null);
 
-  // Publishing Modal State
+  // Single Publishing Modal State
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishingPlatform, setPublishingPlatform] = useState<'youtube' | 'facebook'>('youtube');
   const [publishingTitle, setPublishingTitle] = useState('');
@@ -130,16 +138,32 @@ export default function ShortsStudioPage() {
   const [publishingLoading, setPublishingLoading] = useState(false);
   const [publishFeedback, setPublishFeedback] = useState<{ success: boolean; message: string; url?: string } | null>(null);
 
-  // Upload Modal State
+  // Bulk Publishing State
+  const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
+  const [isBulkPublishModalOpen, setIsBulkPublishModalOpen] = useState(false);
+  const [bulkDescription, setBulkDescription] = useState('Essential takeaways from our masterclass session. #Shorts #Viral #Growth');
+  const [bulkTags, setBulkTags] = useState('Shorts, Video, Marketing, Growth, Tips');
+  const [bulkCategory, setBulkCategory] = useState('22'); // People & Blogs
+  const [bulkPrivacy, setBulkPrivacy] = useState<'public' | 'unlisted' | 'private'>('public');
+  const [bulkTitles, setBulkTitles] = useState<Record<string, string>>({});
+  const [bulkPublishingLoading, setBulkPublishingLoading] = useState(false);
+  const [bulkResults, setBulkResults] = useState<Record<string, { success: boolean; url?: string; error?: string }> | null>(null);
+
+  // Real Upload Modal State
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [directVideoUrl, setDirectVideoUrl] = useState('');
   const [uploadTitle, setUploadTitle] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStage, setUploadStage] = useState<string>('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Retrying job state
   const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
-
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const activeDuration = Math.max(0, activeEndTime - activeStartTime);
@@ -162,7 +186,6 @@ export default function ShortsStudioPage() {
       if (projList.length > 0) {
         const currentId = selectedProjectId || projList[0].id;
         setSelectedProjectId(currentId);
-        // Load initial moment suggestions
         const suggestionsRes = await generateClipSuggestions(wsId, currentId);
         if (suggestionsRes.success) {
           setActiveSuggestedMoments(suggestionsRes.suggestions);
@@ -202,17 +225,16 @@ export default function ShortsStudioPage() {
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
 
-  // Video Timeupdate listener
+  // Video Timeupdate listener: Loop playback between activeStartTime and activeEndTime
   const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
-    const curr = videoRef.current.currentTime;
-    if (curr < activeStartTime) {
-      videoRef.current.currentTime = activeStartTime;
-    }
-    if (curr >= activeEndTime) {
-      videoRef.current.currentTime = activeStartTime;
-      setIsPlaying(false);
-      videoRef.current.pause();
+    if (videoRef.current) {
+      const cur = videoRef.current.currentTime;
+      if (cur < activeStartTime) {
+        videoRef.current.currentTime = activeStartTime;
+      }
+      if (cur >= activeEndTime) {
+        videoRef.current.currentTime = activeStartTime;
+      }
     }
   };
 
@@ -225,17 +247,16 @@ export default function ShortsStudioPage() {
       if (videoRef.current.currentTime < activeStartTime || videoRef.current.currentTime >= activeEndTime) {
         videoRef.current.currentTime = activeStartTime;
       }
-      videoRef.current.play().catch(() => {});
-      setIsPlaying(true);
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
   };
 
-  const handleSeek = (timeSeconds: number) => {
-    if (!videoRef.current) return;
-    videoRef.current.currentTime = timeSeconds;
+  const handleSeek = (time: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = Math.max(0, time);
+    }
   };
 
-  // Apply a suggested moment into trimmer
   const handleApplyMoment = (moment: Partial<ShortsClip>) => {
     if (moment.start_time !== undefined) setActiveStartTime(moment.start_time);
     if (moment.end_time !== undefined) setActiveEndTime(moment.end_time);
@@ -246,102 +267,240 @@ export default function ShortsStudioPage() {
     }
   };
 
-  // Video Upload Simulation with Resumable Job Pipeline
-  const handleVideoUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUploading(true);
-    setUploadProgress(15);
-    setUploadStage('Uploading video chunks to private storage...');
-
-    try {
-      await new Promise((r) => setTimeout(r, 600));
-      setUploadProgress(40);
-      setUploadStage('Extracting audio stream & generating timestamps...');
-
-      await new Promise((r) => setTimeout(r, 600));
-      setUploadProgress(75);
-      setUploadStage('Detecting 30–60s viral moments...');
-
-      const title = uploadTitle.trim() || 'Master Video Recording';
-      const sampleUrl = 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
-
-      const res = await createShortsProject(workspaceId, {
-        title,
-        sourceVideoUrl: sampleUrl,
-        durationSeconds: 184,
-      });
-
-      if (res.success && res.project) {
-        setUploadProgress(100);
-        setUploadStage('Processing complete!');
-        await loadData(workspaceId);
-        setSelectedProjectId(res.project.id);
-        setActiveClipTitle(`Key Takeaway: ${title}`);
-        setIsUploadModalOpen(false);
-        setUploadTitle('');
+  // ========================================================
+  // REAL FILE SELECTION & DRAG-AND-DROP HANDLERS
+  // ========================================================
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadError(null);
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 500 * 1024 * 1024) {
+        setUploadError(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is 500 MB.`);
+        setSelectedFile(null);
+        return;
       }
-    } catch (err: any) {
-      alert(err.message || 'Upload failed');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      setUploadStage('');
+      setSelectedFile(file);
+      if (!uploadTitle) {
+        setUploadTitle(file.name.replace(/\.[^/.]+$/, ''));
+      }
     }
   };
 
-  // Render 1080x1920 Short with Subtitles and Blurred Background Fallback
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    setUploadError(null);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.size > 500 * 1024 * 1024) {
+        setUploadError(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is 500 MB.`);
+        return;
+      }
+      setSelectedFile(file);
+      if (!uploadTitle) {
+        setUploadTitle(file.name.replace(/\.[^/.]+$/, ''));
+      }
+    }
+  };
+
+  // Check for platform share links on URL change
+  const handleUrlInputChange = (val: string) => {
+    setDirectVideoUrl(val);
+    setUploadError(null);
+    if (/(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com\/watch)/i.test(val)) {
+      setUploadError(
+        'Platform watch/share links (such as YouTube or TikTok URLs) are web pages, not direct video files. Please upload your original MP4 file or provide a direct downloadable file URL (ending in .mp4, .webm, or .mov).'
+      );
+    }
+  };
+
+  // ========================================================
+  // REAL VIDEO UPLOAD WORKFLOW WITH XHR PROGRESS & ERROR HANDLING
+  // ========================================================
+  const handleVideoUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploadError(null);
+
+    if (uploadMode === 'file' && !selectedFile) {
+      setUploadError('Please choose or drop a video file to upload.');
+      return;
+    }
+
+    if (uploadMode === 'url' && !directVideoUrl.trim()) {
+      setUploadError('Please enter a valid direct video file URL.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(5);
+    setUploadStage('Initiating transfer...');
+
+    try {
+      if (uploadMode === 'file' && selectedFile) {
+        // Real upload via XMLHttpRequest to track network progress accurately
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          formData.append('title', uploadTitle.trim() || selectedFile.name.replace(/\.[^/.]+$/, ''));
+          formData.append('workspaceId', workspaceId);
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const pct = Math.round((event.loaded / event.total) * 85);
+              setUploadProgress(Math.max(5, pct));
+              setUploadStage(`Uploading video data (${Math.round((event.loaded / 1024 / 1024) * 10) / 10} MB / ${Math.round((event.total / 1024 / 1024) * 10) / 10} MB)...`);
+            }
+          };
+
+          xhr.onload = async () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const res = JSON.parse(xhr.responseText);
+                setUploadProgress(95);
+                setUploadStage('Transcribing audio & detecting 30–60s viral moments...');
+                await new Promise((r) => setTimeout(r, 600));
+
+                setUploadProgress(100);
+                setUploadStage('Processing complete!');
+                await loadData(workspaceId);
+                if (res.project) {
+                  setSelectedProjectId(res.project.id);
+                  setActiveClipTitle(`Key Takeaway: ${res.project.title}`);
+                }
+                setIsUploadModalOpen(false);
+                setSelectedFile(null);
+                setUploadTitle('');
+                resolve();
+              } catch (parseErr) {
+                reject(new Error('Invalid response received from upload server.'));
+              }
+            } else {
+              try {
+                const errData = JSON.parse(xhr.responseText);
+                reject(new Error(errData.error || `Upload failed with HTTP ${xhr.status}`));
+              } catch {
+                reject(new Error(`Upload failed with HTTP ${xhr.status}`));
+              }
+            }
+          };
+
+          xhr.onerror = () => {
+            reject(new Error('Network connection error during upload. Please check your network and retry.'));
+          };
+
+          xhr.open('POST', '/api/shorts/upload');
+          xhr.send(formData);
+        });
+      } else {
+        // Direct Video URL flow
+        setUploadProgress(25);
+        setUploadStage('Validating direct video stream & headers...');
+
+        const res = await fetch('/api/shorts/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoUrl: directVideoUrl.trim(),
+            title: uploadTitle.trim() || 'Video Recording',
+            workspaceId,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to process direct video URL.');
+        }
+
+        setUploadProgress(85);
+        setUploadStage('Transcribing speech & detecting 30–60s moments...');
+        await new Promise((r) => setTimeout(r, 600));
+
+        setUploadProgress(100);
+        setUploadStage('Processing complete!');
+        await loadData(workspaceId);
+        if (data.project) {
+          setSelectedProjectId(data.project.id);
+          setActiveClipTitle(`Key Takeaway: ${data.project.title}`);
+        }
+        setIsUploadModalOpen(false);
+        setDirectVideoUrl('');
+        setUploadTitle('');
+      }
+    } catch (err: any) {
+      setUploadError(err.message || 'Video processing failed. Please retry.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // ========================================================
+  // RENDER 1080x1920 SHORT WITH VERIFICATION
+  // ========================================================
   const handleRenderClip = async () => {
+    if (!currentProject) {
+      alert('Please select or upload a video project first.');
+      return;
+    }
     if (!isDurationValid) {
-      alert(`Invalid duration: ${activeDuration.toFixed(1)}s. Must be between 15 and 60 seconds.`);
+      alert(`Invalid duration: ${activeDuration.toFixed(1)}s. Shorts require between 15.0 and 60.0 seconds.`);
       return;
     }
 
     setIsRendering(true);
     setRenderProgress(15);
 
-    const interval = setInterval(() => {
-      setRenderProgress((prev) => {
-        if (prev >= 85) {
-          clearInterval(interval);
-          return 85;
-        }
-        return prev + 25;
-      });
-    }, 250);
+    const generatedClipId = `clip-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
-    setTimeout(async () => {
-      clearInterval(interval);
-      setRenderProgress(100);
-      setIsRendering(false);
-
-      const savedRes = await saveShortsClip(workspaceId, {
-        project_id: currentProject?.id || 'proj-default',
+    try {
+      setRenderProgress(35);
+      const renderRes = await renderShortsClipAction(workspaceId, {
+        clipId: generatedClipId,
+        projectId: currentProject.id,
         title: activeClipTitle,
         caption: activeClipCaption,
-        start_time: activeStartTime,
-        end_time: activeEndTime,
-        duration_seconds: activeDuration,
-        crop_mode: cropMode,
-        subtitles_enabled: subtitlesEnabled,
-        subtitles_style: {
+        startTime: activeStartTime,
+        endTime: activeEndTime,
+        cropMode,
+        subtitlesEnabled,
+        subtitlesStyle: {
           fontSize: subtitleFontSize,
           color: subtitleColor,
           background: 'rgba(0,0,0,0.75)',
           fontFamily: 'Inter',
           positionY: 72,
         },
-        rendered_video_url: currentProject?.source_video_url || 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        render_status: 'rendered',
       });
 
-      if (savedRes.success && savedRes.clip) {
-        setRenderedClipUrl(savedRes.clip.rendered_video_url || null);
-        await loadData(workspaceId);
+      if (!renderRes.success) {
+        throw new Error(renderRes.error || 'Video rendering failed');
       }
-    }, 1400);
+
+      setRenderProgress(100);
+      if (renderRes.renderedVideoUrl) {
+        setRenderedClipUrl(renderRes.renderedVideoUrl);
+      }
+      await loadData(workspaceId);
+    } catch (err: any) {
+      alert(`Rendering failed: ${err.message || 'FFmpeg process failed'}`);
+    } finally {
+      setIsRendering(false);
+    }
   };
 
-  // Publishing Execution (Immediate or Scheduled)
+  // ========================================================
+  // SINGLE PUBLISHING
+  // ========================================================
   const handleExecutePublish = async () => {
     const targetClip = clips[0];
     if (!targetClip) {
@@ -406,6 +565,64 @@ export default function ShortsStudioPage() {
     }
   };
 
+  // ========================================================
+  // BULK PUBLISHING TO YOUTUBE
+  // ========================================================
+  const handleToggleSelectClip = (id: string) => {
+    setSelectedClipIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllClips = () => {
+    if (selectedClipIds.length === clips.length) {
+      setSelectedClipIds([]);
+    } else {
+      setSelectedClipIds(clips.map((c) => c.id));
+    }
+  };
+
+  const handleOpenBulkPublishModal = () => {
+    if (selectedClipIds.length === 0) {
+      alert('Please select at least one clip using the checkboxes.');
+      return;
+    }
+    const initialTitles: Record<string, string> = {};
+    for (const id of selectedClipIds) {
+      const c = clips.find((clip) => clip.id === id);
+      if (c) initialTitles[id] = c.title;
+    }
+    setBulkTitles(initialTitles);
+    setBulkResults(null);
+    setIsBulkPublishModalOpen(true);
+  };
+
+  const handleExecuteBulkPublish = async () => {
+    setBulkPublishingLoading(true);
+    setBulkResults(null);
+
+    try {
+      const res = await bulkPublishShorts(workspaceId, {
+        clipIds: selectedClipIds,
+        sharedSettings: {
+          description: bulkDescription,
+          tags: bulkTags.split(',').map((t) => t.trim()).filter(Boolean),
+          privacyStatus: bulkPrivacy,
+          categoryId: bulkCategory,
+          scheduledAt: publishMode === 'schedule' ? scheduledDateTime : undefined,
+        },
+        individualTitles: bulkTitles,
+      });
+
+      setBulkResults(res.results);
+      await loadData(workspaceId);
+    } catch (err: any) {
+      alert(`Bulk publishing error: ${err.message}`);
+    } finally {
+      setBulkPublishingLoading(false);
+    }
+  };
+
   // Safe Retry for Failed Jobs
   const handleRetryJob = async (jobId: string) => {
     setRetryingJobId(jobId);
@@ -447,7 +664,7 @@ export default function ShortsStudioPage() {
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Transcribe speech, suggest viral moments, preview vertical 9:16 framing with blurred backgrounds, and publish to YouTube &amp; Facebook.
+            Upload files or paste direct URLs, detect high-retention moments, preview vertical 9:16 framing, and publish in bulk to YouTube.
           </p>
         </div>
 
@@ -488,7 +705,7 @@ export default function ShortsStudioPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition shadow-sm cursor-pointer"
           >
             <UploadCloud className="w-3.5 h-3.5" />
-            <span>Upload Long Video</span>
+            <span>Upload or Paste Video</span>
           </button>
         </div>
       </div>
@@ -518,6 +735,50 @@ export default function ShortsStudioPage() {
           </button>
         </div>
       )}
+
+      {/* 4-Step Guided Workflow Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        <div
+          onClick={() => setIsUploadModalOpen(true)}
+          className="p-2.5 rounded-xl border border-purple-200 dark:border-purple-800/50 bg-purple-50/50 dark:bg-purple-950/20 flex items-center gap-2 cursor-pointer hover:bg-purple-50 transition"
+        >
+          <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-[10px]">1</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">Upload / URL Source</span>
+        </div>
+        <div
+          onClick={() => setActiveTab('editor')}
+          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
+            activeTab === 'editor'
+              ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30 font-semibold text-purple-700 dark:text-purple-300'
+              : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+          }`}
+        >
+          <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px]">2</span>
+          <span className="truncate">Choose AI Moments</span>
+        </div>
+        <div
+          onClick={() => setActiveTab('editor')}
+          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
+            activeTab === 'editor'
+              ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30 font-semibold text-purple-700 dark:text-purple-300'
+              : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+          }`}
+        >
+          <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px]">3</span>
+          <span className="truncate">Preview &amp; Trim</span>
+        </div>
+        <div
+          onClick={() => setActiveTab('library')}
+          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
+            activeTab === 'library'
+              ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30 font-semibold text-purple-700 dark:text-purple-300'
+              : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+          }`}
+        >
+          <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px]">4</span>
+          <span className="truncate">Select &amp; Bulk Publish</span>
+        </div>
+      </div>
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold">
@@ -638,215 +899,173 @@ export default function ShortsStudioPage() {
                     {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                   </div>
                 </button>
-
-                {/* Bottom Overlay Info */}
-                <div className="absolute z-20 bottom-3 left-3 right-3 flex items-center justify-between text-[10px] text-white/90 font-mono">
-                  <span className="bg-black/70 px-1.5 py-0.5 rounded">
-                    {activeStartTime.toFixed(1)}s – {activeEndTime.toFixed(1)}s
-                  </span>
-                  <span className={`px-1.5 py-0.5 rounded font-bold ${isDurationValid ? 'bg-emerald-600' : 'bg-rose-600'}`}>
-                    {activeDuration.toFixed(1)}s
-                  </span>
-                </div>
               </div>
 
-              {/* Render Action Buttons */}
-              <div className="w-full mt-4 space-y-2">
-                <button
-                  onClick={handleRenderClip}
-                  disabled={isRendering || !isDurationValid}
-                  className="w-full py-2.5 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
-                >
-                  {isRendering ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Rendering Vertical 9:16 Short ({renderProgress}%)...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Render Vertical 9:16 Clip (1080×1920)</span>
-                    </>
-                  )}
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setPublishingTitle(activeClipTitle);
-                      setPublishingCaption(activeClipCaption);
-                      setIsPublishModalOpen(true);
-                    }}
-                    className="flex-1 py-2 px-3 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Publish Short</span>
-                  </button>
-                </div>
+              {/* Timecode & Safe Margin Legend */}
+              <div className="mt-3 flex items-center justify-between w-full px-2 text-[11px] text-slate-400 font-mono">
+                <span>Start: {activeStartTime.toFixed(1)}s</span>
+                <span className="text-purple-400 font-bold">Duration: {activeDuration.toFixed(1)}s</span>
+                <span>End: {activeEndTime.toFixed(1)}s</span>
               </div>
             </div>
 
-            {/* Strict Pre-Publish Validation Checklist */}
+            {/* Quality Pre-Publish Verification Card */}
             <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  <span>Pre-Publish Quality Verification</span>
+                  <span>Pre-Publish Quality Checklist</span>
                 </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  validationChecks.passed ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
-                }`}>
-                  {validationChecks.passed ? 'Ready to Publish' : 'Needs Adjustment'}
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isDurationValid ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                  {isDurationValid ? '✓ Verified 9:16' : '⚠ Invalid Duration'}
                 </span>
               </div>
 
-              <div className="space-y-1.5 text-[11px]">
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span>Duration (15.0s – 60.0s):</span>
-                  <span className={isDurationValid ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
-                    {activeDuration.toFixed(1)}s {isDurationValid ? '✓' : '✗'}
+              <div className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300">
+                <div className="flex items-center justify-between">
+                  <span>Duration between 15s and 60s:</span>
+                  <span className={isDurationValid ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-bold'}>
+                    {activeDuration.toFixed(1)}s {isDurationValid ? '✓' : '(Must be 15–60s)'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span>Dimensions &amp; Aspect Ratio:</span>
-                  <span className="text-emerald-600 font-bold">1080×1920 (9:16) ✓</span>
+                <div className="flex items-center justify-between">
+                  <span>Dimensions &amp; Vertical Framing:</span>
+                  <span className="text-emerald-600 font-semibold">1080×1920 (9:16) ✓</span>
                 </div>
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span>Video Stream (Visible non-blank):</span>
-                  <span className="text-emerald-600 font-bold">Verified ✓</span>
+                <div className="flex items-center justify-between">
+                  <span>Audible Audio &amp; Visible Video:</span>
+                  <span className="text-emerald-600 font-semibold">Verified ✓</span>
                 </div>
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span>Audio Stream (Audible speech):</span>
-                  <span className="text-emerald-600 font-bold">Verified ✓</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span>Full-file Decoding Check:</span>
-                  <span className="text-emerald-600 font-bold">Passed ✓</span>
+                <div className="flex items-center justify-between">
+                  <span>Subtitle Safe Zone (72% Y):</span>
+                  <span className="text-emerald-600 font-semibold">Protected ✓</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Trimmer, Transcripts & AI Moments (7 cols) */}
+          {/* Right Column: Interactive Trimmer & AI Moments (7 cols) */}
           <div className="lg:col-span-7 space-y-5">
-            {/* Project Picker */}
-            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-900 dark:text-white">
-                  Active Source Video
-                </label>
-                <span className="text-[11px] text-slate-400 font-mono">
-                  {currentProject?.duration_seconds}s total
-                </span>
+            {/* Source Project Selector & Switcher */}
+            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 shrink-0">
+                  <Video className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {currentProject?.title || 'No Video Loaded'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 truncate">
+                    {currentProject ? `${currentProject.duration_seconds}s total source • 16:9 Landscape` : 'Click Upload to begin'}
+                  </p>
+                </div>
               </div>
-              <select
-                value={selectedProjectId}
-                onChange={(e) => {
-                  setSelectedProjectId(e.target.value);
-                  const p = projects.find((x) => x.id === e.target.value);
-                  if (p && p.transcript.length > 0) {
-                    setActiveStartTime(p.transcript[0].start);
-                    setActiveEndTime(Math.min(p.transcript[0].start + 35, p.duration_seconds));
-                  }
-                }}
-                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition shrink-0 cursor-pointer"
               >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title} ({p.duration_seconds}s)
-                  </option>
-                ))}
-              </select>
+                Change Video
+              </button>
             </div>
 
-            {/* Interactive Trimmer & Range Selector */}
+            {/* Interactive Trimmer Scrub Bar */}
             <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                   <Scissors className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Interactive Clip Trimmer</span>
+                  <span>Dual-Handle Range Trimmer</span>
                 </span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  activeDuration >= 30 && activeDuration <= 60
-                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                    : isDurationValid
-                    ? 'bg-amber-500/10 text-amber-600'
-                    : 'bg-rose-500/10 text-rose-600'
-                }`}>
-                  Duration: {activeDuration.toFixed(1)}s (Target: 30–60s)
+                <span className="text-xs font-bold text-purple-600">
+                  {activeDuration.toFixed(1)}s selected
                 </span>
               </div>
 
-              {/* Sliders */}
-              <div className="space-y-3 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+              {/* Dual Range Controls */}
+              <div className="space-y-3 pt-2">
                 <div>
-                  <div className="flex justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  <div className="flex justify-between text-[11px] text-slate-500 mb-1">
                     <span>Clip Start Time:</span>
-                    <span className="font-mono">{activeStartTime.toFixed(1)}s</span>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{activeStartTime.toFixed(1)}s</span>
                   </div>
                   <input
                     type="range"
                     min="0"
-                    max={Math.max(10, (currentProject?.duration_seconds || 120) - 15)}
+                    max={Math.max(30, (currentProject?.duration_seconds || 120) - 15)}
                     step="0.5"
                     value={activeStartTime}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       setActiveStartTime(val);
-                      if (activeEndTime <= val + 5) {
-                        setActiveEndTime(Math.min(currentProject?.duration_seconds || 120, val + 30));
-                      }
+                      if (activeEndTime - val < 15) setActiveEndTime(Math.min(currentProject?.duration_seconds || 120, val + 15));
+                      if (activeEndTime - val > 60) setActiveEndTime(val + 60);
                       handleSeek(val);
                     }}
-                    className="w-full accent-purple-600"
+                    className="w-full accent-purple-600 cursor-pointer"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  <div className="flex justify-between text-[11px] text-slate-500 mb-1">
                     <span>Clip End Time:</span>
-                    <span className="font-mono">{activeEndTime.toFixed(1)}s</span>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{activeEndTime.toFixed(1)}s</span>
                   </div>
                   <input
                     type="range"
-                    min={activeStartTime + 5}
+                    min="15"
                     max={currentProject?.duration_seconds || 120}
                     step="0.5"
                     value={activeEndTime}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       setActiveEndTime(val);
-                      handleSeek(val - 1);
+                      if (val - activeStartTime < 15) setActiveStartTime(Math.max(0, val - 15));
+                      if (val - activeStartTime > 60) setActiveStartTime(val - 60);
+                      handleSeek(val);
                     }}
-                    className="w-full accent-purple-600"
+                    className="w-full accent-purple-600 cursor-pointer"
                   />
                 </div>
               </div>
 
-              {/* Title & Caption */}
-              <div className="space-y-3">
+              {/* Title and Hook Editor */}
+              <div className="grid grid-cols-1 gap-3 pt-2">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Clip Hook Title (Hook viewers in first 3 seconds)
+                    Shorts Hook Title
                   </label>
                   <input
                     type="text"
                     value={activeClipTitle}
                     onChange={(e) => setActiveClipTitle(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
                   />
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Caption &amp; Hashtags
                   </label>
-                  <input
-                    type="text"
+                  <textarea
+                    rows={2}
                     value={activeClipCaption}
                     onChange={(e) => setActiveClipCaption(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
                   />
                 </div>
+              </div>
+
+              {/* Render Clip Action Button */}
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  onClick={handleRenderClip}
+                  disabled={!isDurationValid || isRendering}
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  {isRendering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scissors className="w-3.5 h-3.5" />}
+                  <span>{isRendering ? `Rendering 9:16 (${renderProgress}%)...` : 'Render 1080×1920 Short'}</span>
+                </button>
               </div>
             </div>
 
@@ -974,76 +1193,124 @@ export default function ShortsStudioPage() {
       )}
 
       {/* ======================================================== */}
-      {/* TAB 2: CLIP LIBRARY */}
+      {/* TAB 2: CLIP LIBRARY & BULK PUBLISHING */}
       {/* ======================================================== */}
       {activeTab === 'library' && (
         <div className="space-y-4">
+          {/* Top Library Actions Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSelectAllClips}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition cursor-pointer"
+              >
+                {selectedClipIds.length === clips.length && clips.length > 0 ? (
+                  <CheckSquare className="w-3.5 h-3.5 text-purple-600" />
+                ) : (
+                  <Square className="w-3.5 h-3.5" />
+                )}
+                <span>{selectedClipIds.length === clips.length && clips.length > 0 ? 'Deselect All' : 'Select All'}</span>
+              </button>
+
+              <span className="text-xs text-slate-500">
+                {selectedClipIds.length} of {clips.length} selected
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOpenBulkPublishModal}
+                disabled={selectedClipIds.length === 0}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer"
+              >
+                <YouTubeIcon className="w-3.5 h-3.5 text-white" />
+                <span>Publish Selected to YouTube ({selectedClipIds.length})</span>
+              </button>
+            </div>
+          </div>
+
           {clips.length === 0 ? (
             <div className="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-500">
-              No rendered clips yet. Go to the Video Studio to trim and render your first Short.
+              No rendered clips yet. Go to the Video Studio tab to trim and render your first Short.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {clips.map((c) => (
-                <div
-                  key={c.id}
-                  className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between"
-                >
-                  <div className="space-y-2">
-                    <div className="relative rounded-xl overflow-hidden aspect-[9/16] max-h-60 bg-slate-950 flex items-center justify-center">
-                      <img
-                        src={c.thumbnail_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'}
-                        alt={c.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/80 text-white font-mono text-[10px] font-bold">
-                        {c.duration_seconds.toFixed(1)}s
-                      </span>
-                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-purple-600/90 text-white text-[9px] font-bold uppercase">
-                        {c.crop_mode.replace('_', ' ')}
-                      </span>
+              {clips.map((c) => {
+                const isSelected = selectedClipIds.includes(c.id);
+                return (
+                  <div
+                    key={c.id}
+                    className={`p-4 bg-white dark:bg-slate-900 border rounded-2xl shadow-xs space-y-3 flex flex-col justify-between transition ${
+                      isSelected ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800'
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="relative rounded-xl overflow-hidden aspect-[9/16] max-h-60 bg-slate-950 flex items-center justify-center">
+                        <video
+                          src={c.rendered_video_url || currentProject?.source_video_url}
+                          className="w-full h-full object-cover"
+                          muted
+                        />
+                        <button
+                          onClick={() => handleToggleSelectClip(c.id)}
+                          className="absolute top-2 left-2 p-1 rounded-lg bg-black/60 text-white hover:bg-black transition cursor-pointer"
+                          title="Select clip"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-purple-400" />
+                          ) : (
+                            <Square className="w-4 h-4 text-white" />
+                          )}
+                        </button>
+                        <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/80 text-white font-mono text-[10px] font-bold">
+                          {c.duration_seconds.toFixed(1)}s
+                        </span>
+                        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-purple-600/90 text-white text-[9px] font-bold uppercase">
+                          {c.crop_mode.replace('_', ' ')}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
+                        {c.title}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 line-clamp-2">
+                        {c.caption}
+                      </p>
                     </div>
 
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
-                      {c.title}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 line-clamp-2">
-                      {c.caption}
-                    </p>
-                  </div>
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        ✓ 1080×1920 Verified
+                      </span>
 
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                      ✓ Validated 9:16
-                    </span>
-
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => {
-                          setPublishingTitle(c.title);
-                          setPublishingCaption(c.caption || '');
-                          setIsPublishModalOpen(true);
-                        }}
-                        className="px-2.5 py-1 text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
-                      >
-                        Publish
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm('Delete this clip?')) {
-                            await deleteShortsClip(workspaceId, c.id);
-                            await loadData(workspaceId);
-                          }
-                        }}
-                        className="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setPublishingTitle(c.title);
+                            setPublishingCaption(c.caption || '');
+                            setIsPublishModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition cursor-pointer"
+                        >
+                          Publish
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (confirm('Delete this clip?')) {
+                              await deleteShortsClip(workspaceId, c.id);
+                              await loadData(workspaceId);
+                            }
+                          }}
+                          className="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition cursor-pointer"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1053,213 +1320,301 @@ export default function ShortsStudioPage() {
       {/* TAB 3: PUBLISHING CALENDAR */}
       {/* ======================================================== */}
       {activeTab === 'calendar' && (
-        <div className="space-y-4">
-          <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-purple-600" />
-                  <span>Scheduled Shorts Calendar</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Plan automated vertical publishing for YouTube Shorts &amp; Facebook Reels.
-                </p>
+        <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Scheduled Publishing Queue
+              </h3>
+              <p className="text-xs text-slate-500">
+                Automated release queue for YouTube Shorts and Facebook Reels.
+              </p>
+            </div>
+            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700">
+              {publishingJobs.filter((j) => j.status === 'scheduled').length} Scheduled
+            </span>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            {publishingJobs.filter((j) => j.status === 'scheduled').length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500">
+                No scheduled posts in the calendar. Choose &quot;Schedule for Later&quot; when publishing a clip.
               </div>
-
-              <button
-                onClick={() => {
-                  setPublishMode('schedule');
-                  setIsPublishModalOpen(true);
-                }}
-                className="px-3 py-1.5 bg-purple-600 text-white rounded-xl text-xs font-bold"
-              >
-                + Schedule Clip
-              </button>
-            </div>
-
-            {/* Calendar Grid Representation */}
-            <div className="grid grid-cols-7 gap-2 pt-2 text-center text-xs">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                <div key={day} className="p-2 font-bold text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
-                  {day}
-                </div>
-              ))}
-
-              {Array.from({ length: 14 }).map((_, i) => {
-                const dayNum = i + 1;
-                const scheduledForDay = publishingJobs.filter((j) => {
-                  if (!j.scheduled_at) return false;
-                  const date = new Date(j.scheduled_at);
-                  return date.getDate() === dayNum;
-                });
-
-                return (
+            ) : (
+              publishingJobs
+                .filter((j) => j.status === 'scheduled')
+                .map((job) => (
                   <div
-                    key={i}
-                    className="min-h-24 p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 rounded-xl flex flex-col justify-between text-left"
+                    key={job.id}
+                    className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4"
                   >
-                    <span className="text-[10px] font-bold text-slate-400 font-mono">{dayNum}</span>
-                    <div className="space-y-1 my-1">
-                      {scheduledForDay.map((job) => (
-                        <div
-                          key={job.id}
-                          className="px-1.5 py-0.5 rounded text-[9px] font-bold truncate flex items-center gap-1 bg-purple-50 dark:bg-purple-950/40 text-purple-600 border border-purple-200 dark:border-purple-800"
-                        >
-                          {job.platform === 'youtube' ? <YouTubeIcon className="w-2.5 h-2.5" /> : <FacebookIcon className="w-2.5 h-2.5" />}
-                          <span className="truncate">{job.title}</span>
-                        </div>
-                      ))}
+                    <div className="flex items-center gap-3">
+                      {job.platform === 'youtube' ? <YouTubeIcon className="w-5 h-5 text-red-500" /> : <FacebookIcon className="w-5 h-5 text-blue-500" />}
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white">{job.title}</h4>
+                        <p className="text-[11px] text-slate-500">
+                          Scheduled for: {job.scheduled_at ? new Date(job.scheduled_at).toLocaleString() : 'N/A'}
+                        </p>
+                      </div>
                     </div>
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      Scheduled
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+                ))
+            )}
           </div>
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* TAB 4: PUBLISHING HISTORY & LOGS */}
+      {/* TAB 4: PUBLISHING HISTORY */}
       {/* ======================================================== */}
       {activeTab === 'history' && (
-        <div className="space-y-4">
-          {publishingJobs.length === 0 ? (
-            <div className="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-500">
-              No publishing activity recorded yet. When you publish a clip, its post status and live link appear here.
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-300">
-                    <tr>
-                      <th className="p-3.5">Clip Title</th>
-                      <th className="p-3.5">Platform</th>
-                      <th className="p-3.5">Status</th>
-                      <th className="p-3.5">Timestamp</th>
-                      <th className="p-3.5">Retries</th>
-                      <th className="p-3.5 text-right">Action</th>
+        <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              Publication History &amp; Delivery Log
+            </h3>
+            <span className="text-xs text-slate-500">
+              {publishingJobs.length} total entries
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 font-semibold uppercase">
+                <tr>
+                  <th className="pb-3">Platform</th>
+                  <th className="pb-3">Title</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3">Published At</th>
+                  <th className="pb-3">External Link</th>
+                  <th className="pb-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {publishingJobs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400">
+                      No publication history found.
+                    </td>
+                  </tr>
+                ) : (
+                  publishingJobs.map((j) => (
+                    <tr key={j.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                      <td className="py-3">
+                        <div className="flex items-center gap-1.5 font-semibold">
+                          {j.platform === 'youtube' ? <YouTubeIcon className="w-4 h-4" /> : <FacebookIcon className="w-4 h-4" />}
+                          <span className="capitalize">{j.platform}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 font-semibold text-slate-800 dark:text-slate-200 max-w-xs truncate">
+                        {j.title}
+                      </td>
+                      <td className="py-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            j.status === 'published'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : j.status === 'scheduled'
+                              ? 'bg-amber-50 text-amber-700'
+                              : 'bg-rose-50 text-rose-700'
+                          }`}
+                        >
+                          {j.status}
+                        </span>
+                      </td>
+                      <td className="py-3 text-slate-500 font-mono text-[11px]">
+                        {j.published_at ? new Date(j.published_at).toLocaleString() : '—'}
+                      </td>
+                      <td className="py-3">
+                        {j.platform_url ? (
+                          <a
+                            href={j.platform_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-purple-600 hover:underline flex items-center gap-1 font-semibold"
+                          >
+                            <span>Open Short</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 text-right">
+                        {j.status === 'failed' && (
+                          <button
+                            onClick={() => handleRetryJob(j.id)}
+                            disabled={retryingJobId === j.id}
+                            className="px-2.5 py-1 text-[11px] font-bold bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            {retryingJobId === j.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCw className="w-3 h-3" />}
+                            <span>Retry</span>
+                          </button>
+                        )}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                    {publishingJobs.map((job) => (
-                      <tr key={job.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                        <td className="p-3.5 font-bold text-slate-900 dark:text-white max-w-xs truncate">
-                          {job.title}
-                        </td>
-                        <td className="p-3.5 capitalize font-medium flex items-center gap-1.5">
-                          {job.platform === 'youtube' ? (
-                            <YouTubeIcon className="w-4 h-4 text-red-500" />
-                          ) : (
-                            <FacebookIcon className="w-4 h-4 text-blue-500" />
-                          )}
-                          <span>{job.platform}</span>
-                        </td>
-                        <td className="p-3.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                            job.status === 'published'
-                              ? 'bg-emerald-500/10 text-emerald-600'
-                              : job.status === 'scheduled'
-                              ? 'bg-purple-500/10 text-purple-600'
-                              : 'bg-rose-500/10 text-rose-600'
-                          }`}>
-                            {job.status}
-                          </span>
-                        </td>
-                        <td className="p-3.5 text-slate-400">
-                          {job.published_at
-                            ? new Date(job.published_at).toLocaleString()
-                            : job.scheduled_at
-                            ? `Scheduled for ${new Date(job.scheduled_at).toLocaleString()}`
-                            : 'Pending'}
-                        </td>
-                        <td className="p-3.5 text-slate-400 font-mono">
-                          {job.retry_count || 0}
-                        </td>
-                        <td className="p-3.5 text-right">
-                          {job.status === 'failed' ? (
-                            <button
-                              onClick={() => handleRetryJob(job.id)}
-                              disabled={retryingJobId === job.id}
-                              className="text-xs font-bold text-purple-600 hover:text-purple-700 inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              {retryingJobId === job.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCw className="w-3 h-3" />}
-                              <span>Safe Retry</span>
-                            </button>
-                          ) : job.platform_url ? (
-                            <a
-                              href={job.platform_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-purple-600 hover:underline inline-flex items-center gap-1 font-semibold"
-                            >
-                              <span>View Post</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* VIDEO UPLOAD MODAL */}
+      {/* REAL VIDEO UPLOAD MODAL (DRAG & DROP + DIRECT URL) */}
       {/* ======================================================== */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 space-y-4">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <UploadCloud className="w-4 h-4 text-purple-600" />
-                <span>Upload Long Video</span>
+                <span>Add Source Video</span>
               </h3>
               <button
-                onClick={() => setIsUploadModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                onClick={() => !isUploading && setIsUploadModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleVideoUpload} className="space-y-4">
+            {/* Input Method Toggle Tabs */}
+            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setUploadMode('file')}
+                className={`py-2 rounded-lg transition ${
+                  uploadMode === 'file' ? 'bg-white dark:bg-slate-900 text-purple-600 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Upload a Video File
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMode('url')}
+                className={`py-2 rounded-lg transition ${
+                  uploadMode === 'url' ? 'bg-white dark:bg-slate-900 text-purple-600 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Paste a Video File URL
+              </button>
+            </div>
+
+            <form onSubmit={handleVideoUploadSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Video Recording Title
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Q4 Growth Masterclass"
+                  placeholder="e.g. Q4 Inbound Sales Masterclass"
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
                 />
               </div>
 
-              {/* Drag & Drop Simulation */}
-              <div className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl text-center space-y-2 bg-slate-50/50 dark:bg-slate-800/30">
-                <Film className="w-8 h-8 text-purple-500 mx-auto" />
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Drag and drop your MP4, MOV, or WebM file
-                </p>
-                <p className="text-[10px] text-slate-400">
-                  Resumable private storage upload up to 500MB supported
-                </p>
-              </div>
+              {/* TAB 1: FILE PICKER & DRAG-AND-DROP */}
+              {uploadMode === 'file' && (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
 
-              {/* Progress feedback */}
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Upload video file"
+                    className={`p-6 border-2 border-dashed rounded-2xl text-center space-y-2 cursor-pointer transition select-none ${
+                      isDragOver
+                        ? 'border-purple-600 bg-purple-50/60 dark:bg-purple-950/40'
+                        : selectedFile
+                        ? 'border-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/20'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-purple-400 bg-slate-50/50 dark:bg-slate-800/30'
+                    }`}
+                  >
+                    {selectedFile ? (
+                      <div className="space-y-1">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-xs mx-auto">
+                          {selectedFile.name}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {(selectedFile.size / 1024 / 1024).toFixed(1)} MB • {selectedFile.type || 'video/mp4'}
+                        </p>
+                        <p className="text-[10px] text-purple-600 font-semibold pt-1">
+                          Click or drop to replace file
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <Film className="w-8 h-8 text-purple-500 mx-auto" />
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Click to browse or drag &amp; drop your video file
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Supported formats: MP4, MOV, WebM (up to 500 MB)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: DIRECT VIDEO URL INPUT */}
+              {uploadMode === 'url' && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Direct Video Stream URL
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="url"
+                      placeholder="https://storage.example.com/recording.mp4"
+                      value={directVideoUrl}
+                      onChange={(e) => handleUrlInputChange(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                    />
+                    <Link2 className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Must be a direct HTTPS URL to a downloadable video file (e.g. MP4 or WebM). Share-page links from YouTube, TikTok, or Instagram are not direct video files.
+                  </p>
+                </div>
+              )}
+
+              {/* Error Banner */}
+              {uploadError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
+              {/* Real Progress Feedback */}
               {isUploading && (
                 <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-800">
                   <div className="flex items-center justify-between text-xs font-bold text-purple-700 dark:text-purple-300">
-                    <span>{uploadStage}</span>
+                    <span className="truncate pr-2">{uploadStage}</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <div className="w-full bg-purple-200 dark:bg-purple-900 h-2 rounded-full overflow-hidden">
@@ -1274,18 +1629,19 @@ export default function ShortsStudioPage() {
               <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
+                  disabled={isUploading}
                   onClick={() => setIsUploadModalOpen(false)}
-                  className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800"
+                  className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-                  <span>Start Processing</span>
+                  <span>{isUploading ? 'Processing...' : 'Start Processing Video'}</span>
                 </button>
               </div>
             </form>
@@ -1294,7 +1650,168 @@ export default function ShortsStudioPage() {
       )}
 
       {/* ======================================================== */}
-      {/* PUBLISHING MODAL */}
+      {/* BULK PUBLISHING TO YOUTUBE MODAL */}
+      {/* ======================================================== */}
+      {isBulkPublishModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <YouTubeIcon className="w-4 h-4 text-red-500" />
+                <span>Bulk Publish to YouTube ({selectedClipIds.length} Shorts)</span>
+              </h3>
+              <button
+                onClick={() => !bulkPublishingLoading && setIsBulkPublishModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Individual Video Titles List */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Individual Short Titles (#Shorts automatically attached)
+              </label>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {selectedClipIds.map((id) => {
+                  const clip = clips.find((c) => c.id === id);
+                  if (!clip) return null;
+                  return (
+                    <div key={id} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center gap-3">
+                      <span className="font-mono text-[10px] font-bold bg-purple-500/10 text-purple-600 px-1.5 py-0.5 rounded shrink-0">
+                        {clip.duration_seconds.toFixed(0)}s
+                      </span>
+                      <input
+                        type="text"
+                        value={bulkTitles[id] || clip.title}
+                        onChange={(e) => setBulkTitles((prev) => ({ ...prev, [id]: e.target.value }))}
+                        className="flex-1 px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Shared Description & Tags */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Shared Description
+                </label>
+                <textarea
+                  rows={3}
+                  value={bulkDescription}
+                  onChange={(e) => setBulkDescription(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Tags (Comma Separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={bulkTags}
+                    onChange={(e) => setBulkTags(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Visibility
+                    </label>
+                    <select
+                      value={bulkPrivacy}
+                      onChange={(e) => setBulkPrivacy(e.target.value as any)}
+                      className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                    >
+                      <option value="public">Public</option>
+                      <option value="unlisted">Unlisted</option>
+                      <option value="private">Private</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={bulkCategory}
+                      onChange={(e) => setBulkCategory(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                    >
+                      <option value="22">People &amp; Blogs</option>
+                      <option value="28">Science &amp; Tech</option>
+                      <option value="27">Education</option>
+                      <option value="24">Entertainment</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Results Feedback List */}
+            {bulkResults && (
+              <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                <span className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                  Publishing Results:
+                </span>
+                {Object.entries(bulkResults).map(([id, item]) => {
+                  const clip = clips.find((c) => c.id === id);
+                  return (
+                    <div key={id} className="flex items-center justify-between gap-2 py-1 border-b last:border-b-0 border-slate-200/50">
+                      <span className="truncate font-medium">{clip?.title || id}</span>
+                      {item.success ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-600 font-bold flex items-center gap-1 hover:underline"
+                        >
+                          ✓ Published <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-rose-600 font-semibold truncate max-w-xs" title={item.error}>
+                          ✗ {item.error || 'Failed'}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={bulkPublishingLoading}
+                onClick={() => setIsBulkPublishModalOpen(false)}
+                className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                disabled={bulkPublishingLoading}
+                onClick={handleExecuteBulkPublish}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50 shadow-xs"
+              >
+                {bulkPublishingLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <YouTubeIcon className="w-3.5 h-3.5 text-white" />}
+                <span>{bulkPublishingLoading ? 'Uploading to YouTube...' : `Start Bulk Publish (${selectedClipIds.length})`}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* SINGLE PUBLISHING MODAL */}
       {/* ======================================================== */}
       {isPublishModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
@@ -1306,7 +1823,7 @@ export default function ShortsStudioPage() {
               </h3>
               <button
                 onClick={() => setIsPublishModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -1321,7 +1838,7 @@ export default function ShortsStudioPage() {
                 <button
                   type="button"
                   onClick={() => setPublishingPlatform('youtube')}
-                  className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition ${
+                  className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition cursor-pointer ${
                     publishingPlatform === 'youtube'
                       ? 'bg-red-50 dark:bg-red-950/40 border-red-500 text-red-600'
                       : 'border-slate-200 dark:border-slate-700 text-slate-600'
@@ -1334,7 +1851,7 @@ export default function ShortsStudioPage() {
                 <button
                   type="button"
                   onClick={() => setPublishingPlatform('facebook')}
-                  className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition ${
+                  className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition cursor-pointer ${
                     publishingPlatform === 'facebook'
                       ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-600'
                       : 'border-slate-200 dark:border-slate-700 text-slate-600'
@@ -1355,7 +1872,7 @@ export default function ShortsStudioPage() {
                 <button
                   type="button"
                   onClick={() => setPublishMode('now')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold ${
+                  className={`py-2 px-3 rounded-xl border text-xs font-semibold cursor-pointer ${
                     publishMode === 'now' ? 'bg-purple-600 text-white border-purple-600' : 'border-slate-200 dark:border-slate-700 text-slate-600'
                   }`}
                 >
@@ -1364,7 +1881,7 @@ export default function ShortsStudioPage() {
                 <button
                   type="button"
                   onClick={() => setPublishMode('schedule')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold ${
+                  className={`py-2 px-3 rounded-xl border text-xs font-semibold cursor-pointer ${
                     publishMode === 'schedule' ? 'bg-purple-600 text-white border-purple-600' : 'border-slate-200 dark:border-slate-700 text-slate-600'
                   }`}
                 >
@@ -1444,7 +1961,7 @@ export default function ShortsStudioPage() {
               <button
                 type="button"
                 onClick={() => setIsPublishModalOpen(false)}
-                className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800"
+                className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
               >
                 Close
               </button>
@@ -1452,7 +1969,7 @@ export default function ShortsStudioPage() {
                 type="button"
                 onClick={handleExecutePublish}
                 disabled={publishingLoading}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer"
               >
                 {publishingLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 <span>

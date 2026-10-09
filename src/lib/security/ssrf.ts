@@ -202,9 +202,10 @@ export async function safeFetch(
         continue;
       }
 
-      // Check Content-Length if present
+      // Check Content-Length if present (skip for HEAD requests since they have no response body)
+      const isHead = (options?.method || 'GET').toUpperCase() === 'HEAD';
       const contentLength = response.headers.get('content-length');
-      if (contentLength && parseInt(contentLength, 10) > maxBytes) {
+      if (!isHead && contentLength && parseInt(contentLength, 10) > maxBytes) {
         throw new Error(`Response size (${contentLength} bytes) exceeds maximum limit of ${maxBytes} bytes`);
       }
 
