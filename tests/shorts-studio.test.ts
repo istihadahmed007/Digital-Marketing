@@ -19,6 +19,7 @@ import {
   SHORTS_SPECS,
 } from '../src/lib/video/processor';
 import { validateVideoFileUrl } from '../src/lib/video/url-validator';
+import { isYouTubeUrl } from '../src/lib/video/youtube-downloader';
 import { persistVideoFile } from '../src/lib/video/storage';
 import { createSampleVideoFixture } from './fixtures/sample-video';
 import { NextRequest } from 'next/server';
@@ -114,11 +115,18 @@ describe('Shorts Studio — Video Quality, Validation & Publishing Engine', () =
   });
 
   describe('2. Direct Video URL Validation & SSRF Security', () => {
-    it('rejects YouTube watch page URLs with friendly instructions to provide a direct file URL', async () => {
+    it('accepts YouTube watch and shorts URLs for automated stream downloading', async () => {
       const res = await validateVideoFileUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-      expect(res.valid).toBe(false);
-      expect(res.isSharePage).toBe(true);
-      expect(res.error).toContain('YouTube watch/share links are not direct video files');
+      expect(res.valid).toBe(true);
+      expect(res.isYouTube).toBe(true);
+      expect(res.sanitizedUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    });
+
+    it('correctly identifies YouTube URLs across formats', () => {
+      expect(isYouTubeUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
+      expect(isYouTubeUrl('https://youtu.be/dQw4w9WgXcQ')).toBe(true);
+      expect(isYouTubeUrl('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe(true);
+      expect(isYouTubeUrl('https://example.com/video.mp4')).toBe(false);
     });
 
     it('rejects TikTok video page URLs with instructions to provide direct video file', async () => {

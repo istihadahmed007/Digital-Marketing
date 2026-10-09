@@ -317,9 +317,9 @@ export default function ShortsStudioPage() {
   const handleUrlInputChange = (val: string) => {
     setDirectVideoUrl(val);
     setUploadError(null);
-    if (/(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com\/watch)/i.test(val)) {
+    if (/(?:tiktok\.com|instagram\.com|facebook\.com\/watch)/i.test(val)) {
       setUploadError(
-        'Platform watch/share links (such as YouTube or TikTok URLs) are web pages, not direct video files. Please upload your original MP4 file or provide a direct downloadable file URL (ending in .mp4, .webm, or .mov).'
+        'Platform watch/share links (such as TikTok or Instagram) are web pages, not direct video files. Please upload your original MP4 file or provide a direct downloadable file URL (ending in .mp4, .webm, or .mov).'
       );
     }
   };
@@ -482,9 +482,14 @@ export default function ShortsStudioPage() {
           });
         }
       } else {
-        // Direct Video URL flow
-        setUploadProgress(25);
-        setUploadStage('Validating direct video stream & headers...');
+        // Video URL flow
+        const isYt = /(?:youtube\.com\/(?:watch|shorts|embed)|youtu\.be\/)/i.test(directVideoUrl.trim());
+        setUploadProgress(20);
+        setUploadStage(
+          isYt
+            ? 'Downloading YouTube video & extracting audio...'
+            : 'Validating direct video stream & headers...'
+        );
 
         const res = await fetch('/api/shorts/upload', {
           method: 'POST',
@@ -1663,12 +1668,12 @@ export default function ShortsStudioPage() {
               {uploadMode === 'url' && (
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Direct Video Stream URL
+                    Video URL (YouTube or Direct Video Stream)
                   </label>
                   <div className="relative">
                     <input
                       type="url"
-                      placeholder="https://storage.example.com/recording.mp4"
+                      placeholder="https://www.youtube.com/watch?v=... or https://example.com/video.mp4"
                       value={directVideoUrl}
                       onChange={(e) => handleUrlInputChange(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
@@ -1676,7 +1681,7 @@ export default function ShortsStudioPage() {
                     <Link2 className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   </div>
                   <p className="text-[10px] text-slate-400">
-                    Must be a direct HTTPS URL to a downloadable video file (e.g. MP4 or WebM). Share-page links from YouTube, TikTok, or Instagram are not direct video files.
+                    Paste a YouTube link (e.g. watch, shorts, or youtu.be) or a direct MP4/WebM video URL. YouTube videos are automatically downloaded and parsed into viral moments.
                   </p>
                 </div>
               )}

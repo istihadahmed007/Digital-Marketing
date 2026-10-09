@@ -1,8 +1,10 @@
 import { validateSafePublicUrl, safeFetch } from '@/lib/security/ssrf';
+import { isYouTubeUrl } from './youtube-downloader';
 
 export interface VideoUrlValidationResult {
   valid: boolean;
   isSharePage?: boolean;
+  isYouTube?: boolean;
   contentType?: string;
   contentLength?: number;
   sanitizedUrl?: string;
@@ -10,7 +12,6 @@ export interface VideoUrlValidationResult {
 }
 
 const PLATFORM_SHARE_PATTERNS = [
-  { regex: /(?:youtube\.com\/(?:watch|shorts|embed)|youtu\.be\/)/i, name: 'YouTube' },
   { regex: /tiktok\.com\//i, name: 'TikTok' },
   { regex: /instagram\.com\/(?:reel|p|tv)\//i, name: 'Instagram' },
   { regex: /facebook\.com\/(?:watch|reel|video)/i, name: 'Facebook' },
@@ -25,10 +26,11 @@ const VALID_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.webm', '.mkv', '.m4v', '.avi']
 export const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
 
 /**
- * Validates whether an input URL is a direct, safe, downloadable video stream.
- * 1. Blocks social platform share/watch pages.
- * 2. Enforces strict SSRF protections (no localhost, private networks, cloud metadata).
- * 3. Inspects HTTP headers for Content-Type and Content-Length.
+ * Validates whether an input URL is a direct, safe, downloadable video stream or supported YouTube URL.
+ * 1. Supports YouTube watch and share links via automatic stream downloader.
+ * 2. Explains direct-file requirements for unsupported social platforms (TikTok, Instagram).
+ * 3. Enforces strict SSRF protections (no localhost, private networks, cloud metadata).
+ * 4. Inspects HTTP headers for Content-Type and Content-Length.
  */
 export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlValidationResult> {
   if (!inputUrl || typeof inputUrl !== 'string') {
@@ -37,7 +39,17 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
 
   const trimmed = inputUrl.trim();
 
-  // 1. Check for platform share / watch page URLs
+  // 1. YouTube watch/share URLs: Supported via automated stream extraction!
+  if (isYouTubeUrl(trimmed)) {
+    return {
+      valid: true,
+      isYouTube: true,
+      sanitizedUrl: trimmed,
+      contentType: 'video/mp4',
+    };
+  }
+
+  // 2. Check for other platform share / watch page URLs
   for (const platform of PLATFORM_SHARE_PATTERNS) {
     if (platform.regex.test(trimmed)) {
       return {
