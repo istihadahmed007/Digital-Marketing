@@ -528,7 +528,8 @@ export async function publishClipNow(
 
   const isTestSandbox = Boolean(
     data.mockPublish ||
-    (process.env.NODE_ENV === 'test' && !process.env.GOOGLE_CLIENT_ID && !process.env.META_ACCESS_TOKEN)
+    process.env.NODE_ENV === 'test' ||
+    (!process.env.GOOGLE_REFRESH_TOKEN && !process.env.META_ACCESS_TOKEN)
   );
 
   if (data.platform === 'youtube') {
@@ -539,7 +540,7 @@ export async function publishClipNow(
         id: `yt_${Date.now()}`,
       };
     } else {
-      const ytClient = new YouTubeDataApiClient();
+      const ytClient = await getYouTubeClient(workspaceId);
       const uploadRes = await ytClient.publishShort({
         title: data.title || clip.title,
         description: data.caption || clip.caption || '',
@@ -625,13 +626,56 @@ export async function publishClipNow(
 }
 
 /**
+ * Helper to construct an authenticated YouTubeDataApiClient using either workspace DB credentials or environment variables.
+ */
+export async function getYouTubeClient(workspaceId?: string): Promise<YouTubeDataApiClient> {
+  let credentials: { accessToken?: string; refreshToken?: string; clientId?: string; clientSecret?: string } = {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+  };
+
+  try {
+    const supabase = await createClient();
+    if (supabase && workspaceId) {
+      let targetWsId = workspaceId;
+      if (targetWsId === 'ws-default') {
+        const { data: firstWs } = await supabase.from('workspaces').select('id').limit(1).maybeSingle();
+        if (firstWs?.id) targetWsId = firstWs.id;
+      }
+
+      if (targetWsId && targetWsId !== 'ws-default') {
+        const { data: integ } = await supabase
+          .from('integrations')
+          .select('config')
+          .eq('workspace_id', targetWsId)
+          .in('provider', ['google_calendar', 'youtube'])
+          .maybeSingle();
+
+        if (integ?.config) {
+          const cfg = integ.config;
+          if (cfg.accessToken) credentials.accessToken = decryptSecret(cfg.accessToken) || cfg.accessToken;
+          if (cfg.refreshToken) credentials.refreshToken = decryptSecret(cfg.refreshToken) || cfg.refreshToken;
+          if (cfg.clientId) credentials.clientId = cfg.clientId;
+          if (cfg.clientSecret) credentials.clientSecret = decryptSecret(cfg.clientSecret) || cfg.clientSecret;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching stored YouTube credentials:', err);
+  }
+
+  return new YouTubeDataApiClient(credentials);
+}
+
+/**
  * Checks real connection status for YouTube and Meta platforms.
  */
 export async function getSocialAccountConnections(workspaceId: string): Promise<{
   youtube: SocialAccountConnection;
   facebook: SocialAccountConnection;
 }> {
-  const ytClient = new YouTubeDataApiClient();
+  const ytClient = await getYouTubeClient(workspaceId);
   const metaClient = new MetaGraphApiClient();
 
   const [ytStatus, metaStatus] = await Promise.all([

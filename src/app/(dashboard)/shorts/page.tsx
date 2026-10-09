@@ -175,9 +175,30 @@ export default function ShortsStudioPage() {
     }
   };
 
+  const [oauthNotice, setOauthNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   useEffect(() => {
     loadData(workspaceId);
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('connected') === 'youtube') {
+        setOauthNotice({
+          type: 'success',
+          message: 'Google & YouTube account connected successfully! Real YouTube Data API v3 publishing is now active.',
+        });
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (urlParams.get('error')) {
+        setOauthNotice({
+          type: 'error',
+          message: `Google authorization message: ${urlParams.get('error')}`,
+        });
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || projects[0];
 
@@ -433,13 +454,25 @@ export default function ShortsStudioPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Social Platform Badges */}
           <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 shadow-2xs">
-              <YouTubeIcon className="w-3.5 h-3.5" />
-              <span className="font-semibold text-slate-700 dark:text-slate-200">
-                {socialConnections.youtube.isConnected ? socialConnections.youtube.channelTitle || 'Connected' : 'YouTube (Demo Mode)'}
-              </span>
-              <span className={`w-1.5 h-1.5 rounded-full ${socialConnections.youtube.isConnected ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-            </div>
+            {socialConnections.youtube.isConnected ? (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 shadow-2xs">
+                <YouTubeIcon className="w-3.5 h-3.5" />
+                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                  {socialConnections.youtube.channelTitle || 'YouTube Connected'}
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </div>
+            ) : (
+              <a
+                href={`/api/integrations/google/oauth?workspaceId=${encodeURIComponent(workspaceId)}&returnTo=/shorts`}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 shadow-2xs hover:bg-purple-50 dark:hover:bg-purple-950/40 text-purple-700 dark:text-purple-300 transition cursor-pointer group"
+                title="Authorize real YouTube Data API connection via Google OAuth"
+              >
+                <YouTubeIcon className="w-3.5 h-3.5" />
+                <span className="font-semibold group-hover:underline">Connect YouTube</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              </a>
+            )}
 
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 shadow-2xs">
               <FacebookIcon className="w-3.5 h-3.5" />
@@ -459,6 +492,32 @@ export default function ShortsStudioPage() {
           </button>
         </div>
       </div>
+
+      {/* OAuth Feedback Banner */}
+      {oauthNotice && (
+        <div
+          className={`flex items-center justify-between p-3.5 rounded-xl border text-xs font-medium animate-in fade-in duration-200 ${
+            oauthNotice.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/40'
+              : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/40'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {oauthNotice.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            )}
+            <span>{oauthNotice.message}</span>
+          </div>
+          <button
+            onClick={() => setOauthNotice(null)}
+            className="text-xs px-2 py-0.5 rounded hover:bg-slate-200/50 dark:hover:bg-slate-800/50 cursor-pointer ml-4"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold">
