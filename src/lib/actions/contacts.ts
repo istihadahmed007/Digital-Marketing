@@ -267,6 +267,30 @@ export async function updateContact(
     return { success: false, error: error?.message || 'Failed to update contact' };
   }
 
+  // Trigger active workflows registered for contact_updated event
+  try {
+    const { dispatchCrmEventTriggers } = await import('@/lib/actions/automations');
+    await dispatchCrmEventTriggers(workspaceId, 'contact_updated', data.id, {
+      contactId: data.id,
+      contact: data,
+      updates,
+      updateTimestamp: Date.now(),
+    });
+
+    if (Array.isArray(updates.tags)) {
+      for (const t of updates.tags) {
+        await dispatchCrmEventTriggers(workspaceId, 'tag_added', data.id, {
+          contactId: data.id,
+          contact: data,
+          tag: t,
+          updateTimestamp: Date.now(),
+        });
+      }
+    }
+  } catch (triggerErr) {
+    console.error('Error triggering automations on contact update:', triggerErr);
+  }
+
   revalidatePath('/contacts');
   revalidatePath(`/contacts/${contactId}`);
   return { success: true, contact: data as Contact };

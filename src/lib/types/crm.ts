@@ -266,7 +266,23 @@ export interface EmailCampaign {
   };
 }
 
-export type AutomationTriggerType = 'form_submission' | 'contact_created' | 'deal_stage_changed' | 'tag_added';
+export * from './automation-flow';
+import {
+  WorkflowNode,
+  WorkflowEdge,
+  WorkflowViewport,
+  WorkflowStatus,
+} from './automation-flow';
+
+export type AutomationTriggerType =
+  | 'form_submission'
+  | 'contact_created'
+  | 'contact_updated'
+  | 'deal_stage_changed'
+  | 'tag_added'
+  | 'manual'
+  | 'schedule'
+  | 'webhook_incoming';
 
 export interface AutomationStep {
   id: string;
@@ -284,6 +300,15 @@ export interface AutomationWorkflow {
   trigger_config: Record<string, any>;
   steps: AutomationStep[];
   is_active: boolean;
+  status?: WorkflowStatus;
+  version?: number;
+  nodes?: WorkflowNode[];
+  edges?: WorkflowEdge[];
+  viewport?: WorkflowViewport;
+  published_at?: string | null;
+  last_executed_at?: string | null;
+  webhook_token?: string | null;
+  webhook_slug?: string | null;
   created_at: string;
   updated_at: string;
   execution_count?: number;

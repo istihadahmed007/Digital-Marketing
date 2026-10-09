@@ -1,7 +1,7 @@
 import { safeFetch } from '@/lib/security/ssrf';
 
 export interface EmailSendRecipient {
-  contactId: string;
+  contactId?: string;
   email: string;
   name?: string;
 }
@@ -19,7 +19,7 @@ export interface EmailSendOptions {
 }
 
 export interface SingleSendResult {
-  contactId: string;
+  contactId?: string;
   email: string;
   success: boolean;
   messageId?: string;

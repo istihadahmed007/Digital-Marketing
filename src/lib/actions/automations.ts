@@ -5,13 +5,71 @@ import {
   AutomationWorkflow,
   AutomationLog,
   AutomationTriggerType,
-  SandboxedWorkflowResult,
-  SandboxedStepResult,
+  WorkflowGraph,
+  WorkflowNode,
+  WorkflowEdge,
+  WorkflowExecution,
+  WorkflowNodeExecution,
 } from '@/lib/types/crm';
 import { revalidatePath } from 'next/cache';
-import { ResendEmailProvider, isValidEmail } from '@/lib/integrations/email/resend';
-import { safeFetch, validateSafePublicUrl } from '@/lib/security/ssrf';
+import { validateWorkflowGraph } from '@/lib/automations/graph-validator';
+import { executeWorkflowGraph, ExecutionResult } from '@/lib/automations/execution-engine';
+import { ResendEmailProvider } from '@/lib/integrations/email/resend';
 import { decryptSecret } from '@/lib/security/crypto';
+import crypto from 'crypto';
+
+/**
+ * Converts legacy linear steps into a graph if nodes are not present.
+ */
+function convertStepsToGraph(
+  triggerType: string,
+  triggerConfig: Record<string, any> = {},
+  steps: any[] = []
+): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
+  const nodes: WorkflowNode[] = [];
+  const edges: WorkflowEdge[] = [];
+
+  const triggerId = 'node_trigger';
+  nodes.push({
+    id: triggerId,
+    type: (triggerType as any) || 'manual',
+    label: `Trigger: ${triggerType}`,
+    position: { x: 100, y: 200 },
+    data: triggerConfig || {},
+  });
+
+  let prevNodeId = triggerId;
+  let currentX = 380;
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const nodeId = `node_${step.id || i + 1}`;
+    let nodeType = step.type;
+    if (nodeType === 'webhook') nodeType = 'webhook_request';
+    if (nodeType === 'update_lifecycle') nodeType = 'update_contact';
+
+    nodes.push({
+      id: nodeId,
+      type: nodeType,
+      label: step.title || `Step ${i + 1}`,
+      position: { x: currentX, y: 200 },
+      data: step.config || {},
+    });
+
+    edges.push({
+      id: `edge_${prevNodeId}_${nodeId}`,
+      source: prevNodeId,
+      target: nodeId,
+      sourceHandle: 'output',
+      targetHandle: 'input',
+    });
+
+    prevNodeId = nodeId;
+    currentX += 280;
+  }
+
+  return { nodes, edges };
+}
 
 export async function getWorkflows(workspaceId: string): Promise<AutomationWorkflow[]> {
   const supabase = await createClient();
@@ -19,22 +77,40 @@ export async function getWorkflows(workspaceId: string): Promise<AutomationWorkf
 
   const { data, error } = await supabase
     .from('automation_workflows')
-    .select('*, automation_logs(count)')
+    .select('*, workflow_executions(count)')
     .eq('workspace_id', workspaceId)
-    .order('created_at', { ascending: false });
+    .order('updated_at', { ascending: false });
 
   if (error || !data) {
     console.error('Error fetching workflows:', error);
     return [];
   }
 
-  return data.map((item: any) => ({
-    ...item,
-    execution_count: item.automation_logs?.[0]?.count ?? 0,
-  })) as AutomationWorkflow[];
+  return data.map((item: any) => {
+    let nodes = item.nodes;
+    let edges = item.edges;
+
+    // Backward compatibility conversion
+    if ((!nodes || nodes.length === 0) && Array.isArray(item.steps) && item.steps.length > 0) {
+      const converted = convertStepsToGraph(item.trigger_type, item.trigger_config, item.steps);
+      nodes = converted.nodes;
+      edges = converted.edges;
+    }
+
+    return {
+      ...item,
+      nodes: nodes || [],
+      edges: edges || [],
+      status: item.status || (item.is_active ? 'active' : 'draft'),
+      execution_count: item.workflow_executions?.[0]?.count ?? 0,
+    };
+  }) as AutomationWorkflow[];
 }
 
-export async function getWorkflow(workspaceId: string, id: string): Promise<AutomationWorkflow | null> {
+export async function getWorkflow(
+  workspaceId: string,
+  id: string
+): Promise<AutomationWorkflow | null> {
   const supabase = await createClient();
   if (!supabase) return null;
 
@@ -46,7 +122,22 @@ export async function getWorkflow(workspaceId: string, id: string): Promise<Auto
     .single();
 
   if (error || !data) return null;
-  return data as AutomationWorkflow;
+
+  let nodes = data.nodes;
+  let edges = data.edges;
+
+  if ((!nodes || nodes.length === 0) && Array.isArray(data.steps) && data.steps.length > 0) {
+    const converted = convertStepsToGraph(data.trigger_type, data.trigger_config, data.steps);
+    nodes = converted.nodes;
+    edges = converted.edges;
+  }
+
+  return {
+    ...data,
+    nodes: nodes || [],
+    edges: edges || [],
+    status: data.status || (data.is_active ? 'active' : 'draft'),
+  } as AutomationWorkflow;
 }
 
 export async function createWorkflow(
@@ -54,62 +145,138 @@ export async function createWorkflow(
   payload: {
     name: string;
     description?: string;
-    trigger_type: string;
-    trigger_config?: Record<string, any>;
-    steps: any[];
+    trigger_type?: string;
+    steps?: any[];
     is_active?: boolean;
+    graph?: WorkflowGraph;
   }
 ): Promise<{ success: boolean; workflow?: AutomationWorkflow; error?: string }> {
   const supabase = await createClient();
-  if (!supabase) return { success: false, error: 'Database connection not configured' };
+  if (!supabase) return { success: false, error: 'Database unconfigured' };
 
-  if (!payload.name?.trim()) {
-    return { success: false, error: 'Workflow name is required.' };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const name = payload.name?.trim() || 'Untitled Workflow';
+  const triggerType = payload.trigger_type || 'manual';
+
+  let defaultGraph: WorkflowGraph = payload.graph || {
+    nodes: [
+      {
+        id: 'node_trigger_1',
+        type: triggerType as any,
+        label: `Trigger: ${triggerType}`,
+        position: { x: 100, y: 200 },
+        data: {},
+      },
+    ],
+    edges: [],
+    viewport: { x: 0, y: 0, zoom: 1 },
+  };
+
+  if (!payload.graph && Array.isArray(payload.steps) && payload.steps.length > 0) {
+    const converted = convertStepsToGraph(triggerType, {}, payload.steps);
+    defaultGraph = {
+      nodes: converted.nodes,
+      edges: converted.edges,
+      viewport: { x: 0, y: 0, zoom: 1 },
+    };
   }
+
+  const webhookSlug = `flow-${crypto.randomBytes(6).toString('hex')}`;
+  const webhookToken = crypto.randomBytes(16).toString('hex');
 
   const { data, error } = await supabase
     .from('automation_workflows')
     .insert({
       workspace_id: workspaceId,
-      name: payload.name.trim(),
-      description: payload.description?.trim() || null,
-      trigger_type: payload.trigger_type,
-      trigger_config: payload.trigger_config || {},
+      name,
+      description: payload.description || null,
+      trigger_type: triggerType,
+      trigger_config: {},
       steps: payload.steps || [],
-      is_active: payload.is_active ?? true,
+      nodes: defaultGraph.nodes,
+      edges: defaultGraph.edges,
+      viewport: defaultGraph.viewport || { x: 0, y: 0, zoom: 1 },
+      status: payload.is_active ? 'active' : 'draft',
+      is_active: payload.is_active ?? false,
+      version: 1,
+      webhook_slug: webhookSlug,
+      webhook_token: webhookToken,
+      published_by: user.id,
     })
     .select()
     .single();
 
-  if (error) {
-    console.error('Error creating workflow:', error);
-    return { success: false, error: error.message };
+  if (error || !data) {
+    return { success: false, error: error?.message || 'Failed to create workflow' };
   }
+
+  // Audit entry
+  await supabase.from('workflow_audit_logs').insert({
+    workspace_id: workspaceId,
+    workflow_id: data.id,
+    user_id: user.id,
+    action: 'created',
+    version: 1,
+    details: { name },
+  });
 
   revalidatePath('/automations');
   return { success: true, workflow: data as AutomationWorkflow };
 }
 
-export async function updateWorkflow(
+export async function saveWorkflowGraph(
   workspaceId: string,
   id: string,
-  payload: Partial<AutomationWorkflow>
+  payload: {
+    name?: string;
+    description?: string;
+    graph: WorkflowGraph;
+  }
 ): Promise<{ success: boolean; workflow?: AutomationWorkflow; error?: string }> {
   const supabase = await createClient();
-  if (!supabase) return { success: false, error: 'Database connection not configured' };
+  if (!supabase) return { success: false, error: 'Database unconfigured' };
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const { data: currentWf, error: fetchErr } = await supabase
+    .from('automation_workflows')
+    .select('*')
+    .eq('workspace_id', workspaceId)
+    .eq('id', id)
+    .single();
+
+  if (fetchErr || !currentWf) {
+    return { success: false, error: 'Workflow not found' };
+  }
+
+  // Find primary trigger type from graph
+  const triggerNode = (payload.graph.nodes || []).find(
+    (n) => n.type && n.type in {
+      manual: 1, contact_created: 1, contact_updated: 1, form_submission: 1,
+      deal_stage_changed: 1, tag_added: 1, schedule: 1, webhook_incoming: 1,
+    }
+  );
+
+  const newVersion = (currentWf.version || 1) + 1;
   const updateData: Record<string, any> = {
     updated_at: new Date().toISOString(),
+    nodes: payload.graph.nodes,
+    edges: payload.graph.edges,
+    viewport: payload.graph.viewport || currentWf.viewport,
+    version: newVersion,
   };
 
-  if (payload.name !== undefined) updateData.name = payload.name.trim();
+  if (payload.name) updateData.name = payload.name.trim();
   if (payload.description !== undefined) updateData.description = payload.description?.trim() || null;
-  if (payload.trigger_type !== undefined) updateData.trigger_type = payload.trigger_type;
-  if (payload.trigger_config !== undefined) updateData.trigger_config = payload.trigger_config;
-  if (payload.steps !== undefined) updateData.steps = payload.steps;
-  if (payload.is_active !== undefined) updateData.is_active = payload.is_active;
+  if (triggerNode) {
+    updateData.trigger_type = triggerNode.type;
+    updateData.trigger_config = triggerNode.data || {};
+  }
 
-  const { data, error } = await supabase
+  const { data: updatedWf, error: updateErr } = await supabase
     .from('automation_workflows')
     .update(updateData)
     .eq('workspace_id', workspaceId)
@@ -117,13 +284,126 @@ export async function updateWorkflow(
     .select()
     .single();
 
-  if (error) {
-    console.error('Error updating workflow:', error);
-    return { success: false, error: error.message };
+  if (updateErr) {
+    return { success: false, error: updateErr.message };
+  }
+
+  // Audit entry
+  await supabase.from('workflow_audit_logs').insert({
+    workspace_id: workspaceId,
+    workflow_id: id,
+    user_id: user.id,
+    action: 'updated',
+    version: newVersion,
+    details: {
+      nodeCount: payload.graph.nodes.length,
+      edgeCount: payload.graph.edges.length,
+    },
+  });
+
+  revalidatePath('/automations');
+  revalidatePath(`/automations/${id}`);
+  return { success: true, workflow: updatedWf as AutomationWorkflow };
+}
+
+export async function publishWorkflow(
+  workspaceId: string,
+  id: string
+): Promise<{ success: boolean; workflow?: AutomationWorkflow; errors?: string[]; error?: string }> {
+  const supabase = await createClient();
+  if (!supabase) return { success: false, error: 'Database unconfigured' };
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const wf = await getWorkflow(workspaceId, id);
+  if (!wf) return { success: false, error: 'Workflow not found' };
+
+  // Strict graph validation before publishing
+  const graph: WorkflowGraph = {
+    nodes: wf.nodes || [],
+    edges: wf.edges || [],
+  };
+
+  const validation = validateWorkflowGraph(graph);
+  if (!validation.isValid) {
+    const errorMessages = validation.errors.map((e) => e.message);
+    return {
+      success: false,
+      errors: errorMessages,
+      error: `Validation failed: ${errorMessages.join('; ')}`,
+    };
+  }
+
+  const { data: updatedWf, error: updErr } = await supabase
+    .from('automation_workflows')
+    .update({
+      status: 'active',
+      is_active: true,
+      published_at: new Date().toISOString(),
+      published_by: user.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('workspace_id', workspaceId)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (updErr) {
+    return { success: false, error: updErr.message };
+  }
+
+  // Audit
+  await supabase.from('workflow_audit_logs').insert({
+    workspace_id: workspaceId,
+    workflow_id: id,
+    user_id: user.id,
+    action: 'published',
+    version: wf.version,
+    details: { publishedAt: new Date().toISOString() },
+  });
+
+  revalidatePath('/automations');
+  revalidatePath(`/automations/${id}`);
+  return { success: true, workflow: updatedWf as AutomationWorkflow };
+}
+
+export async function pauseWorkflow(
+  workspaceId: string,
+  id: string
+): Promise<{ success: boolean; workflow?: AutomationWorkflow; error?: string }> {
+  const supabase = await createClient();
+  if (!supabase) return { success: false, error: 'Database unconfigured' };
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: updatedWf, error } = await supabase
+    .from('automation_workflows')
+    .update({
+      status: 'paused',
+      is_active: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('workspace_id', workspaceId)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return { success: false, error: error.message };
+
+  if (user) {
+    await supabase.from('workflow_audit_logs').insert({
+      workspace_id: workspaceId,
+      workflow_id: id,
+      user_id: user.id,
+      action: 'paused',
+      details: { pausedAt: new Date().toISOString() },
+    });
   }
 
   revalidatePath('/automations');
-  return { success: true, workflow: data as AutomationWorkflow };
+  revalidatePath(`/automations/${id}`);
+  return { success: true, workflow: updatedWf as AutomationWorkflow };
 }
 
 export async function deleteWorkflow(
@@ -131,7 +411,9 @@ export async function deleteWorkflow(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
-  if (!supabase) return { success: false, error: 'Database connection not configured' };
+  if (!supabase) return { success: false, error: 'Database unconfigured' };
+
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { error } = await supabase
     .from('automation_workflows')
@@ -139,623 +421,306 @@ export async function deleteWorkflow(
     .eq('workspace_id', workspaceId)
     .eq('id', id);
 
-  if (error) {
-    console.error('Error deleting workflow:', error);
-    return { success: false, error: error.message };
+  if (error) return { success: false, error: error.message };
+
+  if (user) {
+    await supabase.from('workflow_audit_logs').insert({
+      workspace_id: workspaceId,
+      workflow_id: id,
+      user_id: user.id,
+      action: 'deleted',
+      details: { deletedAt: new Date().toISOString() },
+    });
   }
 
   revalidatePath('/automations');
   return { success: true };
 }
 
-export async function getWorkflowLogs(
+/**
+ * Executes a safe Dry-Run Test of the workflow graph.
+ * Does NOT modify contacts, create real tasks, send emails, or invoke external webhooks.
+ */
+export async function testRunWorkflowGraph(
   workspaceId: string,
-  workflowId?: string
-): Promise<AutomationLog[]> {
+  workflowId: string,
+  customTriggerData?: Record<string, any>
+): Promise<{ success: boolean; result?: ExecutionResult; error?: string }> {
   const supabase = await createClient();
-  if (!supabase) return [];
+  if (!supabase) return { success: false, error: 'Database unconfigured' };
 
-  let query = supabase
-    .from('automation_logs')
-    .select('*, contact:contacts(first_name, last_name, email), workflow:automation_workflows(name)')
-    .eq('workspace_id', workspaceId);
+  const wf = await getWorkflow(workspaceId, workflowId);
+  if (!wf) return { success: false, error: 'Workflow not found' };
 
-  if (workflowId) {
-    query = query.eq('workflow_id', workflowId);
+  // Fetch sample contact for context if available
+  let sampleContact = {
+    id: 'mock-test-contact-123',
+    first_name: 'Alex',
+    last_name: 'Johnson (Sample)',
+    email: 'alex.sample@nexusmark.test',
+    lead_score: 85,
+    lifecycle_stage: 'lead',
+    lead_status: 'new',
+    consent_status: 'opted_in',
+    company_name: 'Acme Growth Labs',
+  };
+
+  const { data: realContact } = await supabase
+    .from('contacts')
+    .select('*')
+    .eq('workspace_id', workspaceId)
+    .eq('is_archived', false)
+    .limit(1)
+    .maybeSingle();
+
+  if (realContact) {
+    sampleContact = {
+      id: realContact.id,
+      first_name: realContact.first_name,
+      last_name: realContact.last_name || '',
+      email: realContact.email,
+      lead_score: realContact.lead_score || 70,
+      lifecycle_stage: realContact.lifecycle_stage || 'lead',
+      lead_status: realContact.lead_status || 'new',
+      consent_status: realContact.consent_status || 'opted_in',
+      company_name: 'Sample Corp',
+    };
   }
 
-  query = query.order('executed_at', { ascending: false }).limit(50);
+  const triggerData = customTriggerData || {
+    type: wf.trigger_type || 'manual',
+    contact: sampleContact,
+    contact_id: sampleContact.id,
+    email: sampleContact.email,
+    timestamp: new Date().toISOString(),
+  };
 
-  const { data, error } = await query;
-  if (error || !data) {
-    console.error('Error fetching logs:', error);
-    return [];
-  }
+  const graph: WorkflowGraph = {
+    nodes: wf.nodes || [],
+    edges: wf.edges || [],
+  };
 
-  return data as AutomationLog[];
+  const result = await executeWorkflowGraph({
+    workspaceId,
+    workflowId: wf.id,
+    workflowName: wf.name,
+    workflowVersion: wf.version || 1,
+    graph,
+    triggerType: wf.trigger_type || 'manual',
+    triggerData,
+    isDryRun: true,
+    supabase,
+  });
+
+  return { success: result.success, result };
 }
 
 /**
- * Sandboxed Test Run: Executes workflow in an isolated sandbox.
- * CRITICAL SAFETY RULES:
- * - Does NOT modify live contacts in database
- * - Does NOT create real tasks in database
- * - Does NOT send real outbound emails
- * - Validates configurations and predicts step results
+ * Explicit Test Email: Sends a real test email ONLY to the current user's email after confirmation.
  */
-export async function testRunWorkflow(
+export async function sendTestEmailToCurrentUser(
   workspaceId: string,
   workflowId: string,
-  targetContactId?: string
-): Promise<{ success: boolean; sandboxResult?: SandboxedWorkflowResult; error?: string }> {
+  nodeId: string
+): Promise<{ success: boolean; message?: string; error?: string }> {
   const supabase = await createClient();
-  if (!supabase) return { success: false, error: 'Database connection not configured' };
+  if (!supabase) return { success: false, error: 'Database unconfigured' };
 
-  // 1. Fetch workflow
-  const { data: workflow, error: wfErr } = await supabase
-    .from('automation_workflows')
-    .select('*')
-    .eq('workspace_id', workspaceId)
-    .eq('id', workflowId)
-    .single();
-
-  if (wfErr || !workflow) {
-    return { success: false, error: 'Workflow not found' };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !user.email) {
+    return { success: false, error: 'User is not authenticated' };
   }
 
-  // 2. Fetch sample or specified contact (read-only)
-  let sampleContact = {
-    id: 'mock-sandbox-contact',
-    name: 'Alex Johnson (Sandbox)',
-    email: 'alex.sandbox@example.com',
-  };
+  const wf = await getWorkflow(workspaceId, workflowId);
+  if (!wf) return { success: false, error: 'Workflow not found' };
 
-  if (targetContactId) {
-    const { data: contact } = await supabase
-      .from('contacts')
-      .select('id, first_name, last_name, email')
-      .eq('workspace_id', workspaceId)
-      .eq('id', targetContactId)
-      .maybeSingle();
-
-    if (contact) {
-      sampleContact = {
-        id: contact.id,
-        name: `${contact.first_name} ${contact.last_name || ''}`.trim(),
-        email: contact.email,
-      };
-    }
+  const targetNode = (wf.nodes || []).find((n) => n.id === nodeId && n.type === 'send_email');
+  if (!targetNode) {
+    return { success: false, error: 'Target email node not found in workflow graph' };
   }
 
-  // 3. Check email provider configuration for dry-run validation
-  const { data: emailIntegration } = await supabase
+  // Check email credentials
+  let apiKey = process.env.RESEND_API_KEY || '';
+  let fromEmail = process.env.RESEND_FROM_EMAIL || '';
+
+  const { data: integ } = await supabase
     .from('integrations')
     .select('config, is_enabled')
     .eq('workspace_id', workspaceId)
     .eq('provider', 'resend')
     .maybeSingle();
 
-  let emailApiKey = process.env.RESEND_API_KEY || '';
-  if (emailIntegration?.is_enabled && emailIntegration.config?.apiKey) {
-    emailApiKey = decryptSecret(emailIntegration.config.apiKey) || emailIntegration.config.apiKey;
-  }
-  const emailProvider = new ResendEmailProvider(emailApiKey);
-  const emailConfigured = emailProvider.isConfigured();
-
-  const stepResults: SandboxedStepResult[] = [];
-  const warnings: string[] = [];
-  let overallPassed = true;
-
-  const steps = (workflow.steps || []) as any[];
-
-  for (const step of steps) {
-    const stepType = step.type;
-    const stepTitle = step.title || `Step ${step.id}`;
-
-    switch (stepType) {
-      case 'send_email': {
-        const subject = step.config?.subject?.trim();
-        if (!subject) {
-          stepResults.push({
-            stepId: step.id,
-            stepTitle,
-            stepType,
-            status: 'invalid_config',
-            actionSummary: 'Simulated send_email step validation',
-            error: 'Missing required email subject in step configuration',
-          });
-          overallPassed = false;
-        } else if (!emailConfigured) {
-          stepResults.push({
-            stepId: step.id,
-            stepTitle,
-            stepType,
-            status: 'simulated_failure',
-            actionSummary: `Would attempt to dispatch email "${subject}" to ${sampleContact.email}`,
-            error: 'Email provider (Resend) is not configured in workspace or environment.',
-          });
-          warnings.push('Email step requires configured Resend credentials to execute during live automation.');
-        } else {
-          stepResults.push({
-            stepId: step.id,
-            stepTitle,
-            stepType,
-            status: 'simulated_success',
-            actionSummary: `[SANDBOX] Verified email template. Would send "${subject}" to ${sampleContact.email} via Resend. (No actual email sent)`,
-            simulatedOutput: {
-              recipient: sampleContact.email,
-              subject,
-              provider: 'resend (mocked in sandbox)',
-            },
-          });
-        }
-        break;
-      }
-
-      case 'create_task': {
-        const title = step.config?.task_title?.trim() || `Follow up with ${sampleContact.name}`;
-        stepResults.push({
-          stepId: step.id,
-          stepTitle,
-          stepType,
-          status: 'simulated_success',
-          actionSummary: `[SANDBOX] Validated task schema. Would create task "${title}" with priority "${step.config?.priority || 'high'}". (No task created in DB)`,
-          simulatedOutput: {
-            title,
-            priority: step.config?.priority || 'high',
-            dueInDays: 2,
-          },
-        });
-        break;
-      }
-
-      case 'add_tag': {
-        const tag = step.config?.tag?.trim();
-        if (!tag) {
-          stepResults.push({
-            stepId: step.id,
-            stepTitle,
-            stepType,
-            status: 'invalid_config',
-            actionSummary: 'Simulated tag addition',
-            error: 'Tag name is empty or unconfigured',
-          });
-          overallPassed = false;
-        } else {
-          stepResults.push({
-            stepId: step.id,
-            stepTitle,
-            stepType,
-            status: 'simulated_success',
-            actionSummary: `[SANDBOX] Would append tag "${tag}" to contact profile without modifying live DB.`,
-            simulatedOutput: { tagApplied: tag },
-          });
-        }
-        break;
-      }
-
-      case 'update_lifecycle': {
-        const stage = step.config?.lifecycle_stage?.trim() || 'lead';
-        stepResults.push({
-          stepId: step.id,
-          stepTitle,
-          stepType,
-          status: 'simulated_success',
-          actionSummary: `[SANDBOX] Would update contact lifecycle stage to "${stage}".`,
-          simulatedOutput: { targetStage: stage },
-        });
-        break;
-      }
-
-      case 'webhook': {
-        const url = step.config?.endpoint_url?.trim();
-        if (!url) {
-          stepResults.push({
-            stepId: step.id,
-            stepTitle,
-            stepType,
-            status: 'invalid_config',
-            actionSummary: 'Simulated webhook step validation',
-            error: 'Webhook destination URL is missing',
-          });
-          overallPassed = false;
-        } else {
-          const safeCheck = await validateSafePublicUrl(url);
-          if (!safeCheck.safe) {
-            stepResults.push({
-              stepId: step.id,
-              stepTitle,
-              stepType,
-              status: 'invalid_config',
-              actionSummary: 'Simulated webhook validation',
-              error: `SSRF Security rejection: ${safeCheck.error}`,
-            });
-            overallPassed = false;
-          } else {
-            stepResults.push({
-              stepId: step.id,
-              stepTitle,
-              stepType,
-              status: 'simulated_success',
-              actionSummary: `[SANDBOX] Validated webhook destination "${url}". (Payload not dispatched in sandbox)`,
-            });
-          }
-        }
-        break;
-      }
-
-      default: {
-        stepResults.push({
-          stepId: step.id,
-          stepTitle,
-          stepType,
-          status: 'invalid_config',
-          actionSummary: `Unsupported step type: "${stepType}"`,
-          error: `Unknown action type "${stepType}". Live engine will reject this step.`,
-        });
-        overallPassed = false;
-        break;
-      }
-    }
+  if (integ?.is_enabled && integ.config?.apiKey) {
+    apiKey = decryptSecret(integ.config.apiKey) || integ.config.apiKey;
+    fromEmail = integ.config.fromEmail || fromEmail;
   }
 
-  const sandboxResult: SandboxedWorkflowResult = {
-    workflowId: workflow.id,
-    workflowName: workflow.name,
-    isSandbox: true,
-    simulatedContact: sampleContact,
-    steps: stepResults,
-    overallStatus: overallPassed ? 'passed' : 'failed',
-    warnings,
-  };
+  const emailProvider = new ResendEmailProvider(apiKey, fromEmail);
+  if (!emailProvider.isConfigured()) {
+    return { success: false, error: emailProvider.getMissingSetupInstructions() };
+  }
 
-  // Write durable audit record into automation_logs marking status as 'simulated'
-  await supabase.from('automation_logs').insert({
-    workspace_id: workspaceId,
-    workflow_id: workflowId,
-    contact_id: sampleContact.id.startsWith('mock-') ? null : sampleContact.id,
-    status: overallPassed ? 'success' : 'failed',
-    details: {
-      isSandbox: true,
-      sandboxResult,
-      executedAt: new Date().toISOString(),
-    },
+  const subject = `[TEST] ${targetNode.data?.subject || 'Workflow Email Preview'}`;
+  const htmlContent = `
+    <div style="font-family: sans-serif; padding: 20px; border-left: 4px solid #6366f1; background: #f8fafc;">
+      <p style="color: #6366f1; font-weight: bold; font-size: 12px; text-transform: uppercase;">NexusMark Workflow Test Preview</p>
+      <p style="color: #64748b; font-size: 13px;">This test was explicitly sent to your account (${user.email}) from workflow "<strong>${wf.name}</strong>".</p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
+      ${targetNode.data?.body_html || '<p>Hello from NexusMark Flow!</p>'}
+    </div>
+  `;
+
+  const sendRes = await emailProvider.sendCampaignBatch({
+    workspaceId,
+    campaignId: `test_node_${nodeId}`,
+    subject,
+    htmlContent,
+    recipients: [{ contactId: user.id, email: user.email || '' }],
   });
 
-  revalidatePath('/automations');
+  if (sendRes.sentCount > 0) {
+    return {
+      success: true,
+      message: `Test email successfully dispatched to ${user.email} (Provider ID: ${sendRes.results[0]?.messageId}).`,
+    };
+  }
 
   return {
-    success: true,
-    sandboxResult,
+    success: false,
+    error: sendRes.results[0]?.error || 'Failed to dispatch test email',
   };
 }
 
-/**
- * Live Workflow Execution Engine
- * Enforces:
- * - Only supported step types are executed
- * - send_email calls the configured provider (fails if unconfigured or rejected)
- * - Unknown step types fail visibly and immediately
- * - Durable per-step logging in automation_step_logs
- * - Deduplication via automation_event_triggers (only-once per entity trigger)
- */
-export async function executeWorkflowLive(
+export async function getWorkflowExecutions(
   workspaceId: string,
-  workflowId: string,
-  event: {
-    triggerType: AutomationTriggerType;
-    entityId: string;
-    contactId?: string;
-    context?: Record<string, any>;
+  options?: {
+    workflowId?: string;
+    status?: string;
+    limit?: number;
   }
-): Promise<{
-  success: boolean;
-  skipped?: boolean;
-  reason?: string;
-  error?: string;
-  logId?: string;
-}> {
+): Promise<WorkflowExecution[]> {
+  const supabase = await createClient();
+  if (!supabase) return [];
+
+  let query = supabase
+    .from('workflow_executions')
+    .select('*, workflow:automation_workflows(name)')
+    .eq('workspace_id', workspaceId)
+    .order('created_at', { ascending: false });
+
+  if (options?.workflowId) {
+    query = query.eq('workflow_id', options.workflowId);
+  }
+  if (options?.status && options.status !== 'all') {
+    query = query.eq('status', options.status);
+  }
+
+  query = query.limit(options?.limit || 50);
+
+  const { data, error } = await query;
+  if (error || !data) {
+    console.error('Error fetching executions:', error);
+    return [];
+  }
+
+  return data as WorkflowExecution[];
+}
+
+export async function getExecutionDetail(
+  workspaceId: string,
+  executionId: string
+): Promise<{ execution: WorkflowExecution; nodeExecutions: WorkflowNodeExecution[] } | null> {
+  const supabase = await createClient();
+  if (!supabase) return null;
+
+  const [execRes, nodesRes] = await Promise.all([
+    supabase
+      .from('workflow_executions')
+      .select('*, workflow:automation_workflows(name)')
+      .eq('workspace_id', workspaceId)
+      .eq('id', executionId)
+      .single(),
+    supabase
+      .from('workflow_node_executions')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .eq('execution_id', executionId)
+      .order('started_at', { ascending: true }),
+  ]);
+
+  if (execRes.error || !execRes.data) return null;
+
+  return {
+    execution: execRes.data as WorkflowExecution,
+    nodeExecutions: (nodesRes.data || []) as WorkflowNodeExecution[],
+  };
+}
+
+export async function retryExecution(
+  workspaceId: string,
+  executionId: string
+): Promise<{ success: boolean; newExecutionId?: string; error?: string }> {
   const supabase = await createClient();
   if (!supabase) return { success: false, error: 'Database unconfigured' };
 
-  // 1. Idempotency Check: Prevent duplicate workflow runs for the same entity trigger event
-  const idempotencyKey = `wf_${workflowId}_${event.triggerType}_${event.entityId}`;
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: existingTrigger } = await supabase
-    .from('automation_event_triggers')
-    .select('id, status')
-    .eq('idempotency_key', idempotencyKey)
-    .maybeSingle();
-
-  if (existingTrigger) {
-    return {
-      success: true,
-      skipped: true,
-      reason: `Workflow "${workflowId}" was already triggered for event "${event.triggerType}" on entity "${event.entityId}" (idempotency guard).`,
-    };
-  }
-
-  // Register idempotency lock
-  const { error: lockErr } = await supabase.from('automation_event_triggers').insert({
-    workspace_id: workspaceId,
-    workflow_id: workflowId,
-    trigger_type: event.triggerType,
-    entity_id: event.entityId,
-    idempotency_key: idempotencyKey,
-    status: 'processing',
-  });
-
-  if (lockErr) {
-    // If conflict occurred concurrently
-    return {
-      success: true,
-      skipped: true,
-      reason: 'Concurrent execution locked by another process.',
-    };
-  }
-
-  // 2. Fetch workflow
-  const { data: workflow, error: wfErr } = await supabase
-    .from('automation_workflows')
+  const { data: prevExec, error: prevErr } = await supabase
+    .from('workflow_executions')
     .select('*')
     .eq('workspace_id', workspaceId)
-    .eq('id', workflowId)
+    .eq('id', executionId)
     .single();
 
-  if (wfErr || !workflow || !workflow.is_active) {
-    await supabase
-      .from('automation_event_triggers')
-      .update({ status: 'failed' })
-      .eq('idempotency_key', idempotencyKey);
-    return { success: false, error: 'Workflow inactive or not found' };
-  }
+  if (prevErr || !prevExec) return { success: false, error: 'Execution record not found' };
 
-  // 3. Fetch contact if available
-  let contact: any = null;
-  if (event.contactId) {
-    const { data: c } = await supabase
-      .from('contacts')
-      .select('*')
-      .eq('workspace_id', workspaceId)
-      .eq('id', event.contactId)
-      .maybeSingle();
-    contact = c;
-  }
+  const wf = await getWorkflow(workspaceId, prevExec.workflow_id);
+  if (!wf) return { success: false, error: 'Associated workflow not found' };
 
-  // 4. Create primary automation log row
-  const { data: logRecord } = await supabase
-    .from('automation_logs')
-    .insert({
+  const retryIdempotencyKey = `retry_${executionId}_${Date.now()}`;
+  const graph: WorkflowGraph = {
+    nodes: wf.nodes || [],
+    edges: wf.edges || [],
+  };
+
+  const execResult = await executeWorkflowGraph({
+    workspaceId,
+    workflowId: wf.id,
+    workflowName: wf.name,
+    workflowVersion: prevExec.workflow_version || wf.version || 1,
+    graph,
+    triggerType: prevExec.trigger_type,
+    triggerData: prevExec.trigger_data,
+    isDryRun: false,
+    idempotencyKey: retryIdempotencyKey,
+    supabase,
+  });
+
+  if (user) {
+    await supabase.from('workflow_audit_logs').insert({
       workspace_id: workspaceId,
-      workflow_id: workflowId,
-      contact_id: event.contactId || null,
-      status: 'retrying', // in-progress
+      workflow_id: wf.id,
+      user_id: user.id,
+      action: 'retried',
+      version: prevExec.workflow_version,
       details: {
-        trigger: event,
-        startedAt: new Date().toISOString(),
+        originalExecutionId: executionId,
+        newExecutionId: execResult.executionId,
       },
-    })
-    .select()
-    .single();
-
-  const logId = logRecord?.id;
-  const steps = (workflow.steps || []) as any[];
-  let workflowSuccess = true;
-  let failureReason: string | undefined;
-
-  // Resolve email provider credentials if needed
-  let emailProvider: ResendEmailProvider | null = null;
-
-  for (const step of steps) {
-    const stepType = step.type;
-    const stepTitle = step.title || step.id;
-    let stepSuccess = false;
-    let stepError: string | null = null;
-    let stepOutput: Record<string, any> = {};
-
-    switch (stepType) {
-      case 'send_email': {
-        if (!emailProvider) {
-          let apiKey = process.env.RESEND_API_KEY || '';
-          let fromEmail = process.env.RESEND_FROM_EMAIL || '';
-
-          const { data: integ } = await supabase
-            .from('integrations')
-            .select('config, is_enabled')
-            .eq('workspace_id', workspaceId)
-            .eq('provider', 'resend')
-            .maybeSingle();
-
-          if (integ?.is_enabled && integ.config?.apiKey) {
-            apiKey = decryptSecret(integ.config.apiKey) || integ.config.apiKey;
-            fromEmail = integ.config.fromEmail || fromEmail;
-          }
-          emailProvider = new ResendEmailProvider(apiKey, fromEmail);
-        }
-
-        if (!emailProvider.isConfigured()) {
-          stepError = emailProvider.getMissingSetupInstructions();
-        } else if (!contact?.email || !isValidEmail(contact.email)) {
-          stepError = `Recipient contact email missing or invalid (${contact?.email || 'none'})`;
-        } else if (contact.consent_status !== 'opted_in') {
-          stepError = `Contact "${contact.email}" has not opted into marketing emails (consent_status = "${contact.consent_status}")`;
-        } else {
-          const sendResult = await emailProvider.sendCampaignBatch({
-            workspaceId,
-            campaignId: `wf_${workflow.id}`,
-            subject: step.config?.subject || `Automated Notice from ${workflow.name}`,
-            htmlContent: step.config?.html || `<p>${step.config?.body || 'Hello from NexusMark'}</p>`,
-            recipients: [{ contactId: contact.id, email: contact.email }],
-          });
-
-          if (sendResult.sentCount > 0) {
-            stepSuccess = true;
-            stepOutput = { messageId: sendResult.results[0]?.messageId };
-            // Record activity
-            await supabase.from('activities').insert({
-              workspace_id: workspaceId,
-              contact_id: contact.id,
-              type: 'email',
-              title: `Automated Email: "${step.config?.subject || workflow.name}"`,
-              description: `Dispatched by active workflow "${workflow.name}".`,
-            });
-          } else {
-            stepError = sendResult.results[0]?.error || 'Failed to dispatch email';
-          }
-        }
-        break;
-      }
-
-      case 'create_task': {
-        const { error: taskErr } = await supabase.from('tasks').insert({
-          workspace_id: workspaceId,
-          contact_id: contact?.id || null,
-          title: step.config?.task_title || `Follow up on automation: ${workflow.name}`,
-          priority: step.config?.priority || 'high',
-          status: 'pending',
-          due_date: new Date(Date.now() + 86400000 * (step.config?.due_in_days || 2)).toISOString(),
-        });
-
-        if (taskErr) {
-          stepError = taskErr.message;
-        } else {
-          stepSuccess = true;
-          stepOutput = { taskCreated: true };
-        }
-        break;
-      }
-
-      case 'add_tag': {
-        const tag = step.config?.tag?.trim();
-        if (!tag) {
-          stepError = 'Missing tag parameter in configuration';
-        } else if (contact?.id) {
-          const currentTags = Array.isArray(contact.tags) ? contact.tags : [];
-          if (!currentTags.includes(tag)) {
-            await supabase
-              .from('contacts')
-              .update({ tags: [...currentTags, tag] })
-              .eq('id', contact.id);
-          }
-          stepSuccess = true;
-          stepOutput = { tagAdded: tag };
-        } else {
-          stepError = 'No contact attached to event context';
-        }
-        break;
-      }
-
-      case 'update_lifecycle': {
-        const stage = step.config?.lifecycle_stage?.trim();
-        if (!stage) {
-          stepError = 'Missing lifecycle_stage parameter';
-        } else if (contact?.id) {
-          await supabase
-            .from('contacts')
-            .update({ lifecycle_stage: stage })
-            .eq('id', contact.id);
-          stepSuccess = true;
-          stepOutput = { updatedStage: stage };
-        } else {
-          stepError = 'No contact attached to event context';
-        }
-        break;
-      }
-
-      case 'webhook': {
-        const endpointUrl = step.config?.endpoint_url?.trim();
-        if (!endpointUrl) {
-          stepError = 'Missing webhook destination URL';
-        } else {
-          try {
-            const res = await safeFetch(endpointUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                event: event.triggerType,
-                workflow_id: workflow.id,
-                entity_id: event.entityId,
-                contact,
-              }),
-              timeoutMs: 5000,
-            });
-
-            if (res.ok) {
-              stepSuccess = true;
-              stepOutput = { status: res.status };
-            } else {
-              stepError = `Webhook endpoint responded with HTTP ${res.status}`;
-            }
-          } catch (fetchErr: any) {
-            stepError = fetchErr.message;
-          }
-        }
-        break;
-      }
-
-      default: {
-        // UNKNOWN STEP: Must fail visibly and immediately
-        stepError = `Unsupported automation step type: "${stepType}". Unknown steps cannot be executed.`;
-        break;
-      }
-    }
-
-    // Insert durable per-step execution log
-    if (logId) {
-      await supabase.from('automation_step_logs').insert({
-        workspace_id: workspaceId,
-        workflow_id: workflowId,
-        log_id: logId,
-        step_id: step.id || 'step',
-        step_type: stepType,
-        step_title: stepTitle,
-        status: stepSuccess ? 'completed' : 'failed',
-        error_message: stepError,
-        output: stepOutput,
-      });
-    }
-
-    if (!stepSuccess) {
-      workflowSuccess = false;
-      failureReason = `Step "${stepTitle}" failed: ${stepError}`;
-      break; // Abort subsequent dependent steps on error
-    }
+    });
   }
-
-  // 5. Finalize execution status in automation_logs & automation_event_triggers
-  const finalStatus = workflowSuccess ? 'success' : 'failed';
-
-  if (logId) {
-    await supabase
-      .from('automation_logs')
-      .update({
-        status: finalStatus,
-        details: {
-          trigger: event,
-          completedAt: new Date().toISOString(),
-          error: failureReason || null,
-        },
-      })
-      .eq('id', logId);
-  }
-
-  await supabase
-    .from('automation_event_triggers')
-    .update({ status: finalStatus })
-    .eq('idempotency_key', idempotencyKey);
 
   revalidatePath('/automations');
-  revalidatePath('/tasks');
-
   return {
-    success: workflowSuccess,
-    logId,
-    error: failureReason,
+    success: execResult.success,
+    newExecutionId: execResult.executionId,
+    error: execResult.error,
   };
 }
 
 /**
- * Triggers active workflows registered for CRM events (contact creation, form submissions, deal stage changes).
+ * Global CRM Event Dispatcher
+ * Invoked by contacts, forms, and deals actions when business events occur.
  */
 export async function dispatchCrmEventTriggers(
   workspaceId: string,
@@ -768,7 +733,7 @@ export async function dispatchCrmEventTriggers(
 
   const { data: workflows } = await supabase
     .from('automation_workflows')
-    .select('id, trigger_config')
+    .select('*')
     .eq('workspace_id', workspaceId)
     .eq('trigger_type', triggerType)
     .eq('is_active', true);
@@ -776,18 +741,133 @@ export async function dispatchCrmEventTriggers(
   if (!workflows || workflows.length === 0) return;
 
   for (const wf of workflows) {
-    // If workflow has specific stage filter for deal_stage_changed
+    // Stage check for deal_stage_changed
     if (triggerType === 'deal_stage_changed' && wf.trigger_config?.target_stage) {
-      if (context?.to_stage !== wf.trigger_config.target_stage) {
+      if (
+        wf.trigger_config.target_stage !== 'any' &&
+        context?.to_stage !== wf.trigger_config.target_stage
+      ) {
         continue;
       }
     }
 
-    await executeWorkflowLive(workspaceId, wf.id, {
+    // Tag check for tag_added
+    if (triggerType === 'tag_added' && wf.trigger_config?.tag) {
+      if (context?.tag !== wf.trigger_config.tag) {
+        continue;
+      }
+    }
+
+    const graph: WorkflowGraph = {
+      nodes: wf.nodes || [],
+      edges: wf.edges || [],
+    };
+
+    if (graph.nodes.length === 0 && Array.isArray(wf.steps) && wf.steps.length > 0) {
+      const converted = convertStepsToGraph(wf.trigger_type, wf.trigger_config, wf.steps);
+      graph.nodes = converted.nodes;
+      graph.edges = converted.edges;
+    }
+
+    const idempotencyKey = `wf_${wf.id}_${triggerType}_${entityId}_${context?.updateTimestamp || Date.now()}`;
+
+    await executeWorkflowGraph({
+      workspaceId,
+      workflowId: wf.id,
+      workflowName: wf.name,
+      workflowVersion: wf.version || 1,
+      graph,
       triggerType,
-      entityId,
-      contactId: context?.contactId,
-      context,
+      triggerData: {
+        entityId,
+        ...context,
+      },
+      isDryRun: false,
+      idempotencyKey,
+      supabase,
     });
   }
+}
+
+// Backward-compatibility alias for legacy code and tests
+export async function updateWorkflow(
+  workspaceId: string,
+  id: string,
+  payload: Partial<AutomationWorkflow>
+): Promise<{ success: boolean; workflow?: AutomationWorkflow; error?: string }> {
+  const supabase = await createClient();
+  if (!supabase) return { success: false, error: 'Database unconfigured' };
+
+  const updateData: Record<string, any> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (payload.name !== undefined) updateData.name = payload.name.trim();
+  if (payload.description !== undefined) updateData.description = payload.description?.trim() || null;
+  if (payload.is_active !== undefined) {
+    updateData.is_active = payload.is_active;
+    updateData.status = payload.is_active ? 'active' : 'paused';
+  }
+  if (payload.status !== undefined) {
+    updateData.status = payload.status;
+    updateData.is_active = payload.status === 'active';
+  }
+  if (payload.nodes !== undefined) updateData.nodes = payload.nodes;
+  if (payload.edges !== undefined) updateData.edges = payload.edges;
+
+  const { data, error } = await supabase
+    .from('automation_workflows')
+    .update(updateData)
+    .eq('workspace_id', workspaceId)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath('/automations');
+  return { success: true, workflow: data as AutomationWorkflow };
+}
+
+export async function testRunWorkflow(
+  workspaceId: string,
+  workflowId: string,
+  targetContactId?: string
+) {
+  return testRunWorkflowGraph(workspaceId, workflowId, targetContactId ? { contact_id: targetContactId } : undefined);
+}
+
+export async function getWorkflowLogs(workspaceId: string, workflowId?: string): Promise<AutomationLog[]> {
+  const supabase = await createClient();
+  if (!supabase) return [];
+
+  let query = supabase
+    .from('workflow_executions')
+    .select('*, workflow:automation_workflows(name)')
+    .eq('workspace_id', workspaceId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (workflowId) {
+    query = query.eq('workflow_id', workflowId);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+
+  return data.map((d: any) => ({
+    id: d.id,
+    workspace_id: d.workspace_id,
+    workflow_id: d.workflow_id,
+    contact_id: d.trigger_data?.contact_id || null,
+    status: d.status === 'succeeded' ? 'success' : d.status === 'failed' ? 'failed' : 'retrying',
+    details: {
+      isDryRun: d.is_dry_run,
+      triggerType: d.trigger_type,
+      durationMs: d.duration_ms,
+      errorMessage: d.error_message,
+    },
+    executed_at: d.started_at,
+    workflow: d.workflow,
+  })) as AutomationLog[];
 }
