@@ -56,15 +56,19 @@ export class GoogleSearchConsoleClient {
     }
 
     // Refresh token exchange if clientId and clientSecret are provided
-    if (this.credentials.refreshToken && this.credentials.clientId && this.credentials.clientSecret) {
+    const clientId = this.credentials.clientId || process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = this.credentials.clientSecret || process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = this.credentials.refreshToken || process.env.GOOGLE_REFRESH_TOKEN;
+
+    if (refreshToken && clientId && clientSecret) {
       try {
         const tokenRes = await safeFetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
-            client_id: this.credentials.clientId,
-            client_secret: this.credentials.clientSecret,
-            refresh_token: this.credentials.refreshToken,
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: refreshToken,
             grant_type: 'refresh_token',
           }).toString(),
           timeoutMs: 8000,

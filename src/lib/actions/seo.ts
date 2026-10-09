@@ -847,46 +847,186 @@ export async function saveSeoIntegration(
   let isVerified = false;
   let verificationMessage = '';
 
-  // 1. Verify credentials with real provider
+  // 1. Verify credentials with real provider (or enable Demonstration Mode)
   if (provider === 'google_search_console') {
-    const client = new GoogleSearchConsoleClient({
-      propertyId,
-      accessToken: config.accessToken,
-      refreshToken: config.refreshToken,
-      clientId: config.clientId,
-      clientSecret: config.clientSecret,
-      clientEmail: config.clientEmail,
-    });
+    if (config.isDemo || config.accessToken === 'demo') {
+      isVerified = true;
+      verificationMessage = 'Google Search Console connected in Demonstration Mode with realistic search performance metrics.';
 
-    const verifyRes = await client.verifyConnection();
-    if (!verifyRes.valid) {
-      return {
-        success: false,
-        isConnected: false,
-        error: `Google Search Console verification failed: ${verifyRes.error}`,
-      };
+      // Seed sample performance data if table is currently empty
+      const { data: existingGsc } = await supabase
+        .from('seo_gsc_data')
+        .select('id')
+        .eq('workspace_id', workspaceId)
+        .limit(1);
+
+      if (!existingGsc || existingGsc.length === 0) {
+        const { data: firstSite } = await supabase
+          .from('seo_websites')
+          .select('id')
+          .eq('workspace_id', workspaceId)
+          .maybeSingle();
+
+        let websiteId = firstSite?.id;
+        if (!websiteId) {
+          const { data: newSite } = await supabase
+            .from('seo_websites')
+            .insert({
+              workspace_id: workspaceId,
+              domain: propertyId.replace(/^sc-domain:/, '').replace(/^https?:\/\//, '').replace(/\/$/, '') || 'digi.vartualtutor.com',
+              title: 'Primary Domain',
+            })
+            .select('id')
+            .single();
+          websiteId = newSite?.id;
+        }
+
+        if (websiteId) {
+          const today = new Date();
+          const cleanDomain = propertyId.replace(/^sc-domain:/, '').replace(/^https?:\/\//, '').replace(/\/$/, '');
+          const sampleRows = [
+            { query: 'virtual tutor online platform', clicks: 1420, impressions: 22100, ctr: 0.0642, pos: 2.8 },
+            { query: 'digital marketing crm workflow', clicks: 980, impressions: 16400, ctr: 0.0598, pos: 3.5 },
+            { query: 'ai growth crm software', clicks: 760, impressions: 12900, ctr: 0.0589, pos: 4.2 },
+            { query: 'automated lead nurturing tools', clicks: 590, impressions: 10400, ctr: 0.0567, pos: 5.1 },
+            { query: 'inbound sales pipeline dashboard', clicks: 430, impressions: 8200, ctr: 0.0524, pos: 6.4 },
+            { query: 'email marketing workflow builder', clicks: 380, impressions: 7100, ctr: 0.0535, pos: 7.0 },
+          ].map((r, idx) => ({
+            workspace_id: workspaceId,
+            website_id: websiteId,
+            date: new Date(today.getTime() - idx * 86400000).toISOString().split('T')[0],
+            query: r.query,
+            page: `https://${cleanDomain}/features`,
+            clicks: r.clicks,
+            impressions: r.impressions,
+            ctr: r.ctr,
+            average_position: r.pos,
+          }));
+          await supabase.from('seo_gsc_data').insert(sampleRows);
+        }
+      }
+    } else {
+      const client = new GoogleSearchConsoleClient({
+        propertyId,
+        accessToken: config.accessToken,
+        refreshToken: config.refreshToken,
+        clientId: config.clientId,
+        clientSecret: config.clientSecret,
+        clientEmail: config.clientEmail,
+      });
+
+      const verifyRes = await client.verifyConnection();
+      if (!verifyRes.valid) {
+        return {
+          success: false,
+          isConnected: false,
+          error: `Google Search Console verification failed: ${verifyRes.error}`,
+        };
+      }
+      isVerified = true;
+      verificationMessage = verifyRes.message || 'Google Search Console verified';
     }
-    isVerified = true;
-    verificationMessage = verifyRes.message || 'Google Search Console verified';
   } else if (provider === 'google_analytics_4') {
-    const client = new GoogleAnalytics4Client({
-      propertyId,
-      accessToken: config.accessToken,
-      refreshToken: config.refreshToken,
-      clientId: config.clientId,
-      clientSecret: config.clientSecret,
-    });
+    if (config.isDemo || config.accessToken === 'demo') {
+      isVerified = true;
+      verificationMessage = 'Google Analytics 4 connected in Demonstration Mode with realistic organic traffic metrics.';
 
-    const verifyRes = await client.verifyConnection();
-    if (!verifyRes.valid) {
-      return {
-        success: false,
-        isConnected: false,
-        error: `Google Analytics 4 verification failed: ${verifyRes.error}`,
-      };
+      // Seed sample GA4 performance data if empty
+      const { data: existingGa4 } = await supabase
+        .from('seo_ga4_data')
+        .select('id')
+        .eq('workspace_id', workspaceId)
+        .limit(1);
+
+      if (!existingGa4 || existingGa4.length === 0) {
+        const { data: firstSite } = await supabase
+          .from('seo_websites')
+          .select('id')
+          .eq('workspace_id', workspaceId)
+          .maybeSingle();
+
+        let websiteId = firstSite?.id;
+        if (!websiteId) {
+          const { data: newSite } = await supabase
+            .from('seo_websites')
+            .insert({
+              workspace_id: workspaceId,
+              domain: 'digi.vartualtutor.com',
+              title: 'Primary Domain',
+            })
+            .select('id')
+            .single();
+          websiteId = newSite?.id;
+        }
+
+        if (websiteId) {
+          const today = new Date();
+          const sampleGa4Rows = [
+            { daysAgo: 0, sessions: 1840, organic: 1250, conversions: 84, bounce: 38.2 },
+            { daysAgo: 1, sessions: 1720, organic: 1180, conversions: 79, bounce: 39.1 },
+            { daysAgo: 2, sessions: 1910, organic: 1340, conversions: 92, bounce: 36.8 },
+            { daysAgo: 3, sessions: 1650, organic: 1110, conversions: 71, bounce: 41.0 },
+            { daysAgo: 4, sessions: 1590, organic: 1040, conversions: 68, bounce: 40.5 },
+            { daysAgo: 5, sessions: 1420, organic: 920, conversions: 55, bounce: 42.1 },
+            { daysAgo: 6, sessions: 1380, organic: 890, conversions: 51, bounce: 43.0 },
+          ].map((r) => ({
+            workspace_id: workspaceId,
+            website_id: websiteId,
+            date: new Date(today.getTime() - r.daysAgo * 86400000).toISOString().split('T')[0],
+            sessions: r.sessions,
+            organic_sessions: r.organic,
+            conversions: r.conversions,
+            bounce_rate: r.bounce,
+          }));
+          await supabase.from('seo_ga4_data').insert(sampleGa4Rows);
+        }
+      }
+    } else {
+      const client = new GoogleAnalytics4Client({
+        propertyId,
+        accessToken: config.accessToken,
+        refreshToken: config.refreshToken,
+        clientId: config.clientId,
+        clientSecret: config.clientSecret,
+      });
+
+      const verifyRes = await client.verifyConnection();
+      if (!verifyRes.valid) {
+        return {
+          success: false,
+          isConnected: false,
+          error: `Google Analytics 4 verification failed: ${verifyRes.error}`,
+        };
+      }
+      isVerified = true;
+      verificationMessage = verifyRes.message || 'Google Analytics 4 verified';
+
+      try {
+        const report = await client.fetchOrganicReport('30daysAgo', 'today');
+        if (report.success && report.rows.length > 0) {
+          const { data: firstSite } = await supabase
+            .from('seo_websites')
+            .select('id')
+            .eq('workspace_id', workspaceId)
+            .maybeSingle();
+
+          if (firstSite?.id) {
+            const ga4Rows = report.rows.map((r) => ({
+              workspace_id: workspaceId,
+              website_id: firstSite.id,
+              date: r.date,
+              sessions: r.sessions,
+              organic_sessions: r.organicSessions,
+              conversions: r.conversions,
+              bounce_rate: r.bounceRate,
+            }));
+            await supabase.from('seo_ga4_data').insert(ga4Rows);
+          }
+        }
+      } catch (ga4FetchErr) {
+        console.error('Initial GA4 fetch warning:', ga4FetchErr);
+      }
     }
-    isVerified = true;
-    verificationMessage = verifyRes.message || 'Google Analytics 4 verified';
   } else if (provider === 'dataforseo' || provider === 'serpapi') {
     const serpAdapter = new SerpProviderAdapter(
       provider,
@@ -936,6 +1076,24 @@ export async function saveSeoIntegration(
     isConnected: isVerified,
     message: verificationMessage,
   };
+}
+
+export async function disconnectSeoIntegration(
+  workspaceId: string,
+  provider: SeoIntegrationProvider
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  if (!supabase) return { success: false, error: 'Database unconfigured' };
+
+  const { error } = await supabase
+    .from('seo_integrations')
+    .delete()
+    .eq('workspace_id', workspaceId)
+    .eq('provider', provider);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath('/seo/analytics');
+  return { success: true };
 }
 
 export async function getGscPerformanceData(
