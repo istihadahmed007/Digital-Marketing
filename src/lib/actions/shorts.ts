@@ -623,3 +623,139 @@ export async function publishClipNow(
     job: jobRecord,
   };
 }
+
+/**
+ * Checks real connection status for YouTube and Meta platforms.
+ */
+export async function getSocialAccountConnections(workspaceId: string): Promise<{
+  youtube: SocialAccountConnection;
+  facebook: SocialAccountConnection;
+}> {
+  const ytClient = new YouTubeDataApiClient();
+  const metaClient = new MetaGraphApiClient();
+
+  const [ytStatus, metaStatus] = await Promise.all([
+    ytClient.verifyConnection(),
+    metaClient.verifyConnection(),
+  ]);
+
+  return {
+    youtube: {
+      platform: 'youtube',
+      isConnected: ytStatus.valid,
+      channelTitle: ytStatus.channelTitle,
+      lastVerifiedAt: new Date().toISOString(),
+    },
+    facebook: {
+      platform: 'facebook',
+      isConnected: metaStatus.valid,
+      pageName: metaStatus.pageName,
+      pageId: metaStatus.pageId,
+      lastVerifiedAt: new Date().toISOString(),
+    },
+  };
+}
+
+/**
+ * Retries a failed publishing job safely without creating duplicate posts.
+ */
+export async function retryPublishingJob(
+  workspaceId: string,
+  jobId: string
+): Promise<{ success: boolean; job?: ShortsPublishingJob; error?: string }> {
+  const jobs = await getPublishingJobs(workspaceId);
+  const targetJob = jobs.find((j) => j.id === jobId);
+
+  if (!targetJob) {
+    return { success: false, error: 'Publishing job not found.' };
+  }
+
+  if (targetJob.status === 'published') {
+    return {
+      success: true,
+      job: targetJob,
+      error: 'Job has already been successfully published. Duplicate post prevented.',
+    };
+  }
+
+  // Retry publication
+  const result = await publishClipNow(workspaceId, {
+    clipId: targetJob.clip_id,
+    platform: targetJob.platform as 'youtube' | 'facebook',
+    title: targetJob.title,
+    caption: targetJob.caption || undefined,
+    hashtags: targetJob.hashtags,
+  });
+
+  if (result.job) {
+    result.job.retry_count = (targetJob.retry_count || 0) + 1;
+  }
+
+  safeRevalidate('/shorts');
+  return {
+    success: result.success,
+    job: result.job,
+    error: result.error,
+  };
+}
+
+/**
+ * Schedules a clip for future publishing on the social calendar.
+ */
+export async function schedulePublishingJob(
+  workspaceId: string,
+  data: {
+    clipId: string;
+    platform: 'youtube' | 'facebook';
+    title: string;
+    caption?: string;
+    hashtags?: string[];
+    scheduledAt: string;
+  }
+): Promise<{ success: boolean; job?: ShortsPublishingJob; error?: string }> {
+  const clips = await getShortsClips(workspaceId);
+  const clip = clips.find((c) => c.id === data.clipId);
+
+  if (!clip) {
+    return { success: false, error: 'Clip not found in this workspace.' };
+  }
+
+  const scheduledDate = new Date(data.scheduledAt);
+  if (isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
+    return { success: false, error: 'Scheduled time must be in the future.' };
+  }
+
+  const idempotencyKey = `sched_${workspaceId}_${clip.id}_${data.platform}_${scheduledDate.toISOString().slice(0, 13)}`;
+
+  const jobRecord: ShortsPublishingJob = {
+    id: `job-sched-${Date.now()}`,
+    workspace_id: workspaceId,
+    clip_id: clip.id,
+    platform: data.platform,
+    title: data.title || clip.title,
+    caption: data.caption || clip.caption || '',
+    hashtags: data.hashtags || ['#Shorts'],
+    status: 'scheduled',
+    scheduled_at: scheduledDate.toISOString(),
+    retry_count: 0,
+    idempotency_key: idempotencyKey,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  const supabase = await createClient();
+  if (supabase) {
+    try {
+      await supabase.from('shorts_publishing_jobs').insert(jobRecord);
+    } catch {
+      // Fallback
+    }
+  }
+
+  const jobsList = getWorkspaceJobs(workspaceId);
+  jobsList.unshift(jobRecord);
+
+  safeRevalidate('/shorts');
+  return { success: true, job: jobRecord };
+}
+
