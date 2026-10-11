@@ -2,9 +2,13 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
+import { execFile, execFileSync } from 'child_process';
+import { promisify } from 'util';
 import { persistVideoFile } from './storage';
 import { probeVideoFile } from './prober';
-import { validateSafePublicUrl } from '@/lib/security/ssrf';
+import { validateSafePublicUrl, safeFetch } from '@/lib/security/ssrf';
+
+const execFileAsync = promisify(execFile);
 
 function getFfmpegPath(): string {
   try {
@@ -17,6 +21,47 @@ function getFfmpegPath(): string {
     // Fall back to system PATH
   }
   return 'ffmpeg';
+}
+
+/**
+ * Searches the host environment for a system-installed yt-dlp or youtube-dl binary.
+ * Avoids any node-gyp or preinstall scripts that require Python during npm install.
+ */
+function findSystemYtDlp(): string | null {
+  try {
+    const isWin = process.platform === 'win32';
+    const binaryName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
+    const checkCmd = isWin ? 'where' : 'which';
+    const result = execFileSync(checkCmd, [binaryName], {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'ignore'],
+    });
+    const firstLine = result.trim().split(/\r?\n/)[0].trim();
+    if (firstLine && fs.existsSync(firstLine)) {
+      return firstLine;
+    }
+  } catch {
+    // Not found in PATH
+  }
+
+  // Also check youtube-dl fallback
+  try {
+    const isWin = process.platform === 'win32';
+    const binaryName = isWin ? 'youtube-dl.exe' : 'youtube-dl';
+    const checkCmd = isWin ? 'where' : 'which';
+    const result = execFileSync(checkCmd, [binaryName], {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'ignore'],
+    });
+    const firstLine = result.trim().split(/\r?\n/)[0].trim();
+    if (firstLine && fs.existsSync(firstLine)) {
+      return firstLine;
+    }
+  } catch {
+    // Not found in PATH
+  }
+
+  return null;
 }
 
 export const EXACT_SUPPORTED_YOUTUBE_HOSTS = new Set([
@@ -112,10 +157,130 @@ export interface YouTubeDownloadResult {
   error?: string;
 }
 
+export interface VideoDownloadResult {
+  success: boolean;
+  videoUrl?: string;
+  storagePath?: string;
+  title?: string;
+  durationSeconds?: number;
+  fileSizeBytes?: number;
+  platform?: string;
+  error?: string;
+}
+
 /**
- * Downloads a YouTube video using yt-dlp with bundled FFmpeg.
- * Validates the YouTube URL, removes noCheckCertificates, enforces byte limits,
- * and ensures cleanup of temporary files on both success and failure.
+ * Downloads a direct video stream (MP4, WebM, MOV, Google Drive, Dropbox, public CDN/S3)
+ * using pure Node.js safeFetch and @ffmpeg-installer/ffmpeg.
+ * Completely dependency-free and works reliably across all host environments.
+ */
+export async function downloadDirectVideoStream(params: {
+  url: string;
+  workspaceId: string;
+  titleHint?: string;
+}): Promise<VideoDownloadResult> {
+  const ssrfCheck = await validateSafePublicUrl(params.url);
+  if (!ssrfCheck.safe) {
+    return {
+      success: false,
+      error: ssrfCheck.error || 'The provided URL points to an unsafe destination.',
+    };
+  }
+
+  const tempDir = path.join(os.tmpdir(), 'video_downloads');
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  const randomSuffix = `${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
+  const tempPath = path.join(tempDir, `stream_${randomSuffix}.mp4`);
+
+  try {
+    const response = await safeFetch(params.url, {
+      maxResponseBytes: 500 * 1024 * 1024,
+      timeoutMs: 60000,
+    });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `Could not download video stream: HTTP ${response.status}`,
+      };
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    fs.writeFileSync(tempPath, buffer);
+
+    if (buffer.byteLength === 0) {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      return { success: false, error: 'Downloaded video stream is empty (0 bytes).' };
+    }
+
+    let durationSeconds = 60;
+    try {
+      const probe = await probeVideoFile(tempPath);
+      if (probe.durationSeconds > 0) {
+        durationSeconds = probe.durationSeconds;
+      }
+    } catch {
+      // Fallback
+    }
+
+    let derivedTitle = params.titleHint || '';
+    if (!derivedTitle) {
+      try {
+        const parsedUrl = new URL(params.url);
+        const base = path.basename(parsedUrl.pathname).replace(/\.[^/.]+$/, '');
+        if (base && base.length > 2 && !base.includes('export')) {
+          derivedTitle = base;
+        }
+      } catch {}
+    }
+    if (!derivedTitle) derivedTitle = 'Video Recording';
+
+    const cleanTitle = derivedTitle.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    const storageRes = await persistVideoFile({
+      workspaceId: params.workspaceId,
+      fileName: `${cleanTitle}.mp4`,
+      filePath: tempPath,
+      contentType: 'video/mp4',
+    });
+
+    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+
+    if (!storageRes.success) {
+      return {
+        success: false,
+        error: storageRes.error || 'Failed to save downloaded video to storage.',
+      };
+    }
+
+    return {
+      success: true,
+      videoUrl: storageRes.url,
+      storagePath: storageRes.storagePath,
+      title: derivedTitle,
+      durationSeconds,
+      fileSizeBytes: buffer.byteLength,
+      platform: 'Direct Stream',
+    };
+  } catch (err: any) {
+    if (fs.existsSync(tempPath)) {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {}
+    }
+    return {
+      success: false,
+      error: `Failed to download video stream: ${err.message || 'Network error'}`,
+    };
+  }
+}
+
+/**
+ * Downloads a YouTube video. If yt-dlp is installed in the host PATH, uses it directly.
+ * If yt-dlp is not present, gracefully informs the user with instructions to upload the MP4 file.
  */
 export async function downloadYouTubeVideo(params: {
   url: string;
@@ -130,9 +295,16 @@ export async function downloadYouTubeVideo(params: {
   }
 
   const cleanUrl = validation.sanitizedUrl;
+  const ytDlpPath = findSystemYtDlp();
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const youtubedl = require('youtube-dl-exec');
+  if (!ytDlpPath) {
+    return {
+      success: false,
+      error:
+        'Server-side YouTube stream downloading is not available on this server environment (yt-dlp is not installed in system PATH). Please upload your original MP4 file directly or provide a direct downloadable video link.',
+    };
+  }
+
   const tempDir = path.join(os.tmpdir(), 'youtube_downloads');
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
@@ -151,45 +323,47 @@ export async function downloadYouTubeVideo(params: {
       }
       if (fs.existsSync(finalMergedPath)) fs.unlinkSync(finalMergedPath);
     } catch {
-      // Ignore cleanup error
+      // Ignore
     }
   };
 
   try {
-    // 1. Fetch metadata without disabling certificate checks
     let videoTitle = 'YouTube Video';
     let expectedDuration = 60;
 
     try {
-      const info = await youtubedl(cleanUrl, {
-        dumpSingleJson: true,
-        noWarnings: true,
-        preferFreeFormats: true,
-      });
-
-      if (info?.title) {
-        videoTitle = info.title;
-      }
+      const infoRes = await execFileAsync(ytDlpPath, [
+        cleanUrl,
+        '--dump-single-json',
+        '--no-warnings',
+        '--prefer-free-formats',
+      ]);
+      const info = JSON.parse(infoRes.stdout);
+      if (info?.title) videoTitle = info.title;
       if (typeof info?.duration === 'number' && info.duration > 0) {
         expectedDuration = info.duration;
       }
     } catch (infoErr: any) {
-      console.warn('Could not pre-fetch YouTube video info:', infoErr.message);
+      console.warn('Could not pre-fetch YouTube metadata:', infoErr?.message);
     }
 
-    // 2. Download and merge into a single MP4 file with FFmpeg
     const ffmpegPath = getFfmpegPath();
 
-    await youtubedl(cleanUrl, {
-      output: finalMergedPath,
-      format: 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-      mergeOutputFormat: 'mp4',
-      ffmpegLocation: ffmpegPath,
-      noWarnings: true,
-      maxFilesize: '500M',
-    });
+    await execFileAsync(ytDlpPath, [
+      cleanUrl,
+      '-o',
+      finalMergedPath,
+      '--format',
+      'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+      '--merge-output-format',
+      'mp4',
+      '--ffmpeg-location',
+      ffmpegPath,
+      '--no-warnings',
+      '--max-filesize',
+      '500M',
+    ]);
 
-    // Verify output file exists
     let actualFilePath = finalMergedPath;
     if (!fs.existsSync(actualFilePath)) {
       const possibleExtensions = ['.mkv', '.webm', '.m4v'];
@@ -216,7 +390,6 @@ export async function downloadYouTubeVideo(params: {
       return { success: false, error: 'Downloaded YouTube video exceeds 500 MB limit.' };
     }
 
-    // Probe file for exact duration and streams
     let probeDuration = expectedDuration;
     try {
       const probed = await probeVideoFile(actualFilePath);
@@ -235,7 +408,6 @@ export async function downloadYouTubeVideo(params: {
       contentType: 'video/mp4',
     });
 
-    // Clean up temporary local files on success
     cleanupFiles();
 
     if (!storageRes.success) {
@@ -262,20 +434,9 @@ export async function downloadYouTubeVideo(params: {
   }
 }
 
-export interface VideoDownloadResult {
-  success: boolean;
-  videoUrl?: string;
-  storagePath?: string;
-  title?: string;
-  durationSeconds?: number;
-  fileSizeBytes?: number;
-  platform?: string;
-  error?: string;
-}
-
 /**
- * Universal video downloader supporting YouTube, TikTok, Instagram, Facebook, Vimeo, X/Twitter, etc.
- * Uses yt-dlp with bundled FFmpeg and enforces strict SSRF protections and size limits.
+ * Universal video downloader supporting YouTube, TikTok, Instagram, Facebook, Vimeo, X/Twitter,
+ * and direct video streams (.mp4, .webm, Google Drive, Dropbox, etc.).
  */
 export async function downloadVideoFromUrl(params: {
   url: string;
@@ -286,7 +447,7 @@ export async function downloadVideoFromUrl(params: {
     return { success: false, error: 'Please enter a valid video URL.' };
   }
 
-  // If it's a YouTube URL, use specialized YouTube parser
+  // 1. YouTube handling
   if (isYouTubeUrl(trimmed)) {
     return downloadYouTubeVideo({
       url: trimmed,
@@ -294,17 +455,54 @@ export async function downloadVideoFromUrl(params: {
     });
   }
 
-  // SSRF check for external public URLs
+  // 2. SSRF check
   const ssrfCheck = await validateSafePublicUrl(trimmed);
   if (!ssrfCheck.safe) {
     return {
       success: false,
-      error: ssrfCheck.error || 'The provided URL points to an unsafe or private destination.',
+      error: ssrfCheck.error || 'The provided URL points to an unsafe destination.',
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const youtubedl = require('youtube-dl-exec');
+  // 3. Direct video stream check (.mp4, .webm, .mov, or Google Drive / Dropbox direct)
+  const isDirectVideo =
+    /\.(?:mp4|webm|mov|mkv|m4v)(?:\?.*)?$/i.test(trimmed) ||
+    /drive\.google\.com\/uc\?export=download/i.test(trimmed) ||
+    /dropbox\.com/i.test(trimmed);
+
+  if (isDirectVideo) {
+    return downloadDirectVideoStream({
+      url: trimmed,
+      workspaceId: params.workspaceId,
+    });
+  }
+
+  // 4. Social platform stream extraction via system yt-dlp if available
+  const ytDlpPath = findSystemYtDlp();
+
+  let detectedPlatform = 'Video';
+  if (/tiktok\.com/i.test(trimmed)) detectedPlatform = 'TikTok';
+  else if (/instagram\.com/i.test(trimmed)) detectedPlatform = 'Instagram';
+  else if (/facebook\.com|fb\.watch/i.test(trimmed)) detectedPlatform = 'Facebook';
+  else if (/vimeo\.com/i.test(trimmed)) detectedPlatform = 'Vimeo';
+  else if (/twitter\.com|x\.com/i.test(trimmed)) detectedPlatform = 'X';
+
+  if (!ytDlpPath) {
+    // If it's another URL without yt-dlp, attempt direct stream download first
+    const directAttempt = await downloadDirectVideoStream({
+      url: trimmed,
+      workspaceId: params.workspaceId,
+    });
+    if (directAttempt.success) {
+      return directAttempt;
+    }
+
+    return {
+      success: false,
+      error: `Video stream extraction for ${detectedPlatform} is not available on this server environment (yt-dlp is not installed in system PATH). Please upload your original MP4 file directly or provide a direct downloadable video link (ending in .mp4, .webm, or .mov).`,
+    };
+  }
+
   const tempDir = path.join(os.tmpdir(), 'video_downloads');
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
@@ -323,31 +521,23 @@ export async function downloadVideoFromUrl(params: {
       }
       if (fs.existsSync(finalMergedPath)) fs.unlinkSync(finalMergedPath);
     } catch {
-      // Ignore cleanup error
+      // Ignore
     }
   };
-
-  let detectedPlatform = 'Video';
-  if (/tiktok\.com/i.test(trimmed)) detectedPlatform = 'TikTok';
-  else if (/instagram\.com/i.test(trimmed)) detectedPlatform = 'Instagram';
-  else if (/facebook\.com|fb\.watch/i.test(trimmed)) detectedPlatform = 'Facebook';
-  else if (/vimeo\.com/i.test(trimmed)) detectedPlatform = 'Vimeo';
-  else if (/twitter\.com|x\.com/i.test(trimmed)) detectedPlatform = 'X';
 
   try {
     let videoTitle = `${detectedPlatform} Video`;
     let expectedDuration = 60;
 
     try {
-      const info = await youtubedl(trimmed, {
-        dumpSingleJson: true,
-        noWarnings: true,
-        preferFreeFormats: true,
-      });
-
-      if (info?.title) {
-        videoTitle = info.title;
-      }
+      const infoRes = await execFileAsync(ytDlpPath, [
+        trimmed,
+        '--dump-single-json',
+        '--no-warnings',
+        '--prefer-free-formats',
+      ]);
+      const info = JSON.parse(infoRes.stdout);
+      if (info?.title) videoTitle = info.title;
       if (typeof info?.duration === 'number' && info.duration > 0) {
         expectedDuration = info.duration;
       }
@@ -357,14 +547,20 @@ export async function downloadVideoFromUrl(params: {
 
     const ffmpegPath = getFfmpegPath();
 
-    await youtubedl(trimmed, {
-      output: finalMergedPath,
-      format: 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-      mergeOutputFormat: 'mp4',
-      ffmpegLocation: ffmpegPath,
-      noWarnings: true,
-      maxFilesize: '500M',
-    });
+    await execFileAsync(ytDlpPath, [
+      trimmed,
+      '-o',
+      finalMergedPath,
+      '--format',
+      'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+      '--merge-output-format',
+      'mp4',
+      '--ffmpeg-location',
+      ffmpegPath,
+      '--no-warnings',
+      '--max-filesize',
+      '500M',
+    ]);
 
     let actualFilePath = finalMergedPath;
     if (!fs.existsSync(actualFilePath)) {
@@ -436,4 +632,3 @@ export async function downloadVideoFromUrl(params: {
     };
   }
 }
-
