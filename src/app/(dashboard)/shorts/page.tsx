@@ -1690,9 +1690,16 @@ export default function ShortsStudioPage() {
 
               {/* Error Banner */}
               {uploadError && (
-                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <span>{uploadError}</span>
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 rounded-xl text-xs text-rose-700 dark:text-rose-300 space-y-1.5">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <span>{uploadError}</span>
+                  </div>
+                  {(uploadError.includes('shorts_projects') || uploadError.includes('schema cache')) && (
+                    <div className="ml-6 p-2 bg-rose-100/70 dark:bg-rose-900/40 rounded-lg text-[11px] text-rose-800 dark:text-rose-200">
+                      <strong>To fix:</strong> Open your Supabase Dashboard &rarr; <strong>SQL Editor</strong>, paste the schema from <code className="px-1 py-0.5 bg-rose-200 dark:bg-rose-800 rounded font-mono">supabase/migrations/20261009000002_shorts_studio_schema.sql</code>, and click <strong>Run</strong>.
+                    </div>
+                  )}
                 </div>
               )}
 

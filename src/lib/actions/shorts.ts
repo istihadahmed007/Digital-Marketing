@@ -46,6 +46,10 @@ export async function getShortsProjects(requestedWorkspaceId?: string): Promise<
 
     if (error) {
       console.error('Database error in getShortsProjects:', error.message);
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        console.warn('public.shorts_projects table not found in Supabase schema cache. Returning empty list.');
+        return [];
+      }
       throw new Error(`Failed to load projects: ${error.message}`);
     }
 
@@ -79,6 +83,9 @@ export async function getShortsProject(
 
     if (error) {
       console.error('Database error in getShortsProject:', error.message);
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        return null;
+      }
       throw new Error(`Failed to load project: ${error.message}`);
     }
 
@@ -129,7 +136,16 @@ export async function createShortsProject(
       const { error } = await supabase.from('shorts_projects').insert(newProject);
       if (error) {
         console.error('Database write error in createShortsProject:', error.message);
-        return { success: false, error: `Failed to save project: ${error.message}` };
+        const isMissingTable =
+          error.code === 'PGRST205' ||
+          error.message?.includes('schema cache') ||
+          error.message?.includes('Could not find the table');
+        return {
+          success: false,
+          error: isMissingTable
+            ? "Database setup required: The table 'public.shorts_projects' does not exist in your Supabase project yet. Please run the Shorts Studio SQL migration in your Supabase SQL Editor."
+            : `Failed to save project: ${error.message}`,
+        };
       }
     } else {
       const testStore = getTestStore();
@@ -204,6 +220,10 @@ export async function getShortsClips(
     const { data, error } = await query;
     if (error) {
       console.error('Database error in getShortsClips:', error.message);
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        console.warn('public.shorts_clips table not found in Supabase schema cache. Returning empty list.');
+        return [];
+      }
       throw new Error(`Failed to load clips: ${error.message}`);
     }
 
@@ -436,6 +456,10 @@ export async function getPublishingJobs(requestedWorkspaceId?: string): Promise<
 
     if (error) {
       console.error('Database error in getPublishingJobs:', error.message);
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        console.warn('public.shorts_publishing_jobs table not found in Supabase schema cache. Returning empty list.');
+        return [];
+      }
       throw new Error(`Failed to load publishing jobs: ${error.message}`);
     }
 

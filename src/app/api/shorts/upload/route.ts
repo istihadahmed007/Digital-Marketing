@@ -421,8 +421,17 @@ async function processCompletedProject(params: {
     const { error: insertError } = await supabase.from('shorts_projects').insert(projectRecord);
     if (insertError) {
       console.error('Failed to insert shorts_project to Supabase:', insertError.message);
+      const isMissingTable =
+        insertError.code === 'PGRST205' ||
+        insertError.message?.includes('schema cache') ||
+        insertError.message?.includes('Could not find the table');
       return NextResponse.json(
-        { success: false, error: `Database error saving project: ${insertError.message}` },
+        {
+          success: false,
+          error: isMissingTable
+            ? "Database setup required: The table 'public.shorts_projects' does not exist in your Supabase project yet. Please run the Shorts Studio SQL migration in your Supabase SQL Editor."
+            : `Database error saving project: ${insertError.message}`,
+        },
         { status: 500 }
       );
     }
