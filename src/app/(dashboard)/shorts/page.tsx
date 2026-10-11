@@ -63,7 +63,9 @@ import {
   Square,
   FileVideo,
   ListOrdered,
+  Copy,
 } from 'lucide-react';
+import { SHORTS_STUDIO_SQL } from '@/lib/constants/shorts-migration-sql';
 
 function YouTubeIcon({ className = 'w-4 h-4 text-red-500' }: { className?: string }) {
   return (
@@ -159,8 +161,19 @@ export default function ShortsStudioPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStage, setUploadStage] = useState<string>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [copiedSql, setCopiedSql] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCopyMigrationSql = async () => {
+    try {
+      await navigator.clipboard.writeText(SHORTS_STUDIO_SQL);
+      setCopiedSql(true);
+      setTimeout(() => setCopiedSql(false), 3000);
+    } catch {
+      // fallback
+    }
+  };
 
   // Retrying job state
   const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
@@ -818,6 +831,31 @@ export default function ShortsStudioPage() {
             className="text-xs px-2 py-0.5 rounded hover:bg-slate-200/50 dark:hover:bg-slate-800/50 cursor-pointer ml-4"
           >
             ✕
+          </button>
+        </div>
+      )}
+
+      {/* Database Schema Setup Banner if projects list is empty */}
+      {projects.length === 0 && !loading && (
+        <div className="p-4 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+          <div className="flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-slate-900 dark:text-white">
+                Shorts Studio Database Setup Required
+              </p>
+              <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                To save uploaded videos and generated clips permanently, run the Shorts Studio SQL migration in your Supabase SQL Editor.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleCopyMigrationSql}
+            className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer shadow-sm"
+          >
+            {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedSql ? 'Copied to Clipboard!' : 'Copy SQL Migration'}</span>
           </button>
         </div>
       )}
@@ -1696,8 +1734,18 @@ export default function ShortsStudioPage() {
                     <span>{uploadError}</span>
                   </div>
                   {(uploadError.includes('shorts_projects') || uploadError.includes('schema cache')) && (
-                    <div className="ml-6 p-2 bg-rose-100/70 dark:bg-rose-900/40 rounded-lg text-[11px] text-rose-800 dark:text-rose-200">
-                      <strong>To fix:</strong> Open your Supabase Dashboard &rarr; <strong>SQL Editor</strong>, paste the schema from <code className="px-1 py-0.5 bg-rose-200 dark:bg-rose-800 rounded font-mono">supabase/migrations/20261009000002_shorts_studio_schema.sql</code>, and click <strong>Run</strong>.
+                    <div className="ml-6 p-2.5 bg-rose-100/70 dark:bg-rose-900/40 rounded-xl text-[11px] text-rose-800 dark:text-rose-200 space-y-2">
+                      <p>
+                        <strong>To fix:</strong> Open your Supabase Dashboard &rarr; <strong>SQL Editor</strong>, click <strong>New Query</strong>, paste the schema, and click <strong>Run</strong>.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleCopyMigrationSql}
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedSql ? 'Copied! Paste into Supabase & Run' : 'Copy SQL Migration to Clipboard'}</span>
+                      </button>
                     </div>
                   )}
                 </div>
