@@ -90,7 +90,7 @@ export function SupabaseConfigBanner({ isConfigured }: SupabaseConfigBannerProps
           <div className="bg-white/60 dark:bg-slate-900/60 p-3 rounded-lg border border-amber-500/20">
             <h4 className="font-semibold mb-1 text-slate-800 dark:text-slate-200">3. Run SQL Migration</h4>
             <p className="text-slate-600 dark:text-slate-400">
-              Paste <code className="text-indigo-600 dark:text-indigo-400 font-mono">supabase/migrations/20261007000000_phase1_crm_schema.sql</code> into your Supabase SQL Editor and click Run. All tables and RLS policies will be instantly initialized.
+              Paste <code className="text-sky-600 dark:text-sky-400 font-mono">supabase/COMPLETE_SCHEMA.sql</code> into your Supabase SQL Editor and click Run. All CRM, SEO, and Video Studio tables and RLS policies will be instantly initialized.
             </p>
           </div>
         </div>

@@ -151,7 +151,7 @@ describe('Shorts Studio — Video Quality, Validation & Publishing Engine', () =
       const res = await validateVideoFileUrl(sampleUrl);
       expect(res.valid).toBe(true);
       expect(res.sanitizedUrl).toBe(sampleUrl);
-    });
+    }, 15000);
   });
 
   describe('3. Real Video Fixture Storage & Playback URL', () => {

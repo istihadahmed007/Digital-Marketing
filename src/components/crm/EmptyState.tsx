@@ -60,12 +60,12 @@ export function EmptyState({
   const ResolvedIcon = (iconName ? ICON_MAP[iconName] : icon) || Inbox;
 
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 my-6">
-      <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-4 shadow-xs">
+    <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-3xl border border-dashed border-sky-200/80 dark:border-sky-800/80 glass-panel my-6 shadow-xs">
+      <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-100 to-blue-50 dark:from-sky-950/60 dark:to-blue-950/40 border border-sky-200/60 dark:border-sky-800 flex items-center justify-center text-sky-600 dark:text-sky-400 mb-4 shadow-xs">
         <ResolvedIcon className="w-7 h-7" />
       </div>
       <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1.5">{title}</h3>
-      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mb-6 leading-relaxed">
+      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed">
         {description}
       </p>
 
@@ -73,7 +73,7 @@ export function EmptyState({
         {primaryLabel && actionHref && (
           <Link
             href={actionHref}
-            className="px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 transition-all cursor-pointer"
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all cursor-pointer"
           >
             {primaryLabel}
           </Link>
@@ -81,7 +81,7 @@ export function EmptyState({
         {primaryLabel && !actionHref && onAction && (
           <button
             onClick={onAction}
-            className="px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 transition-all cursor-pointer"
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all cursor-pointer"
           >
             {primaryLabel}
           </button>
@@ -89,7 +89,7 @@ export function EmptyState({
         {secondaryActionLabel && secondaryActionHref && (
           <Link
             href={secondaryActionHref}
-            className="px-4 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold rounded-xl bg-white/80 dark:bg-slate-800/80 border border-sky-200 dark:border-sky-700 hover:bg-sky-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
           >
             {secondaryActionLabel}
           </Link>
@@ -97,7 +97,7 @@ export function EmptyState({
         {secondaryActionLabel && !secondaryActionHref && onSecondaryAction && (
           <button
             onClick={onSecondaryAction}
-            className="px-4 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold rounded-xl bg-white/80 dark:bg-slate-800/80 border border-sky-200 dark:border-sky-700 hover:bg-sky-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
           >
             {secondaryActionLabel}
           </button>

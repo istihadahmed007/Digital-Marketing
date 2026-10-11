@@ -54,8 +54,8 @@ export default async function DashboardLayout({
     cookieStore.get('nexusmark_active_workspace')?.value || workspaces[0]?.id;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans">
-      {/* Left Navigation Sidebar */}
+    <div className="flex flex-col md:flex-row h-screen overflow-hidden text-slate-900 dark:text-slate-100 font-sans">
+      {/* Navigation (Mobile Header + Desktop Sidebar) */}
       <Sidebar
         workspaces={workspaces}
         currentWorkspaceId={activeWsId}
@@ -68,7 +68,7 @@ export default async function DashboardLayout({
         <SupabaseConfigBanner isConfigured={isConfigured} />
 
         {/* Page Viewport */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
