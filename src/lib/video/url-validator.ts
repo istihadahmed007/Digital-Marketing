@@ -5,32 +5,93 @@ export interface VideoUrlValidationResult {
   valid: boolean;
   isSharePage?: boolean;
   isYouTube?: boolean;
+  isDownloadablePlatform?: boolean;
+  platform?: string;
   contentType?: string;
   contentLength?: number;
   sanitizedUrl?: string;
   error?: string;
 }
 
-const PLATFORM_SHARE_PATTERNS = [
-  { regex: /tiktok\.com\//i, name: 'TikTok' },
-  { regex: /instagram\.com\/(?:reel|p|tv)\//i, name: 'Instagram' },
-  { regex: /facebook\.com\/(?:watch|reel|video)/i, name: 'Facebook' },
-  { regex: /(?:twitter\.com|x\.com)\/.+\/status/i, name: 'X / Twitter' },
-  { regex: /vimeo\.com\/\d+$/i, name: 'Vimeo' },
-  { regex: /twitch\.tv\//i, name: 'Twitch' },
-  { regex: /linkedin\.com\/(?:posts|feed)/i, name: 'LinkedIn' },
+export const SUPPORTED_VIDEO_PLATFORMS = [
+  {
+    name: 'YouTube',
+    regex: /(?:youtube\.com\/(?:watch|shorts|embed|v|live)|youtu\.be\/)/i,
+    isYouTube: true,
+  },
+  {
+    name: 'TikTok',
+    regex: /(?:tiktok\.com\/|vt\.tiktok\.com\/|vm\.tiktok\.com\/)/i,
+  },
+  {
+    name: 'Instagram',
+    regex: /instagram\.com\/(?:reel|p|tv|stories)\//i,
+  },
+  {
+    name: 'Facebook',
+    regex: /(?:facebook\.com\/(?:watch|reel|videos?|story\.php)|fb\.watch\/)/i,
+  },
+  {
+    name: 'X / Twitter',
+    regex: /(?:twitter\.com|x\.com)\/.+\/status/i,
+  },
+  {
+    name: 'Vimeo',
+    regex: /vimeo\.com\/(?:\d+|video\/\d+)/i,
+  },
+  {
+    name: 'Twitch',
+    regex: /twitch\.tv\/(?:videos\/\d+|clips\/[a-zA-Z0-9_-]+)/i,
+  },
+  {
+    name: 'Loom',
+    regex: /loom\.com\/share\/[a-zA-Z0-9_-]+/i,
+  },
+  {
+    name: 'Reddit',
+    regex: /reddit\.com\/r\/.+\/comments\//i,
+  },
 ];
 
-const VALID_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.webm', '.mkv', '.m4v', '.avi'];
+export const VALID_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.webm', '.mkv', '.m4v', '.avi'];
 
 export const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
 
 /**
- * Validates whether an input URL is a direct, safe, downloadable video stream or supported YouTube URL.
- * 1. Supports YouTube watch and share links via automatic stream downloader.
- * 2. Explains direct-file requirements for unsupported social platforms (TikTok, Instagram).
+ * Normalizes cloud storage and media share URLs into direct streaming download links.
+ * E.g., Dropbox (?dl=0 -> ?raw=1) and Google Drive file view links.
+ */
+export function normalizeDirectMediaUrl(inputUrl: string): string {
+  try {
+    const parsed = new URL(inputUrl);
+
+    // Dropbox: convert ?dl=0 to ?raw=1
+    if (parsed.hostname.includes('dropbox.com')) {
+      parsed.searchParams.set('raw', '1');
+      parsed.searchParams.delete('dl');
+      return parsed.toString();
+    }
+
+    // Google Drive share link: /file/d/FILE_ID/view -> uc?export=download&id=FILE_ID
+    if (parsed.hostname === 'drive.google.com') {
+      const match = parsed.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+      }
+    }
+
+    return inputUrl;
+  } catch {
+    return inputUrl;
+  }
+}
+
+/**
+ * Validates whether an input URL is a direct downloadable video stream or a supported video platform link.
+ * 1. Supports YouTube watch and shorts URLs via automatic stream downloader.
+ * 2. Supports TikTok, Instagram, Facebook, Vimeo, X/Twitter, and Loom via universal stream extraction.
  * 3. Enforces strict SSRF protections (no localhost, private networks, cloud metadata).
- * 4. Inspects HTTP headers for Content-Type and Content-Length.
+ * 4. Inspects HTTP headers for Content-Type and Content-Length for direct media URLs.
  */
 export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlValidationResult> {
   if (!inputUrl || typeof inputUrl !== 'string') {
@@ -39,30 +100,9 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
 
   const trimmed = inputUrl.trim();
 
-  // 1. YouTube watch/share URLs: Supported via automated stream extraction!
-  const ytValidation = parseAndValidateYouTubeUrl(trimmed);
-  if (ytValidation.valid && ytValidation.sanitizedUrl) {
-    return {
-      valid: true,
-      isYouTube: true,
-      sanitizedUrl: ytValidation.sanitizedUrl,
-      contentType: 'video/mp4',
-    };
-  }
-
-  // 2. Check for other platform share / watch page URLs
-  for (const platform of PLATFORM_SHARE_PATTERNS) {
-    if (platform.regex.test(trimmed)) {
-      return {
-        valid: false,
-        isSharePage: true,
-        error: `${platform.name} watch/share links are not direct video files. To process this video, please upload the original file or provide a direct downloadable video URL (ending in .mp4, .webm, or .mov).`,
-      };
-    }
-  }
-
-  // 3. SSRF & Protocol Verification
-  const ssrfCheck = await validateSafePublicUrl(trimmed);
+  // 1. SSRF & Protocol Verification FIRST to protect against SSRF across all URLs
+  const normalizedUrl = normalizeDirectMediaUrl(trimmed);
+  const ssrfCheck = await validateSafePublicUrl(normalizedUrl);
   if (!ssrfCheck.safe) {
     return {
       valid: false,
@@ -78,7 +118,34 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
     };
   }
 
-  // 4. Inspect target headers via HEAD or Range GET
+  // 2. YouTube watch/share URLs: Supported via automated stream extraction!
+  const ytValidation = parseAndValidateYouTubeUrl(trimmed);
+  if (ytValidation.valid && ytValidation.sanitizedUrl) {
+    return {
+      valid: true,
+      isYouTube: true,
+      isDownloadablePlatform: true,
+      platform: 'YouTube',
+      sanitizedUrl: ytValidation.sanitizedUrl,
+      contentType: 'video/mp4',
+    };
+  }
+
+  // 3. Supported Social Video Platforms (TikTok, Instagram, Facebook, Vimeo, Twitter, Loom, etc.)
+  for (const platform of SUPPORTED_VIDEO_PLATFORMS) {
+    if (platform.regex.test(trimmed)) {
+      return {
+        valid: true,
+        isDownloadablePlatform: true,
+        isYouTube: !!platform.isYouTube,
+        platform: platform.name,
+        sanitizedUrl: trimmed,
+        contentType: 'video/mp4',
+      };
+    }
+  }
+
+  // 4. Inspect target headers via HEAD or Range GET for direct video URLs
   const pathLower = parsedUrl.pathname.toLowerCase();
   const hasVideoExt = VALID_VIDEO_EXTENSIONS.some((ext) => pathLower.endsWith(ext));
 
@@ -88,7 +155,7 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
       'Accept': '*/*',
     };
 
-    let headRes = await safeFetch(trimmed, {
+    let headRes = await safeFetch(normalizedUrl, {
       method: 'HEAD',
       headers: defaultHeaders,
       maxResponseBytes: MAX_VIDEO_SIZE_BYTES,
@@ -97,7 +164,7 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
 
     // If server disallows HEAD (HTTP 401, 403, 405, 501), fallback to Range GET for first 1KB
     if (!headRes.ok && (headRes.status === 401 || headRes.status === 403 || headRes.status === 405 || headRes.status === 501)) {
-      headRes = await safeFetch(trimmed, {
+      headRes = await safeFetch(normalizedUrl, {
         method: 'GET',
         headers: {
           ...defaultHeaders,
@@ -113,7 +180,7 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
         return {
           valid: true,
           contentType: 'video/mp4',
-          sanitizedUrl: trimmed,
+          sanitizedUrl: normalizedUrl,
         };
       }
       return {
@@ -126,12 +193,12 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
     const contentLengthStr = headRes.headers.get('content-length');
     const contentLength = contentLengthStr ? parseInt(contentLengthStr, 10) : undefined;
 
-    // Check if response is HTML
+    // Check if response is HTML (and not a recognized video platform)
     if (contentType.includes('text/html') || contentType.includes('application/xhtml')) {
       return {
         valid: false,
         isSharePage: true,
-        error: 'The provided link returned a web page (HTML) rather than a direct video stream. Please provide a direct download link (e.g. ending in .mp4).',
+        error: 'The provided link returned a web page rather than a video file. Please provide a supported video link (YouTube, TikTok, Instagram, Facebook, Vimeo) or a direct video URL ending in .mp4, .webm, or .mov.',
       };
     }
 
@@ -161,15 +228,14 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
       valid: true,
       contentType: contentType || 'video/mp4',
       contentLength,
-      sanitizedUrl: trimmed,
+      sanitizedUrl: normalizedUrl,
     };
   } catch (err: any) {
-    // If network check fails but URL ends in a clear valid video extension, allow with warning
     if (hasVideoExt) {
       return {
         valid: true,
         contentType: 'video/mp4',
-        sanitizedUrl: trimmed,
+        sanitizedUrl: normalizedUrl,
       };
     }
 
@@ -179,3 +245,4 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
     };
   }
 }
+

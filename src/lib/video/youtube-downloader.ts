@@ -4,6 +4,7 @@ import os from 'os';
 import crypto from 'crypto';
 import { persistVideoFile } from './storage';
 import { probeVideoFile } from './prober';
+import { validateSafePublicUrl } from '@/lib/security/ssrf';
 
 function getFfmpegPath(): string {
   try {
@@ -260,3 +261,179 @@ export async function downloadYouTubeVideo(params: {
     };
   }
 }
+
+export interface VideoDownloadResult {
+  success: boolean;
+  videoUrl?: string;
+  storagePath?: string;
+  title?: string;
+  durationSeconds?: number;
+  fileSizeBytes?: number;
+  platform?: string;
+  error?: string;
+}
+
+/**
+ * Universal video downloader supporting YouTube, TikTok, Instagram, Facebook, Vimeo, X/Twitter, etc.
+ * Uses yt-dlp with bundled FFmpeg and enforces strict SSRF protections and size limits.
+ */
+export async function downloadVideoFromUrl(params: {
+  url: string;
+  workspaceId: string;
+}): Promise<VideoDownloadResult> {
+  const trimmed = (params.url || '').trim();
+  if (!trimmed) {
+    return { success: false, error: 'Please enter a valid video URL.' };
+  }
+
+  // If it's a YouTube URL, use specialized YouTube parser
+  if (isYouTubeUrl(trimmed)) {
+    return downloadYouTubeVideo({
+      url: trimmed,
+      workspaceId: params.workspaceId,
+    });
+  }
+
+  // SSRF check for external public URLs
+  const ssrfCheck = await validateSafePublicUrl(trimmed);
+  if (!ssrfCheck.safe) {
+    return {
+      success: false,
+      error: ssrfCheck.error || 'The provided URL points to an unsafe or private destination.',
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const youtubedl = require('youtube-dl-exec');
+  const tempDir = path.join(os.tmpdir(), 'video_downloads');
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  const randomSuffix = `${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
+  const tempOutputBase = path.join(tempDir, `vid_${randomSuffix}`);
+  const finalMergedPath = `${tempOutputBase}.mp4`;
+
+  const cleanupFiles = () => {
+    try {
+      const extensions = ['.mp4', '.mkv', '.webm', '.m4v', '.part', '.ytdl'];
+      for (const ext of extensions) {
+        const p = `${tempOutputBase}${ext}`;
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+      }
+      if (fs.existsSync(finalMergedPath)) fs.unlinkSync(finalMergedPath);
+    } catch {
+      // Ignore cleanup error
+    }
+  };
+
+  let detectedPlatform = 'Video';
+  if (/tiktok\.com/i.test(trimmed)) detectedPlatform = 'TikTok';
+  else if (/instagram\.com/i.test(trimmed)) detectedPlatform = 'Instagram';
+  else if (/facebook\.com|fb\.watch/i.test(trimmed)) detectedPlatform = 'Facebook';
+  else if (/vimeo\.com/i.test(trimmed)) detectedPlatform = 'Vimeo';
+  else if (/twitter\.com|x\.com/i.test(trimmed)) detectedPlatform = 'X';
+
+  try {
+    let videoTitle = `${detectedPlatform} Video`;
+    let expectedDuration = 60;
+
+    try {
+      const info = await youtubedl(trimmed, {
+        dumpSingleJson: true,
+        noWarnings: true,
+        preferFreeFormats: true,
+      });
+
+      if (info?.title) {
+        videoTitle = info.title;
+      }
+      if (typeof info?.duration === 'number' && info.duration > 0) {
+        expectedDuration = info.duration;
+      }
+    } catch (infoErr: any) {
+      console.warn(`Could not pre-fetch ${detectedPlatform} metadata:`, infoErr?.message);
+    }
+
+    const ffmpegPath = getFfmpegPath();
+
+    await youtubedl(trimmed, {
+      output: finalMergedPath,
+      format: 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+      mergeOutputFormat: 'mp4',
+      ffmpegLocation: ffmpegPath,
+      noWarnings: true,
+      maxFilesize: '500M',
+    });
+
+    let actualFilePath = finalMergedPath;
+    if (!fs.existsSync(actualFilePath)) {
+      const possibleExtensions = ['.mp4', '.mkv', '.webm', '.m4v'];
+      const found = possibleExtensions.find((ext) => fs.existsSync(`${tempOutputBase}${ext}`));
+      if (found) {
+        actualFilePath = `${tempOutputBase}${found}`;
+      } else {
+        cleanupFiles();
+        return {
+          success: false,
+          error: `Could not extract video stream from this ${detectedPlatform} link. If the video is private or restricted, please upload your original MP4 file directly.`,
+        };
+      }
+    }
+
+    const fileStats = fs.statSync(actualFilePath);
+    if (fileStats.size === 0) {
+      cleanupFiles();
+      return { success: false, error: 'Downloaded video file is empty (0 bytes).' };
+    }
+
+    if (fileStats.size > 500 * 1024 * 1024) {
+      cleanupFiles();
+      return { success: false, error: 'Downloaded video exceeds 500 MB limit.' };
+    }
+
+    let probeDuration = expectedDuration;
+    try {
+      const probed = await probeVideoFile(actualFilePath);
+      if (probed.durationSeconds > 0) {
+        probeDuration = probed.durationSeconds;
+      }
+    } catch {
+      // Use expectedDuration
+    }
+
+    const cleanTitle = videoTitle.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const storageRes = await persistVideoFile({
+      workspaceId: params.workspaceId,
+      fileName: `${cleanTitle}.mp4`,
+      filePath: actualFilePath,
+      contentType: 'video/mp4',
+    });
+
+    cleanupFiles();
+
+    if (!storageRes.success) {
+      return {
+        success: false,
+        error: storageRes.error || `Failed to save downloaded ${detectedPlatform} video to storage.`,
+      };
+    }
+
+    return {
+      success: true,
+      videoUrl: storageRes.url,
+      storagePath: storageRes.storagePath,
+      title: videoTitle,
+      durationSeconds: probeDuration,
+      fileSizeBytes: fileStats.size,
+      platform: detectedPlatform,
+    };
+  } catch (err: any) {
+    cleanupFiles();
+    return {
+      success: false,
+      error: `Could not download video from this URL: ${err.message || 'Stream extraction failed'}. If the video is private or restricted, please upload your original MP4 file directly.`,
+    };
+  }
+}
+

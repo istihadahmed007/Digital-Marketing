@@ -129,11 +129,30 @@ describe('Shorts Studio — Video Quality, Validation & Publishing Engine', () =
       expect(isYouTubeUrl('https://example.com/video.mp4')).toBe(false);
     });
 
-    it('rejects TikTok video page URLs with instructions to provide direct video file', async () => {
+    it('accepts TikTok and social video URLs for automated stream downloading', async () => {
       const res = await validateVideoFileUrl('https://www.tiktok.com/@creator/video/123456789');
+      expect(res.valid).toBe(true);
+      expect(res.isDownloadablePlatform).toBe(true);
+      expect(res.platform).toBe('TikTok');
+    });
+
+    it('accepts Instagram Reels and Facebook video URLs for automated downloading', async () => {
+      const resIg = await validateVideoFileUrl('https://www.instagram.com/reel/Cx123456789/');
+      expect(resIg.valid).toBe(true);
+      expect(resIg.isDownloadablePlatform).toBe(true);
+      expect(resIg.platform).toBe('Instagram');
+
+      const resFb = await validateVideoFileUrl('https://www.facebook.com/watch/?v=123456789');
+      expect(resFb.valid).toBe(true);
+      expect(resFb.isDownloadablePlatform).toBe(true);
+      expect(resFb.platform).toBe('Facebook');
+    });
+
+    it('rejects arbitrary non-video web pages (HTML) with clear guidance', async () => {
+      const res = await validateVideoFileUrl('https://example.com');
       expect(res.valid).toBe(false);
       expect(res.isSharePage).toBe(true);
-      expect(res.error).toContain('TikTok watch/share links are not direct video files');
+      expect(res.error).toContain('web page rather than a video');
     });
 
     it('blocks SSRF attempts to localhost and private networks', async () => {

@@ -313,15 +313,10 @@ export default function ShortsStudioPage() {
     }
   };
 
-  // Check for platform share links on URL change
+  // Update URL input and clear previous errors
   const handleUrlInputChange = (val: string) => {
     setDirectVideoUrl(val);
     setUploadError(null);
-    if (/(?:tiktok\.com|instagram\.com|facebook\.com\/watch)/i.test(val)) {
-      setUploadError(
-        'Platform watch/share links (such as TikTok or Instagram) are web pages, not direct video files. Please upload your original MP4 file or provide a direct downloadable file URL (ending in .mp4, .webm, or .mov).'
-      );
-    }
   };
 
   // ========================================================
@@ -483,27 +478,34 @@ export default function ShortsStudioPage() {
         }
       } else {
         // Video URL flow
-        const isYt = /(?:youtube\.com\/(?:watch|shorts|embed)|youtu\.be\/)/i.test(directVideoUrl.trim());
+        const trimmedUrl = directVideoUrl.trim();
+        let platformName = 'Video';
+        if (/(?:youtube\.com|youtu\.be)/i.test(trimmedUrl)) platformName = 'YouTube';
+        else if (/tiktok\.com/i.test(trimmedUrl)) platformName = 'TikTok';
+        else if (/instagram\.com/i.test(trimmedUrl)) platformName = 'Instagram';
+        else if (/facebook\.com|fb\.watch/i.test(trimmedUrl)) platformName = 'Facebook';
+        else if (/vimeo\.com/i.test(trimmedUrl)) platformName = 'Vimeo';
+
         setUploadProgress(20);
         setUploadStage(
-          isYt
-            ? 'Downloading YouTube video & extracting audio...'
-            : 'Validating direct video stream & headers...'
+          platformName !== 'Video'
+            ? `Downloading ${platformName} video stream & extracting audio...`
+            : 'Validating video stream & headers...'
         );
 
         const res = await fetch('/api/shorts/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            videoUrl: directVideoUrl.trim(),
-            title: uploadTitle.trim() || 'Video Recording',
+            videoUrl: trimmedUrl,
+            title: uploadTitle.trim() || `${platformName} Recording`,
             workspaceId,
           }),
         });
 
         const data = await res.json();
         if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Failed to process direct video URL.');
+          throw new Error(data.error || 'Failed to process video URL.');
         }
 
         setUploadProgress(85);
@@ -1585,7 +1587,7 @@ export default function ShortsStudioPage() {
                   uploadMode === 'url' ? 'bg-white dark:bg-slate-900 text-purple-600 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Paste a Video File URL
+                Paste Video Link / URL
               </button>
             </div>
 
@@ -1664,16 +1666,16 @@ export default function ShortsStudioPage() {
                 </div>
               )}
 
-              {/* TAB 2: DIRECT VIDEO URL INPUT */}
+              {/* TAB 2: VIDEO URL INPUT */}
               {uploadMode === 'url' && (
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Video URL (YouTube or Direct Video Stream)
+                    Video URL (YouTube, TikTok, Instagram, or Direct Stream)
                   </label>
                   <div className="relative">
                     <input
                       type="url"
-                      placeholder="https://www.youtube.com/watch?v=... or https://example.com/video.mp4"
+                      placeholder="https://youtube.com/watch?v=..., https://tiktok.com/@.../video/..., or direct .mp4"
                       value={directVideoUrl}
                       onChange={(e) => handleUrlInputChange(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
@@ -1681,7 +1683,7 @@ export default function ShortsStudioPage() {
                     <Link2 className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   </div>
                   <p className="text-[10px] text-slate-400">
-                    Paste a YouTube link (e.g. watch, shorts, or youtu.be) or a direct MP4/WebM video URL. YouTube videos are automatically downloaded and parsed into viral moments.
+                    Paste a link from YouTube, TikTok, Instagram, Facebook, Vimeo, or a direct MP4/WebM video URL. The video will be automatically downloaded, transcribed, and parsed into viral moments.
                   </p>
                 </div>
               )}

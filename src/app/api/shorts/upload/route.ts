@@ -5,7 +5,7 @@ import { transcribeVideoAudio, suggestCoherentMoments } from '@/lib/video/proces
 import { validateVideoFileUrl, MAX_VIDEO_SIZE_BYTES } from '@/lib/video/url-validator';
 import { persistVideoFile, createSignedVideoUploadUrl, getStoredVideoUrl } from '@/lib/video/storage';
 import { probeVideoFile } from '@/lib/video/prober';
-import { downloadYouTubeVideo } from '@/lib/video/youtube-downloader';
+import { downloadYouTubeVideo, downloadVideoFromUrl } from '@/lib/video/youtube-downloader';
 import { ShortsProject } from '@/lib/types/shorts';
 import { getAuthorizedWorkspace, AuthorizationError } from '@/lib/security/auth-context';
 import path from 'path';
@@ -233,24 +233,24 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ success: false, error: urlValidation.error }, { status: 400 });
         }
 
-        if (urlValidation.isYouTube) {
-          const ytRes = await downloadYouTubeVideo({
+        if (urlValidation.isYouTube || urlValidation.isDownloadablePlatform) {
+          const dlRes = await downloadVideoFromUrl({
             url: remoteUrl,
             workspaceId,
           });
 
-          if (!ytRes.success) {
+          if (!dlRes.success) {
             return NextResponse.json(
-              { success: false, error: ytRes.error || 'Failed to download and process YouTube video.' },
+              { success: false, error: dlRes.error || 'Failed to download and process video.' },
               { status: 400 }
             );
           }
 
-          videoUrl = ytRes.videoUrl!;
-          storagePath = ytRes.storagePath;
-          title = title || ytRes.title || 'YouTube Video';
-          durationSeconds = ytRes.durationSeconds || 60;
-          fileSizeBytes = ytRes.fileSizeBytes || 0;
+          videoUrl = dlRes.videoUrl!;
+          storagePath = dlRes.storagePath;
+          title = title || dlRes.title || `${dlRes.platform || 'Video'} Clip`;
+          durationSeconds = dlRes.durationSeconds || 60;
+          fileSizeBytes = dlRes.fileSizeBytes || 0;
         } else {
           videoUrl = urlValidation.sanitizedUrl!;
           fileSizeBytes = urlValidation.contentLength || 45000000;
@@ -301,24 +301,24 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: urlValidation.error }, { status: 400 });
       }
 
-      if (urlValidation.isYouTube) {
-        const ytRes = await downloadYouTubeVideo({
+      if (urlValidation.isYouTube || urlValidation.isDownloadablePlatform) {
+        const dlRes = await downloadVideoFromUrl({
           url: rawUrl,
           workspaceId,
         });
 
-        if (!ytRes.success) {
+        if (!dlRes.success) {
           return NextResponse.json(
-            { success: false, error: ytRes.error || 'Failed to download and process YouTube video.' },
+            { success: false, error: dlRes.error || 'Failed to download and process video.' },
             { status: 400 }
           );
         }
 
-        videoUrl = ytRes.videoUrl!;
-        storagePath = ytRes.storagePath;
-        title = title || ytRes.title || 'YouTube Video';
-        durationSeconds = ytRes.durationSeconds || 60;
-        fileSizeBytes = ytRes.fileSizeBytes || 0;
+        videoUrl = dlRes.videoUrl!;
+        storagePath = dlRes.storagePath;
+        title = title || dlRes.title || `${dlRes.platform || 'Video'} Clip`;
+        durationSeconds = dlRes.durationSeconds || 60;
+        fileSizeBytes = dlRes.fileSizeBytes || 0;
       } else {
         videoUrl = urlValidation.sanitizedUrl!;
         fileSizeBytes = urlValidation.contentLength || 45000000;
