@@ -26,7 +26,7 @@ import {
   renderShortsClipAction,
 } from '@/lib/actions/shorts';
 import { validateVideoClip } from '@/lib/video/validator';
-import { computeVerticalFraming, SHORTS_SPECS } from '@/lib/video/processor';
+import { computeVerticalFraming, SHORTS_SPECS } from '@/lib/video/specs';
 import {
   Video,
   Sparkles,

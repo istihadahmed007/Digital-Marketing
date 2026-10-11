@@ -1,11 +1,7 @@
 import {
   TranscriptSegment,
   ShortsClip,
-  CropMode,
-  SubtitlesStyle,
-  ClipValidationResult,
 } from '@/lib/types/shorts';
-import { validateVideoClip } from './validator';
 import { safeFetch } from '@/lib/security/ssrf';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -27,20 +23,8 @@ function getFfmpegPath(): string {
   return 'ffmpeg';
 }
 
-/**
- * 9:16 Vertical Video Constraints & Specifications
- */
-export const SHORTS_SPECS = {
-  TARGET_WIDTH: 1080,
-  TARGET_HEIGHT: 1920,
-  ASPECT_RATIO: '9:16',
-  MIN_DURATION: 15.0,
-  MAX_DURATION: 60.0,
-  RECOMMENDED_MIN_DURATION: 30.0,
-  SUBTITLE_SAFE_TOP_PERCENT: 12,
-  SUBTITLE_SAFE_BOTTOM_PERCENT: 80,
-  DEFAULT_SUBTITLE_Y_PERCENT: 72,
-};
+export { SHORTS_SPECS, computeVerticalFraming } from './specs';
+import { SHORTS_SPECS } from './specs';
 
 export interface VideoProcessingProgress {
   stage: 'uploading' | 'extracting_audio' | 'transcribing' | 'detecting_moments' | 'rendering' | 'completed' | 'failed';
@@ -238,20 +222,22 @@ export function suggestCoherentMoments(
             ? `${firstSentence.slice(0, 52)}...`
             : firstSentence || `${videoTitle || 'Key Moment'} Part ${suggestions.length + 1}`;
 
-        // Calculate dynamic virality score based on engagement keywords
-        let score = 82;
-        if (/secret|mistake|why|how to|top|3x|growth|roi|never/i.test(fullText)) score += 8;
-        if (/\?|\!|\d+%/i.test(fullText)) score += 5;
-        score = Math.min(98, score);
+        // Heuristic engagement score based on speech cadence and keyword density
+        let heuristicScore = 80;
+        if (/secret|mistake|why|how to|top|3x|growth|roi|never/i.test(fullText)) heuristicScore += 8;
+        if (/\?|\!|\d+%/i.test(fullText)) heuristicScore += 5;
+        heuristicScore = Math.min(95, heuristicScore);
 
         suggestions.push({
           title: titleCandidate,
-          caption: `${fullText.slice(0, 120)}... #Shorts #Viral`,
+          caption: fullText ? fullText.slice(0, 150) : (videoTitle || 'Key Moment'),
           start_time: Math.round(start * 10) / 10,
           end_time: Math.round(end * 10) / 10,
           duration_seconds: Math.round(dur * 10) / 10,
-          virality_score: score,
-          hook_summary: firstSentence || 'High-impact conversational opener',
+          virality_score: heuristicScore,
+          hook_summary: firstSentence
+            ? `Keyword heuristic: "${firstSentence.slice(0, 50)}"`
+            : 'Speech cadence heuristic segment',
           crop_mode: 'blur_padding',
           subtitles_enabled: true,
           subtitles_style: {
@@ -293,15 +279,15 @@ export function suggestCoherentMoments(
       };
 
       suggestions.push({
-        title: `${videoTitle || 'Video Clip'} (${formatTime(currentStart)} - ${formatTime(end)})`,
-        caption: `Highlight from ${videoTitle || 'full video'}. Watch full breakdown. #Shorts #Viral`,
+        title: `${videoTitle || 'Video Clip'} Part ${partNum} (${formatTime(currentStart)} - ${formatTime(end)})`,
+        caption: videoTitle ? `Highlight from ${videoTitle}` : 'Video Highlight',
         start_time: Math.round(currentStart * 10) / 10,
         end_time: Math.round(end * 10) / 10,
         duration_seconds: Math.round(dur * 10) / 10,
-        virality_score: 85,
-        hook_summary: `Segment from ${formatTime(currentStart)} to ${formatTime(end)}`,
+        virality_score: 75,
+        hook_summary: `Timeline heuristic: Segment from ${formatTime(currentStart)} to ${formatTime(end)}`,
         crop_mode: 'blur_padding',
-        subtitles_enabled: true,
+        subtitles_enabled: false,
         subtitles_style: {
           fontSize: 38,
           color: '#FFFFFF',
@@ -320,81 +306,4 @@ export function suggestCoherentMoments(
   }
 
   return suggestions;
-}
-
-/**
- * Computes Framing and Subtitle safe margins for 1080x1920 vertical canvas.
- */
-export function computeVerticalFraming(params: {
-  sourceWidth: number;
-  sourceHeight: number;
-  cropMode: CropMode;
-  targetWidth?: number;
-  targetHeight?: number;
-}): {
-  targetWidth: number;
-  targetHeight: number;
-  scaleFactor: number;
-  cropX: number;
-  cropY: number;
-  cropWidth: number;
-  cropHeight: number;
-  requiresBlurPadding: boolean;
-  safeMarginTop: number;
-  safeMarginBottom: number;
-  background: {
-    enabled: boolean;
-    blurRadius: number;
-  };
-  subtitleSafeY: number;
-} {
-  const targetW = params.targetWidth || SHORTS_SPECS.TARGET_WIDTH;
-  const targetH = params.targetHeight || SHORTS_SPECS.TARGET_HEIGHT;
-
-  const sourceAspect = params.sourceWidth / params.sourceHeight;
-  const targetAspect = targetW / targetH; // 9 / 16 = 0.5625
-
-  let requiresBlur = false;
-  let scaleFactor = 1;
-  let cropX = 0;
-  let cropY = 0;
-  let cropWidth = params.sourceWidth;
-  let cropHeight = params.sourceHeight;
-
-  if (params.cropMode === 'blur_padding') {
-    requiresBlur = sourceAspect > targetAspect; // e.g. 16:9 source in 9:16 canvas
-    scaleFactor = targetW / params.sourceWidth;
-  } else if (params.cropMode === 'smart_crop') {
-    // Center crop 9:16 from source
-    requiresBlur = false;
-    cropWidth = Math.min(params.sourceWidth, Math.round(params.sourceHeight * targetAspect));
-    cropHeight = params.sourceHeight;
-    cropX = Math.round((params.sourceWidth - cropWidth) / 2);
-    cropY = 0;
-  } else {
-    // Fit / letterbox
-    requiresBlur = false;
-    scaleFactor = Math.min(targetW / params.sourceWidth, targetH / params.sourceHeight);
-  }
-
-  const safeMarginTop = Math.round(targetH * (SHORTS_SPECS.SUBTITLE_SAFE_TOP_PERCENT / 100));
-  const safeMarginBottom = Math.round(targetH * (SHORTS_SPECS.SUBTITLE_SAFE_BOTTOM_PERCENT / 100));
-
-  return {
-    targetWidth: targetW,
-    targetHeight: targetH,
-    scaleFactor,
-    cropX,
-    cropY,
-    cropWidth,
-    cropHeight,
-    requiresBlurPadding: requiresBlur,
-    safeMarginTop,
-    safeMarginBottom,
-    background: {
-      enabled: requiresBlur,
-      blurRadius: 24,
-    },
-    subtitleSafeY: Math.round(targetH * (SHORTS_SPECS.DEFAULT_SUBTITLE_Y_PERCENT / 100)),
-  };
 }

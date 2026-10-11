@@ -1,6 +1,6 @@
 export type ShortsProjectStatus = 'uploading' | 'uploaded' | 'transcribing' | 'ready' | 'failed';
 export type ShortsClipRenderStatus = 'draft' | 'rendering' | 'rendered' | 'failed';
-export type CropMode = 'blur_padding' | 'smart_crop' | 'fit';
+export type CropMode = 'blur_padding' | 'smart_crop' | 'center_crop' | 'fit';
 export type PublishingPlatform = 'youtube' | 'facebook' | 'instagram';
 export type PublishingStatus = 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed';
 
@@ -78,7 +78,7 @@ export interface ShortsClip {
   rendered_video_url?: string | null;
   thumbnail_url?: string | null;
   validation_status: 'unverified' | 'passed' | 'failed';
-  validation_details: ClipValidationResult;
+  validation_details?: ClipValidationResult;
   created_at: string;
   updated_at: string;
   project?: ShortsProject | null;

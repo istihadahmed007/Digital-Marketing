@@ -2,8 +2,12 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
-import { probeVideoFile, verifyVideoDecodable, VideoMetadata } from './prober';
+import os from 'os';
+import crypto from 'crypto';
+import { probeVideoFile, VideoMetadata } from './prober';
+import { inspectAndValidateVideoFile } from './server-validator';
 import { persistVideoFile } from './storage';
+import { downloadSafeRemoteVideoFile } from '@/lib/security/ssrf';
 import { ClipValidationResult } from '@/lib/types/shorts';
 
 const execFileAsync = promisify(execFile);
@@ -27,7 +31,7 @@ export interface RenderOptions {
   sourceVideoPathOrUrl: string;
   startTime: number;
   endTime: number;
-  cropMode?: 'blur_padding' | 'smart_crop' | 'fit';
+  cropMode?: 'blur_padding' | 'smart_crop' | 'fit' | 'center_crop';
   subtitlesEnabled?: boolean;
   subtitlesText?: string;
   subtitlesStyle?: {
@@ -49,10 +53,22 @@ export interface RenderResult {
   error?: string;
 }
 
+function escapeDrawText(text: string): string {
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/%/g, '\\%')
+    .replace(/:/g, '\\:');
+}
+
 /**
- * Renders an authentic 1080x1920 (9:16) MP4 video clip from source footage using FFmpeg.
- * Applies selected crop mode (blur padding, smart center crop, or fit padding).
- * Stores the rendered file separately from source video and verifies real output decoding.
+ * Renders an authentic vertical 1080x1920 (9:16) MP4 video clip from source video using FFmpeg.
+ * 1. Safely downloads remote video sources using SSRF-hardened streaming into controlled temp storage.
+ *    Never gives arbitrary remote URLs directly to FFmpeg.
+ * 2. Applies accurate vertical layout (blur padding, center crop, or fit).
+ * 3. Burns subtitle text onto video when subtitles are enabled.
+ * 4. Verifies the rendered clip with real media inspection (duration, dimensions, audio RMS, luminance variance, decoding).
+ * 5. Cleans up temporary files on both success and failure.
  */
 export async function renderVerticalShort(options: RenderOptions): Promise<RenderResult> {
   const {
@@ -62,6 +78,9 @@ export async function renderVerticalShort(options: RenderOptions): Promise<Rende
     startTime,
     endTime,
     cropMode = 'blur_padding',
+    subtitlesEnabled = false,
+    subtitlesText,
+    subtitlesStyle,
   } = options;
 
   const duration = Math.max(0, endTime - startTime);
@@ -73,41 +92,70 @@ export async function renderVerticalShort(options: RenderOptions): Promise<Rende
   }
 
   const ffmpegPath = getFfmpegPath();
-
-  // Create temporary working directory for rendering
-  const tempDir = path.join(process.cwd(), 'public', 'uploads', 'temp_renders');
+  const tempDir = path.join(os.tmpdir(), 'shorts_render_workspace');
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
   }
 
-  const outputFileName = `render_${clipId}_${Date.now()}.mp4`;
-  const tempOutputPath = path.join(tempDir, outputFileName);
+  const randomId = crypto.randomBytes(6).toString('hex');
+  const tempOutputPath = path.join(tempDir, `render_${clipId}_${Date.now()}_${randomId}.mp4`);
+
+  let localSourcePath = sourceVideoPathOrUrl;
+  let remoteCleanup: (() => void) | null = null;
 
   try {
+    // 1. Resolve source video to a verified local file
+    if (sourceVideoPathOrUrl.startsWith('http://') || sourceVideoPathOrUrl.startsWith('https://')) {
+      const dl = await downloadSafeRemoteVideoFile({
+        url: sourceVideoPathOrUrl,
+        maxBytes: 500 * 1024 * 1024,
+      });
+      localSourcePath = dl.localPath;
+      remoteCleanup = dl.cleanup;
+    } else if (sourceVideoPathOrUrl.startsWith('file://')) {
+      localSourcePath = sourceVideoPathOrUrl.replace(/^file:\/\//, '');
+      if (process.platform === 'win32' && localSourcePath.startsWith('/')) {
+        localSourcePath = localSourcePath.slice(1);
+      }
+    }
+
+    if (!fs.existsSync(localSourcePath)) {
+      return {
+        success: false,
+        error: `Source video file was not found on local disk: ${localSourcePath}`,
+      };
+    }
+
+    // 2. Build FFmpeg command args
     const ffmpegArgs: string[] = [
       '-y',
       '-ss', startTime.toFixed(3),
       '-t', duration.toFixed(3),
-      '-i', sourceVideoPathOrUrl,
+      '-i', localSourcePath,
     ];
 
-    // Filter configuration for vertical 9:16 (1080x1920)
+    // Subtitle filter overlay if enabled
+    let subtitleFilterSnippet = '';
+    if (subtitlesEnabled && subtitlesText && subtitlesText.trim()) {
+      const cleanSub = escapeDrawText(subtitlesText.trim().slice(0, 140));
+      const fontSize = subtitlesStyle?.fontSize || 38;
+      const posYPercent = (subtitlesStyle?.positionY || 72) / 100;
+      subtitleFilterSnippet = `,drawtext=text='${cleanSub}':fontsize=${fontSize}:fontcolor=white:box=1:boxcolor=black@0.75:boxborderw=10:x=(w-text_w)/2:y=(h*${posYPercent})-text_h/2`;
+    }
+
+    // Vertical layout filtering
     if (cropMode === 'blur_padding') {
-      // Professional YouTube Shorts layout:
-      // Background: scale to fill 1080x1920 and heavily blur
-      // Foreground: scale to fit 1080x1920 preserving aspect ratio
-      // Overlay: center foreground over blurred background
       ffmpegArgs.push(
         '-filter_complex',
-        '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=25:5[bg];[0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[outv]',
+        `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=25:5[bg];[0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2${subtitleFilterSnippet}[outv]`,
         '-map', '[outv]',
         '-map', '0:a?'
       );
-    } else if (cropMode === 'smart_crop') {
-      // Center crop to 1080x1920
+    } else if (cropMode === 'smart_crop' || cropMode === 'center_crop') {
+      // Accurate center crop to 1080x1920
       ffmpegArgs.push(
         '-vf',
-        'scale=-2:1920,crop=1080:1920:(in_w-1080)/2:0',
+        `scale=-2:1920,crop=1080:1920:(in_w-1080)/2:0${subtitleFilterSnippet}`,
         '-map', '0:v',
         '-map', '0:a?'
       );
@@ -115,13 +163,13 @@ export async function renderVerticalShort(options: RenderOptions): Promise<Rende
       // Fit mode (pad with black bars)
       ffmpegArgs.push(
         '-vf',
-        'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(1080-iw)/2:(1920-ih)/2:black',
+        `scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(1080-iw)/2:(1920-ih)/2:black${subtitleFilterSnippet}`,
         '-map', '0:v',
         '-map', '0:a?'
       );
     }
 
-    // Encoding parameters: fast preset, H.264 high profile, AAC stereo audio, faststart for streaming
+    // Encoding parameters
     ffmpegArgs.push(
       '-c:v', 'libx264',
       '-preset', 'fast',
@@ -139,80 +187,64 @@ export async function renderVerticalShort(options: RenderOptions): Promise<Rende
     if (!fs.existsSync(tempOutputPath)) {
       return {
         success: false,
-        error: 'FFmpeg finished but output video file was not created.',
+        error: 'FFmpeg execution finished but output video file was not generated.',
       };
     }
 
-    // Probe the rendered video file to verify actual output dimensions, streams, and decoding
+    // 3. Inspect and validate the real rendered video file
+    const validation = await inspectAndValidateVideoFile(tempOutputPath);
     const metadata = await probeVideoFile(tempOutputPath);
-    const decodeCheck = await verifyVideoDecodable(tempOutputPath);
-
-    const validationErrors: string[] = [];
-    if (metadata.width !== 1080 || metadata.height !== 1920) {
-      validationErrors.push(`Expected 1080x1920 dimensions, got ${metadata.width}x${metadata.height}.`);
-    }
-    if (!metadata.hasVideo) {
-      validationErrors.push('Rendered file contains no valid video stream.');
-    }
-    if (!decodeCheck.decodable) {
-      validationErrors.push(`Rendered video failed decoding verification: ${decodeCheck.error || 'stream error'}`);
-    }
-
-    const validation: ClipValidationResult = {
-      passed: validationErrors.length === 0,
-      durationSeconds: metadata.durationSeconds,
-      aspectRatio: '9:16',
-      width: metadata.width,
-      height: metadata.height,
-      hasAudio: metadata.hasAudio,
-      hasVideo: metadata.hasVideo,
-      decodedSuccessfully: decodeCheck.decodable,
-      errors: validationErrors,
-      warnings: [],
-    };
 
     if (!validation.passed) {
+      if (fs.existsSync(tempOutputPath)) {
+        try { fs.unlinkSync(tempOutputPath); } catch {}
+      }
       return {
         success: false,
-        error: `Render quality check failed: ${validationErrors.join(' ')}`,
+        error: `Render quality inspection failed: ${validation.errors.join(' ')}`,
         validation,
+        metadata,
       };
     }
 
-    // Read rendered buffer and persist to private Supabase Storage
-    const renderedBuffer = fs.readFileSync(tempOutputPath);
+    // 4. Persist to storage
     const persistRes = await persistVideoFile({
       workspaceId,
       fileName: `rendered_${clipId}.mp4`,
-      buffer: renderedBuffer,
+      filePath: tempOutputPath,
       contentType: 'video/mp4',
     });
 
-    // Clean up temporary local file if uploaded to remote storage
-    if (persistRes.success && persistRes.url.startsWith('http')) {
-      try {
-        fs.unlinkSync(tempOutputPath);
-      } catch {}
+    // Clean up temporary rendered file
+    if (fs.existsSync(tempOutputPath)) {
+      try { fs.unlinkSync(tempOutputPath); } catch {}
+    }
+
+    if (!persistRes.success) {
+      return {
+        success: false,
+        error: persistRes.error || 'Failed to persist rendered video to storage.',
+      };
     }
 
     return {
       success: true,
-      renderedVideoUrl: persistRes.url || `/uploads/temp_renders/${outputFileName}`,
+      renderedVideoUrl: persistRes.url,
       storagePath: persistRes.storagePath,
-      localFilePath: tempOutputPath,
       metadata,
       validation,
     };
   } catch (err: any) {
     if (fs.existsSync(tempOutputPath)) {
-      try {
-        fs.unlinkSync(tempOutputPath);
-      } catch {}
+      try { fs.unlinkSync(tempOutputPath); } catch {}
     }
-
     return {
       success: false,
-      error: `Video rendering failed: ${err.message || 'FFmpeg process failed'}`,
+      error: `Video rendering failed: ${err.message || 'FFmpeg process failure'}`,
     };
+  } finally {
+    if (remoteCleanup) {
+      remoteCleanup();
+    }
   }
 }

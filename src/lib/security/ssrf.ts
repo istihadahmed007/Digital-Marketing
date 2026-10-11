@@ -1,5 +1,11 @@
 import dns from 'dns';
 import net from 'net';
+import http from 'http';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import crypto from 'crypto';
 
 /**
  * Checks if an IP address is private, loopback, link-local, or otherwise unsafe.
@@ -101,6 +107,7 @@ export async function validateSafePublicUrl(inputUrl: string): Promise<{
   error?: string;
   url?: URL;
   resolvedIps?: string[];
+  pinnedIp?: string;
 }> {
   try {
     const parsed = new URL(inputUrl);
@@ -116,12 +123,17 @@ export async function validateSafePublicUrl(inputUrl: string): Promise<{
       return { safe: false, error: `Direct access to localhost or internal hostname "${hostname}" is prohibited.` };
     }
 
+    // Reject cloud metadata hostnames directly
+    if (hostname === 'metadata.google.internal' || hostname === 'instance-data') {
+      return { safe: false, error: `Direct access to cloud metadata service is prohibited.` };
+    }
+
     // If hostname is directly an IP literal
     if (net.isIP(hostname)) {
       if (isUnsafeIp(hostname)) {
         return { safe: false, error: `Access to private/local IP address "${hostname}" is blocked.` };
       }
-      return { safe: true, url: parsed, resolvedIps: [hostname] };
+      return { safe: true, url: parsed, resolvedIps: [hostname], pinnedIp: hostname };
     }
 
     // Resolve hostname via DNS
@@ -140,7 +152,7 @@ export async function validateSafePublicUrl(inputUrl: string): Promise<{
       }
     }
 
-    return { safe: true, url: parsed, resolvedIps };
+    return { safe: true, url: parsed, resolvedIps, pinnedIp: resolvedIps[0] };
   } catch (err: any) {
     return { safe: false, error: err.message || 'Invalid URL' };
   }
@@ -154,6 +166,7 @@ export interface SafeFetchOptions extends RequestInit {
 
 /**
  * SSRF-Safe HTTP Fetch with DNS verification, redirect inspection, and body byte clamp.
+ * Inspects all redirect destinations to prevent redirect SSRF attacks.
  */
 export async function safeFetch(
   targetUrl: string,
@@ -196,6 +209,12 @@ export async function safeFetch(
         redirectsCount++;
         if (redirectsCount > maxRedirects) {
           throw new Error(`Too many redirects (exceeded limit of ${maxRedirects})`);
+        }
+
+        // Validate the redirected destination before following
+        const redirectCheck = await validateSafePublicUrl(nextUrl);
+        if (!redirectCheck.safe) {
+          throw new Error(`SSRF Security Error on redirect: ${redirectCheck.error}`);
         }
 
         currentUrl = nextUrl;
@@ -249,4 +268,172 @@ export async function safeReadText(res: Response, maxBytes: number = 2 * 1024 * 
   }
 
   return result;
+}
+
+export interface DownloadedFileResult {
+  localPath: string;
+  fileSizeBytes: number;
+  contentType: string;
+  cleanup: () => void;
+}
+
+/**
+ * Downloads a remote video into controlled temporary storage with strict DNS-rebinding protection,
+ * stream byte size enforcement, and cleanup callbacks.
+ * Never gives remote URLs to external tools (like FFmpeg).
+ */
+export async function downloadSafeRemoteVideoFile(params: {
+  url: string;
+  maxBytes?: number;
+  timeoutMs?: number;
+}): Promise<DownloadedFileResult> {
+  const maxBytes = params.maxBytes || 500 * 1024 * 1024; // 500MB
+  const timeoutMs = params.timeoutMs || 120000; // 2 minutes
+
+  let currentUrl = params.url;
+  let redirects = 0;
+  const maxRedirects = 3;
+
+  while (redirects <= maxRedirects) {
+    const validation = await validateSafePublicUrl(currentUrl);
+    if (!validation.safe || !validation.url || !validation.pinnedIp) {
+      throw new Error(`SSRF validation failed: ${validation.error}`);
+    }
+
+    const pinnedIp = validation.pinnedIp;
+    const targetUrlObj = validation.url;
+
+    const tempDir = path.join(os.tmpdir(), 'secure_video_downloads');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    const tempFilePath = path.join(
+      tempDir,
+      `dl_${Date.now()}_${crypto.randomBytes(8).toString('hex')}.mp4`
+    );
+
+    const cleanup = () => {
+      try {
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+        }
+      } catch {
+        // Ignore unlink error
+      }
+    };
+
+    try {
+      const isHttps = targetUrlObj.protocol === 'https:';
+      const transport = isHttps ? https : http;
+
+      // Pinned IP lookup to eliminate DNS rebinding TOCTOU attacks
+      const lookupAgent = isHttps
+        ? new https.Agent({
+            lookup: (_hostname, _opts, cb) => cb(null, pinnedIp, net.isIPv6(pinnedIp) ? 6 : 4),
+            rejectUnauthorized: true,
+            servername: targetUrlObj.hostname,
+          })
+        : new http.Agent({
+            lookup: (_hostname, _opts, cb) => cb(null, pinnedIp, net.isIPv6(pinnedIp) ? 4 : 4),
+          });
+
+      const res = await new Promise<{
+        statusCode?: number;
+        headers: http.IncomingHttpHeaders;
+        stream: http.IncomingMessage;
+      }>((resolve, reject) => {
+        const req = transport.request(
+          targetUrlObj,
+          {
+            method: 'GET',
+            agent: lookupAgent,
+            timeout: timeoutMs,
+            headers: {
+              'User-Agent': 'NexusMark-MediaDownloader/1.0',
+              'Accept': 'video/*,*/*;q=0.8',
+            },
+          },
+          (resMsg) => {
+            resolve({
+              statusCode: resMsg.statusCode,
+              headers: resMsg.headers,
+              stream: resMsg,
+            });
+          }
+        );
+
+        req.on('error', reject);
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error(`Download connection timed out after ${timeoutMs}ms`));
+        });
+        req.end();
+      });
+
+      // Handle redirect
+      if (res.statusCode && [301, 302, 303, 307, 308].includes(res.statusCode)) {
+        res.stream.resume(); // drain
+        const location = res.headers.location;
+        if (!location) {
+          throw new Error('Redirect response missing Location header');
+        }
+        currentUrl = new URL(location, currentUrl).href;
+        redirects++;
+        continue;
+      }
+
+      if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+        res.stream.resume();
+        throw new Error(`Remote server responded with HTTP ${res.statusCode}`);
+      }
+
+      const contentType = (res.headers['content-type'] as string) || 'video/mp4';
+      const contentLength = res.headers['content-length'] ? parseInt(res.headers['content-length'] as string, 10) : 0;
+      if (contentLength > maxBytes) {
+        res.stream.resume();
+        throw new Error(`Video file size (${contentLength} bytes) exceeds limit of ${maxBytes} bytes`);
+      }
+
+      // Stream to temporary file while counting bytes
+      let downloadedBytes = 0;
+      const fileStream = fs.createWriteStream(tempFilePath);
+
+      await new Promise<void>((resolve, reject) => {
+        res.stream.on('data', (chunk: Buffer) => {
+          downloadedBytes += chunk.length;
+          if (downloadedBytes > maxBytes) {
+            res.stream.destroy();
+            fileStream.destroy();
+            cleanup();
+            reject(new Error(`Download exceeded maximum limit of ${maxBytes} bytes`));
+          }
+        });
+
+        res.stream.pipe(fileStream);
+
+        fileStream.on('finish', () => resolve());
+        fileStream.on('error', (err) => {
+          cleanup();
+          reject(err);
+        });
+        res.stream.on('error', (err) => {
+          cleanup();
+          reject(err);
+        });
+      });
+
+      return {
+        localPath: tempFilePath,
+        fileSizeBytes: downloadedBytes,
+        contentType,
+        cleanup,
+      };
+    } catch (err) {
+      cleanup();
+      throw err;
+    }
+  }
+
+  throw new Error('Exceeded maximum allowed redirects');
 }

@@ -35,6 +35,9 @@ export function applyWorkspaceFilter<T extends { workspace_id: string }>(
   return records.filter((r) => r.workspace_id === activeWorkspaceId);
 }
 
+import { getAuthorizedWorkspace, verifyProjectOwnership, runWithTestAuth } from '../src/lib/security/auth-context';
+import { getTestStore } from '../src/lib/security/test-mock-store';
+
 describe('Workspace Data Access Isolation & Multi-Tenancy Guard', () => {
   const userMemberships = [
     { workspace_id: 'ws-acme', role: 'member' },
@@ -60,6 +63,69 @@ describe('Workspace Data Access Isolation & Multi-Tenancy Guard', () => {
     // Stark membership is owner (has owner privileges)
     const adminCheckStark = verifyWorkspaceAccess(userMemberships, 'ws-stark', 'admin');
     expect(adminCheckStark.allowed).toBe(true);
+  });
+
+  it('exercises real server authorization boundary: getAuthorizedWorkspace', async () => {
+    // Unauthenticated
+    await expect(
+      runWithTestAuth(null, async () => {
+        return getAuthorizedWorkspace();
+      })
+    ).rejects.toThrow('Unauthorized: Active user session required');
+
+    // Authenticated without membership in requested workspace
+    await expect(
+      runWithTestAuth(
+        {
+          user: { id: 'u-rogue' },
+          workspaceId: 'ws-allowed',
+          role: 'member',
+          memberships: [{ workspace_id: 'ws-allowed', role: 'member' }],
+        },
+        async () => {
+          return getAuthorizedWorkspace({ requestedWorkspaceId: 'ws-forbidden' });
+        }
+      )
+    ).rejects.toThrow('Forbidden: User is not a member of the requested workspace');
+
+    // Authenticated with valid workspace
+    const auth = await runWithTestAuth(
+      {
+        user: { id: 'u-valid' },
+        workspaceId: 'ws-valid',
+        role: 'member',
+        memberships: [{ workspace_id: 'ws-valid', role: 'member' }],
+      },
+      async () => {
+        return getAuthorizedWorkspace({ requestedWorkspaceId: 'ws-valid' });
+      }
+    );
+    expect(auth.workspaceId).toBe('ws-valid');
+    expect(auth.user.id).toBe('u-valid');
+  });
+
+  it('exercises real server authorization boundary: verifyProjectOwnership', async () => {
+    const store = getTestStore();
+    store?.projects.clear();
+    store?.projects.set('ws-acme-100', [
+      {
+        id: 'proj-acme-1',
+        workspace_id: 'ws-acme-100',
+        title: 'Acme Project',
+        status: 'completed',
+        created_at: new Date().toISOString(),
+      } as any,
+    ]);
+
+    // Cross-tenant attempt to access Acme's project from Stark workspace
+    await expect(
+      verifyProjectOwnership('ws-stark-200', 'proj-acme-1')
+    ).rejects.toThrow('Project not found in authorized workspace');
+
+    // Authorized tenant access
+    const resource = await verifyProjectOwnership('ws-acme-100', 'proj-acme-1');
+    expect(resource.id).toBe('proj-acme-1');
+    expect(resource.workspace_id).toBe('ws-acme-100');
   });
 
   it('filters out records belonging to other workspaces', () => {

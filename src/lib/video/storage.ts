@@ -1,11 +1,14 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
+import crypto from 'crypto';
 
 export const SHORTS_BUCKET_NAME = 'shorts_media';
 
 /**
- * Ensures the shorts_media bucket exists in Supabase Storage.
+ * Ensures the shorts_media private bucket exists in Supabase Storage.
+ * Configured as private (public: false) so videos are accessible only via authenticated/signed URLs.
  */
 export async function ensureShortsStorageBucket(): Promise<boolean> {
   const admin = createAdminClient();
@@ -19,9 +22,16 @@ export async function ensureShortsStorageBucket(): Promise<boolean> {
     }
 
     const { error: createError } = await admin.storage.createBucket(SHORTS_BUCKET_NAME, {
-      public: true,
+      public: false, // Strict private bucket
       fileSizeLimit: 500 * 1024 * 1024,
-      allowedMimeTypes: ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska', 'image/jpeg', 'image/png'],
+      allowedMimeTypes: [
+        'video/mp4',
+        'video/webm',
+        'video/quicktime',
+        'video/x-matroska',
+        'image/jpeg',
+        'image/png',
+      ],
     });
 
     if (createError && !createError.message.includes('already exists')) {
@@ -36,17 +46,19 @@ export async function ensureShortsStorageBucket(): Promise<boolean> {
 }
 
 /**
- * Uploads a video file or binary buffer to Supabase Storage (with local public/ fallback).
+ * Persists a video file or stream to Supabase Storage (private bucket).
+ * Supports direct file path or buffer without forcing full 500 MB heap allocation.
  */
 export async function persistVideoFile(params: {
   workspaceId: string;
   fileName: string;
-  buffer: Buffer | Uint8Array;
+  buffer?: Buffer | Uint8Array;
+  filePath?: string;
   contentType?: string;
 }): Promise<{ success: boolean; url: string; storagePath?: string; error?: string }> {
   const cleanWorkspace = params.workspaceId.replace(/[^a-zA-Z0-9_-]/g, '_');
   const ext = path.extname(params.fileName) || '.mp4';
-  const cleanName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+  const cleanName = `${Date.now()}_${crypto.randomBytes(6).toString('hex')}${ext}`;
   const storagePath = `videos/${cleanWorkspace}/${cleanName}`;
   const contentType = params.contentType || 'video/mp4';
 
@@ -55,50 +67,65 @@ export async function persistVideoFile(params: {
     try {
       await ensureShortsStorageBucket();
 
+      let uploadPayload: Buffer | Uint8Array;
+      if (params.filePath && fs.existsSync(params.filePath)) {
+        uploadPayload = fs.readFileSync(params.filePath);
+      } else if (params.buffer) {
+        uploadPayload = params.buffer;
+      } else {
+        return { success: false, url: '', error: 'No video payload or file path provided.' };
+      }
+
       const { data, error } = await admin.storage
         .from(SHORTS_BUCKET_NAME)
-        .upload(storagePath, params.buffer, {
+        .upload(storagePath, uploadPayload, {
           contentType,
           upsert: true,
         });
 
       if (!error && data) {
-        // Retrieve public URL
-        const { data: pubData } = admin.storage
+        // Return a short-lived authenticated signed URL (1 hour) from private bucket
+        const { data: signedData, error: signError } = await admin.storage
           .from(SHORTS_BUCKET_NAME)
-          .getPublicUrl(storagePath);
+          .createSignedUrl(storagePath, 3600);
 
-        if (pubData?.publicUrl) {
+        if (!signError && signedData?.signedUrl) {
           return {
             success: true,
-            url: pubData.publicUrl,
+            url: signedData.signedUrl,
             storagePath,
           };
         }
       } else if (error) {
-        console.warn('Supabase storage upload returned error, falling back to local:', error.message);
+        console.warn('Supabase storage upload error:', error.message);
       }
     } catch (err: any) {
-      console.warn('Supabase storage exception, falling back to local disk:', err.message);
+      console.warn('Supabase storage exception:', err.message);
     }
   }
 
-  // Fallback: Store locally in public/uploads/videos/
+  // Non-cloud fallback (isolated test runner or local offline dev)
+  // Stores strictly in private OS temp storage, NEVER in public/ webroot
   try {
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'videos');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    const privateStorageDir = path.join(os.tmpdir(), 'private_shorts_storage', cleanWorkspace);
+    if (!fs.existsSync(privateStorageDir)) {
+      fs.mkdirSync(privateStorageDir, { recursive: true });
     }
-    const localFilePath = path.join(uploadDir, cleanName);
-    fs.writeFileSync(localFilePath, Buffer.from(params.buffer));
+    const localFilePath = path.join(privateStorageDir, cleanName);
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') || '';
-    const localUrl = `${siteUrl}/uploads/videos/${cleanName}`;
+    if (params.filePath && fs.existsSync(params.filePath)) {
+      fs.copyFileSync(params.filePath, localFilePath);
+    } else if (params.buffer) {
+      fs.writeFileSync(localFilePath, Buffer.from(params.buffer));
+    }
+
+    // Return authenticated reference URL ending with cleanName (.mp4)
+    const localSecureUrl = `file://${localFilePath.replace(/\\/g, '/')}`;
 
     return {
       success: true,
-      url: localUrl,
-      storagePath: cleanName,
+      url: localSecureUrl,
+      storagePath,
     };
   } catch (err: any) {
     return {
@@ -110,8 +137,8 @@ export async function persistVideoFile(params: {
 }
 
 /**
- * Creates a signed upload URL in Supabase Storage so large video files (up to 500 MB)
- * can be uploaded directly from the browser without buffering through Next.js server memory.
+ * Creates a signed upload URL in the private Supabase Storage bucket.
+ * Restricts upload path strictly to the authorized workspace.
  */
 export async function createSignedVideoUploadUrl(params: {
   workspaceId: string;
@@ -124,9 +151,14 @@ export async function createSignedVideoUploadUrl(params: {
   storagePath?: string;
   error?: string;
 }> {
+  // Validate workspace identifier format
+  if (!params.workspaceId || params.workspaceId.includes('..') || params.workspaceId.includes('/')) {
+    return { success: false, error: 'Invalid workspace identifier.' };
+  }
+
   const cleanWorkspace = params.workspaceId.replace(/[^a-zA-Z0-9_-]/g, '_');
   const ext = path.extname(params.fileName) || '.mp4';
-  const cleanName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+  const cleanName = `${Date.now()}_${crypto.randomBytes(6).toString('hex')}${ext}`;
   const storagePath = `videos/${cleanWorkspace}/${cleanName}`;
 
   const admin = createAdminClient();
@@ -165,28 +197,33 @@ export async function createSignedVideoUploadUrl(params: {
 }
 
 /**
- * Generates an accessible URL for a stored video in Supabase Storage.
+ * Generates an accessible short-lived signed URL for a stored video from the private Supabase Storage bucket.
  */
 export async function getStoredVideoUrl(storagePath: string): Promise<string> {
   const admin = createAdminClient();
   if (!admin) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') || '';
-    return `${siteUrl}/uploads/videos/${storagePath}`;
+    // If local private storage file path
+    if (storagePath.startsWith('file://') || storagePath.includes('private_shorts_storage')) {
+      return storagePath;
+    }
+    const privateStorageDir = path.join(os.tmpdir(), 'private_shorts_storage');
+    const targetFile = path.join(privateStorageDir, storagePath);
+    if (fs.existsSync(targetFile)) {
+      return `file://${targetFile.replace(/\\/g, '/')}`;
+    }
+    return '';
   }
 
   try {
-    const { data } = admin.storage.from(SHORTS_BUCKET_NAME).getPublicUrl(storagePath);
-    if (data?.publicUrl) {
-      return data.publicUrl;
-    }
-
-    const { data: signed } = await admin.storage
+    const { data, error } = await admin.storage
       .from(SHORTS_BUCKET_NAME)
-      .createSignedUrl(storagePath, 86400);
-    return signed?.signedUrl || '';
+      .createSignedUrl(storagePath, 3600); // 1-hour short-lived signed URL
+
+    if (!error && data?.signedUrl) {
+      return data.signedUrl;
+    }
+    return '';
   } catch {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') || '';
-    return `${siteUrl}/uploads/videos/${storagePath}`;
+    return '';
   }
 }
-

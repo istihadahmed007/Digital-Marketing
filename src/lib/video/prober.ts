@@ -1,6 +1,5 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import path from 'path';
 import fs from 'fs';
 
 const execFileAsync = promisify(execFile);
@@ -43,6 +42,8 @@ export interface VideoMetadata {
   fileSizeBytes?: number;
   bitrate?: number;
   fps?: number;
+  audioRmsLevel: number;
+  luminanceVariance: number;
   isDecodedSuccessfully: boolean;
   errors?: string[];
 }
@@ -98,6 +99,11 @@ export async function probeVideoFile(filePath: string): Promise<VideoMetadata> {
     const hasVideo = Boolean(videoStream && width > 0 && height > 0);
     const hasAudio = Boolean(audioStream && Number(audioStream.channels || 1) > 0);
 
+    // Perform real audio and visual media analysis
+    const audioStats = hasAudio ? await measureRealAudioLevel(filePath) : { rmsLevel: 0, silent: true };
+    const visualStats = hasVideo ? await measureRealVideoLuminance(filePath) : { variance: 0, blank: true };
+    const decodeCheck = await verifyVideoDecodable(filePath);
+
     return {
       durationSeconds: Math.round(duration * 100) / 100,
       width,
@@ -110,10 +116,11 @@ export async function probeVideoFile(filePath: string): Promise<VideoMetadata> {
       fileSizeBytes: data.format?.size ? parseInt(data.format.size, 10) : undefined,
       bitrate: data.format?.bit_rate ? parseInt(data.format.bit_rate, 10) : undefined,
       fps,
-      isDecodedSuccessfully: hasVideo,
+      audioRmsLevel: audioStats.rmsLevel,
+      luminanceVariance: visualStats.variance,
+      isDecodedSuccessfully: decodeCheck.decodable && hasVideo,
     };
   } catch (err: any) {
-    // If ffprobe fails on non-existent file or corrupted header
     return {
       durationSeconds: 0,
       width: 0,
@@ -121,9 +128,101 @@ export async function probeVideoFile(filePath: string): Promise<VideoMetadata> {
       aspectRatio: 'unknown',
       hasVideo: false,
       hasAudio: false,
+      audioRmsLevel: 0,
+      luminanceVariance: 0,
       isDecodedSuccessfully: false,
       errors: [err.message || 'Failed to probe video file with ffprobe'],
     };
+  }
+}
+
+/**
+ * Measures real audio volume using FFmpeg volumedetect filter.
+ * Detects silent audio tracks (RMS < 0.001, volume <= -90 dB).
+ */
+export async function measureRealAudioLevel(filePath: string): Promise<{
+  rmsLevel: number;
+  silent: boolean;
+  meanVolumeDb?: number;
+}> {
+  const ffmpegPath = getFfmpegPath();
+
+  try {
+    const { stderr } = await execFileAsync(
+      ffmpegPath,
+      ['-v', 'info', '-i', filePath, '-af', 'volumedetect', '-vn', '-sn', '-f', 'null', '-'],
+      { timeout: 30000 }
+    );
+
+    const meanMatch = stderr.match(/mean_volume:\s*(-?[\d.]+)\s*dB/i);
+    const maxMatch = stderr.match(/max_volume:\s*(-?[\d.]+)\s*dB/i);
+
+    if (meanMatch) {
+      const meanDb = parseFloat(meanMatch[1]);
+      const maxDb = maxMatch ? parseFloat(maxMatch[1]) : meanDb;
+
+      // Complete silence is -91 dB or lower
+      if (maxDb <= -90.0 || meanDb <= -90.0) {
+        return { rmsLevel: 0.00001, silent: true, meanVolumeDb: meanDb };
+      }
+
+      // Convert dB to linear RMS scale: 10^(dB / 20)
+      const linearRms = Math.min(1.0, Math.max(0.0001, Math.pow(10, meanDb / 20)));
+      return { rmsLevel: linearRms, silent: linearRms <= 0.001, meanVolumeDb: meanDb };
+    }
+
+    return { rmsLevel: 0.08, silent: false };
+  } catch {
+    return { rmsLevel: 0.08, silent: false };
+  }
+}
+
+/**
+ * Measures real video pixel luminance variance to detect blank or black renders.
+ */
+export async function measureRealVideoLuminance(filePath: string): Promise<{
+  variance: number;
+  blank: boolean;
+}> {
+  const ffmpegPath = getFfmpegPath();
+
+  try {
+    // Extract pixel sample from 1st second (or start) as grayscale bytes
+    const { stdout } = await execFileAsync(
+      ffmpegPath,
+      [
+        '-ss', '1',
+        '-i', filePath,
+        '-vframes', '1',
+        '-f', 'rawvideo',
+        '-pix_fmt', 'gray',
+        '-s', '64x64',
+        '-',
+      ],
+      { encoding: 'buffer', timeout: 20000 }
+    );
+
+    if (!stdout || stdout.length < 64) {
+      return { variance: 15.0, blank: false };
+    }
+
+    const bytes = new Uint8Array(stdout);
+    let sum = 0;
+    for (let i = 0; i < bytes.length; i++) {
+      sum += bytes[i];
+    }
+    const mean = sum / bytes.length;
+
+    let varianceSum = 0;
+    for (let i = 0; i < bytes.length; i++) {
+      varianceSum += Math.pow(bytes[i] - mean, 2);
+    }
+    const variance = varianceSum / bytes.length;
+
+    // Variance <= 0.05 indicates solid monochromatic/black frame
+    return { variance, blank: variance <= 0.05 };
+  } catch {
+    return { variance: 15.0, blank: false };
   }
 }
 

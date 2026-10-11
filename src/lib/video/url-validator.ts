@@ -1,5 +1,5 @@
 import { validateSafePublicUrl, safeFetch } from '@/lib/security/ssrf';
-import { isYouTubeUrl } from './youtube-downloader';
+import { parseAndValidateYouTubeUrl } from './youtube-downloader';
 
 export interface VideoUrlValidationResult {
   valid: boolean;
@@ -40,11 +40,12 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
   const trimmed = inputUrl.trim();
 
   // 1. YouTube watch/share URLs: Supported via automated stream extraction!
-  if (isYouTubeUrl(trimmed)) {
+  const ytValidation = parseAndValidateYouTubeUrl(trimmed);
+  if (ytValidation.valid && ytValidation.sanitizedUrl) {
     return {
       valid: true,
       isYouTube: true,
-      sanitizedUrl: trimmed,
+      sanitizedUrl: ytValidation.sanitizedUrl,
       contentType: 'video/mp4',
     };
   }
@@ -60,7 +61,7 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
     }
   }
 
-  // 2. SSRF & Protocol Verification
+  // 3. SSRF & Protocol Verification
   const ssrfCheck = await validateSafePublicUrl(trimmed);
   if (!ssrfCheck.safe) {
     return {
@@ -77,7 +78,7 @@ export async function validateVideoFileUrl(inputUrl: string): Promise<VideoUrlVa
     };
   }
 
-  // 3. Inspect target headers via HEAD or Range GET
+  // 4. Inspect target headers via HEAD or Range GET
   const pathLower = parsedUrl.pathname.toLowerCase();
   const hasVideoExt = VALID_VIDEO_EXTENSIONS.some((ext) => pathLower.endsWith(ext));
 

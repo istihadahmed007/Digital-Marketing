@@ -56,7 +56,9 @@ export async function proxy(request: NextRequest) {
       path.startsWith('/campaigns') ||
       path.startsWith('/automations') ||
       path.startsWith('/ai-tools') ||
-      path.startsWith('/integrations');
+      path.startsWith('/integrations') ||
+      path.startsWith('/shorts') ||
+      path.startsWith('/seo');
 
     if (!user && isProtectedPage) {
       const redirectUrl = request.nextUrl.clone();

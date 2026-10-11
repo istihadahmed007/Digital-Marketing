@@ -1,37 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { renderVerticalShort } from '@/lib/video/renderer';
-import { ShortsClip, ShortsProject } from '@/lib/types/shorts';
+import {
+  getAuthorizedWorkspace,
+  verifyProjectOwnership,
+  verifyClipOwnership,
+  AuthorizationError,
+} from '@/lib/security/auth-context';
 
 export const maxDuration = 300; // 5-minute timeout for FFmpeg rendering
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { workspaceId, clipId, projectId, startTime, endTime, cropMode, title, caption } = body;
+    const { clipId, projectId, startTime, endTime, cropMode } = body;
 
-    if (!workspaceId || !clipId) {
+    if (!clipId || !projectId) {
       return NextResponse.json(
-        { success: false, error: 'Missing required workspaceId or clipId parameters.' },
+        { success: false, error: 'Missing required clipId or projectId parameters.' },
         { status: 400 }
       );
     }
 
-    const adminSupabase = createAdminClient();
-    let sourceVideoUrl = body.sourceVideoUrl;
+    // 1. Enforce server-side session authentication and workspace membership
+    const auth = await getAuthorizedWorkspace({ requestedWorkspaceId: body.workspaceId });
+    const workspaceId = auth.workspaceId;
 
-    if (!sourceVideoUrl && adminSupabase && projectId) {
-      const { data: proj } = await adminSupabase
-        .from('shorts_projects')
-        .select('source_video_url')
-        .eq('id', projectId)
-        .maybeSingle();
+    // 2. Derive source video URL strictly from verified project in authorized workspace
+    // Never trust arbitrary client-supplied sourceVideoUrl to prevent SSRF injection into FFmpeg
+    const project = await verifyProjectOwnership(workspaceId, projectId);
+    const clip = await verifyClipOwnership(workspaceId, clipId);
 
-      if (proj?.source_video_url) {
-        sourceVideoUrl = proj.source_video_url;
-      }
-    }
-
+    const sourceVideoUrl = project.source_video_url;
     if (!sourceVideoUrl) {
       return NextResponse.json(
         { success: false, error: 'Source video URL not found for project.' },
@@ -39,37 +40,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Set status to rendering in Supabase
-    if (adminSupabase && workspaceId !== 'ws-default') {
-      await adminSupabase
+    const supabase = (await createClient()) || createAdminClient();
+
+    // 3. Mark rendering in database
+    if (supabase) {
+      await supabase
         .from('shorts_clips')
         .update({
           render_status: 'rendering',
-          render_progress: 30,
+          render_progress: 25,
           updated_at: new Date().toISOString(),
         })
+        .eq('workspace_id', workspaceId)
         .eq('id', clipId);
     }
 
-    // Execute real FFmpeg vertical render
+    // 4. Execute authentic FFmpeg vertical render with SSRF protections and real validation
     const renderRes = await renderVerticalShort({
       workspaceId,
       clipId,
       sourceVideoPathOrUrl: sourceVideoUrl,
-      startTime: Number(startTime || 0),
-      endTime: Number(endTime || 30),
-      cropMode: cropMode || 'blur_padding',
+      startTime: Number(startTime ?? clip.start_time ?? 0),
+      endTime: Number(endTime ?? clip.end_time ?? 30),
+      cropMode: cropMode || clip.crop_mode || 'blur_padding',
+      subtitlesEnabled: clip.subtitles_enabled,
+      subtitlesText: clip.title,
+      subtitlesStyle: clip.subtitles_style,
     });
 
     if (!renderRes.success) {
-      if (adminSupabase && workspaceId !== 'ws-default') {
-        await adminSupabase
+      if (supabase) {
+        await supabase
           .from('shorts_clips')
           .update({
             render_status: 'failed',
             render_progress: 0,
             updated_at: new Date().toISOString(),
           })
+          .eq('workspace_id', workspaceId)
           .eq('id', clipId);
       }
 
@@ -79,9 +87,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update clip in Supabase with real rendered video URL and validation status
-    if (adminSupabase && workspaceId !== 'ws-default') {
-      await adminSupabase
+    // 5. Update clip in database with rendered URL and media validation results
+    if (supabase) {
+      await supabase
         .from('shorts_clips')
         .update({
           render_status: 'rendered',
@@ -91,6 +99,7 @@ export async function POST(request: NextRequest) {
           validation_details: renderRes.validation || {},
           updated_at: new Date().toISOString(),
         })
+        .eq('workspace_id', workspaceId)
         .eq('id', clipId);
     }
 
@@ -102,10 +111,10 @@ export async function POST(request: NextRequest) {
       message: 'Rendered authentic 1080x1920 (9:16) MP4 clip and verified video stream.',
     });
   } catch (err: any) {
-    console.error('Error in /api/shorts/render:', err);
+    const status = err instanceof AuthorizationError ? err.statusCode : 500;
     return NextResponse.json(
       { success: false, error: err.message || 'Render processing failed' },
-      { status: 500 }
+      { status }
     );
   }
 }

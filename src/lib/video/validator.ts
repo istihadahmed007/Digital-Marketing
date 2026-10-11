@@ -18,8 +18,8 @@ export interface VideoInspectionInput {
  * 1. Duration must be strictly between 15.0 and 60.0 seconds.
  * 2. Aspect ratio must be vertical 9:16 (standard 1080x1920).
  * 3. Both video and audio streams must be present.
- * 4. Video must have visible, non-blank frames (luminance variance > 0).
- * 5. Audio must be audible and non-silent (RMS > threshold).
+ * 4. Video must have visible, non-blank frames (luminance variance > 0.05).
+ * 5. Audio must be audible and non-silent (RMS > 0.001).
  * 6. File must successfully decode without stream corruption.
  */
 export function validateVideoClip(input: VideoInspectionInput): ClipValidationResult {
@@ -31,8 +31,8 @@ export function validateVideoClip(input: VideoInspectionInput): ClipValidationRe
   const height = Number(input.height || 1920);
   const hasAudio = input.hasAudio !== false;
   const hasVideo = input.hasVideo !== false;
-  const audioRms = input.audioRmsLevel !== undefined ? input.audioRmsLevel : 0.08; // default audible
-  const lumVariance = input.luminanceVariance !== undefined ? input.luminanceVariance : 12.5; // default visible
+  const audioRms = input.audioRmsLevel !== undefined ? input.audioRmsLevel : 0.08;
+  const lumVariance = input.luminanceVariance !== undefined ? input.luminanceVariance : 12.5;
   const isDecoded = input.isDecoded !== false;
 
   // 1. Duration Verification (15 to 60 seconds)
