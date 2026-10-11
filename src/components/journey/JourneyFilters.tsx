@@ -82,9 +82,9 @@ export function JourneyFilters({
       {/* Top Filter Bar Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-sky-100 dark:border-sky-900/60">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-            Filter 4D Coordinates
+          <Filter className="w-4 h-4 text-[#167AA0] dark:text-sky-400" />
+          <span className="text-xs font-bold text-[#17364A] dark:text-white uppercase tracking-wider">
+            Filter Journey Touchpoints
           </span>
           <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
             Showing {activityCount} of {totalCount} items

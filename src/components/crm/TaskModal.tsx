@@ -85,7 +85,7 @@ export function TaskModal({
         )}
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
             Task Title *
           </label>
           <input
@@ -94,12 +94,12 @@ export function TaskModal({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Schedule discovery call with VP"
-            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 text-xs rounded-xl border border-[#75D2EE]/30 dark:border-slate-700 bg-white/80 dark:bg-slate-800 text-[#17364A] dark:text-white focus:outline-hidden focus:ring-2 focus:ring-[#167AA0]"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
             Description / Context
           </label>
           <textarea
@@ -107,31 +107,31 @@ export function TaskModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Review requirements deck before joining..."
-            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 resize-none"
+            className="w-full px-3 py-2 text-xs rounded-xl border border-[#75D2EE]/30 dark:border-slate-700 bg-white/80 dark:bg-slate-800 text-[#17364A] dark:text-white focus:outline-hidden focus:ring-2 focus:ring-[#167AA0] resize-none"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
               Due Date
             </label>
             <input
               type="datetime-local"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              className="w-full px-3 py-2 text-xs rounded-xl border border-[#75D2EE]/30 dark:border-slate-700 bg-white/80 dark:bg-slate-800 text-[#17364A] dark:text-white focus:outline-hidden focus:ring-2 focus:ring-[#167AA0] cursor-pointer"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
               Priority
             </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as TaskPriority)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              className="w-full px-3 py-2 text-xs rounded-xl border border-[#75D2EE]/30 dark:border-slate-700 bg-white/80 dark:bg-slate-800 text-[#17364A] dark:text-white focus:outline-hidden focus:ring-2 focus:ring-[#167AA0] cursor-pointer"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -141,18 +141,18 @@ export function TaskModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-[#75D2EE]/20 dark:border-slate-800">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-medium rounded-xl border border-[#75D2EE]/30 dark:border-slate-700 text-[#526D7D] dark:text-slate-300 hover:bg-[#D7F1FA]/40 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center gap-2 px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 transition-all disabled:opacity-60 cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2 text-xs font-semibold rounded-xl bg-[#167AA0] hover:bg-[#0E526E] text-white shadow-xs glass-button-press transition-all disabled:opacity-60 cursor-pointer"
           >
             {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>Save Task</span>

@@ -81,15 +81,15 @@ export function CustomNode({
   });
 
   const categoryColors = {
-    trigger: 'border-violet-500/80 bg-violet-500/10 text-violet-400',
-    action: 'border-sky-500/80 bg-sky-500/10 text-sky-400',
-    logic: 'border-emerald-500/80 bg-emerald-500/10 text-emerald-400',
+    trigger: 'border-[#75D2EE]/60 bg-[#D7F1FA] text-[#167AA0]',
+    action: 'border-[#167AA0]/40 bg-[#D7F1FA]/60 text-[#0E526E]',
+    logic: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
   };
 
   const badgeColors = {
-    trigger: 'bg-violet-500/20 text-violet-300 border-violet-500/30',
-    action: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
-    logic: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    trigger: 'bg-[#D7F1FA] text-[#167AA0] border-[#75D2EE]/50',
+    action: 'bg-[#EDF9FD] text-[#0E526E] border-[#75D2EE]/40',
+    logic: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
   };
 
   return (
@@ -100,8 +100,8 @@ export function CustomNode({
       }}
       className={`group relative min-w-[240px] max-w-[280px] rounded-2xl border transition-all duration-150 select-none cursor-pointer ${
         isSelected
-          ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-950 shadow-xl shadow-indigo-500/20 border-indigo-400 bg-slate-900'
-          : 'border-slate-800 bg-slate-900/90 hover:border-slate-700 hover:bg-slate-900 shadow-md'
+          ? 'ring-2 ring-[#167AA0] ring-offset-2 ring-offset-[#EDF9FD] dark:ring-offset-slate-950 shadow-xl shadow-[#167AA0]/20 border-[#167AA0] glass-panel-opaque'
+          : 'border-[#75D2EE]/35 glass-panel-opaque hover:border-[#167AA0]/50 shadow-md'
       }`}
     >
       {/* Top Handle / Inflow (for Actions and Logic) */}
@@ -115,11 +115,11 @@ export function CustomNode({
           }}
           className={`absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
             isConnectingFrom && isConnectingFrom.nodeId !== node.id
-              ? 'bg-indigo-500 border-white scale-125 animate-pulse shadow-md shadow-indigo-500/50'
-              : 'bg-slate-800 border-slate-600 hover:bg-indigo-500 hover:border-white'
+              ? 'bg-[#167AA0] border-white scale-125 animate-pulse shadow-md shadow-[#167AA0]/50'
+              : 'bg-white dark:bg-slate-800 border-[#167AA0] hover:bg-[#167AA0] hover:border-white'
           }`}
         >
-          <div className="w-2 h-2 rounded-full bg-white" />
+          <div className="w-2 h-2 rounded-full bg-[#167AA0]" />
         </div>
       ))}
 
@@ -154,7 +154,7 @@ export function CustomNode({
                 onOpenSettings(node);
               }}
               title="Configure Node"
-              className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white transition"
+              className="p-1 hover:bg-[#D7F1FA]/50 rounded-md text-[#526D7D] hover:text-[#167AA0] transition"
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
@@ -165,7 +165,7 @@ export function CustomNode({
                 onDuplicate(node);
               }}
               title="Duplicate Node"
-              className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white transition"
+              className="p-1 hover:bg-[#D7F1FA]/50 rounded-md text-[#526D7D] hover:text-[#167AA0] transition"
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
@@ -176,15 +176,15 @@ export function CustomNode({
                 onDelete(node.id);
               }}
               title="Delete Node"
-              className="p-1 hover:bg-rose-950/80 rounded-md text-slate-400 hover:text-rose-400 transition"
+              className="p-1 hover:bg-rose-100 dark:hover:bg-rose-950/80 rounded-md text-[#526D7D] hover:text-rose-500 transition"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        <h4 className="text-xs font-bold text-white truncate">{node.label || def.label}</h4>
-        <p className="text-[11px] text-slate-400 truncate mt-0.5">
+        <h4 className="text-xs font-bold text-[#17364A] dark:text-white truncate">{node.label || def.label}</h4>
+        <p className="text-[11px] text-[#526D7D] dark:text-slate-400 truncate mt-0.5">
           {node.data?.subject ||
             node.data?.task_title ||
             node.data?.url ||
@@ -194,7 +194,7 @@ export function CustomNode({
 
         {/* Validation Warning */}
         {missingRequired && (
-          <div className="mt-2 flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+          <div className="mt-2 flex items-center gap-1 text-[10px] text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
             <AlertCircle className="w-3 h-3 shrink-0" />
             <span className="truncate">Configuration incomplete</span>
           </div>
@@ -203,9 +203,9 @@ export function CustomNode({
 
       {/* Node Bottom Outputs / Handles */}
       {def.outputs.length > 0 && (
-        <div className="pt-2 pb-2.5 px-3 border-t border-slate-800/80 bg-slate-950/40 rounded-b-2xl flex items-center justify-between">
+        <div className="pt-2 pb-2.5 px-3 border-t border-[#75D2EE]/20 bg-[#D7F1FA]/20 dark:bg-slate-950/40 rounded-b-2xl flex items-center justify-between">
           {def.outputs.map((out) => (
-            <div key={out.id} className="relative flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+            <div key={out.id} className="relative flex items-center gap-1.5 text-[10px] font-medium text-[#526D7D]">
               <span className="truncate">{out.label}</span>
               <button
                 type="button"
@@ -214,11 +214,11 @@ export function CustomNode({
                   e.stopPropagation();
                   onStartConnect(node.id, out.id);
                 }}
-                className="w-4 h-4 rounded-full border-2 border-slate-600 bg-slate-800 hover:bg-indigo-500 hover:border-white transition flex items-center justify-center cursor-crosshair group-hover:scale-110"
+                className="w-4 h-4 rounded-full border-2 border-[#75D2EE] bg-white dark:bg-slate-800 hover:bg-[#167AA0] hover:border-white transition flex items-center justify-center cursor-crosshair group-hover:scale-110"
               >
                 <div
                   className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: out.color || '#8b5cf6' }}
+                  style={{ backgroundColor: out.color || '#167AA0' }}
                 />
               </button>
             </div>

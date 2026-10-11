@@ -127,21 +127,21 @@ export default function SeoLocalPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#D7F1FA] text-[#167AA0] dark:bg-[#167AA0]/30 dark:text-[#75D2EE] border border-[#75D2EE]/40">
               Local SEO
             </span>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-[#17364A] dark:text-white">
               Local SEO & NAP Consistency Checker
             </h1>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-1">
             Manage business locations and verify Name, Address, and Phone (NAP) citation consistency across your verified landing pages.
           </p>
         </div>
 
         <button
           onClick={() => setIsAddOpen(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition"
+          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-[#167AA0] hover:bg-[#0E526E] text-white shadow-sm shadow-[#167AA0]/25 transition glass-button-press"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Business Location
@@ -150,15 +150,15 @@ export default function SeoLocalPage() {
 
       {/* Locations Grid */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <Loader2 className="w-8 h-8 text-rose-600 animate-spin mb-3" />
-          <p className="text-xs text-slate-500">Loading business locations...</p>
+        <div className="flex flex-col items-center justify-center p-12 glass-panel rounded-2xl">
+          <Loader2 className="w-8 h-8 text-[#167AA0] animate-spin mb-3" />
+          <p className="text-xs text-[#526D7D]">Loading business locations...</p>
         </div>
       ) : locations.length === 0 ? (
-        <div className="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-500 space-y-3">
-          <MapPin className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto" />
-          <p className="text-sm font-semibold">No business locations registered</p>
-          <p className="text-xs max-w-sm mx-auto">
+        <div className="p-12 text-center glass-panel rounded-2xl text-[#526D7D] space-y-3">
+          <MapPin className="w-10 h-10 text-[#75D2EE] mx-auto" />
+          <p className="text-sm font-semibold text-[#17364A] dark:text-white">No business locations registered</p>
+          <p className="text-xs max-w-sm mx-auto text-[#526D7D]">
             Add your primary physical or registered office to audit NAP citations and verify local SEO visibility.
           </p>
         </div>
@@ -167,15 +167,15 @@ export default function SeoLocalPage() {
           {locations.map((loc) => (
             <div
               key={loc.id}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-4"
+              className="glass-panel preview-tile-3d rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-4"
             >
               <div>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    <h3 className="text-base font-bold text-[#17364A] dark:text-white">
                       {loc.business_name}
                     </h3>
-                    <span className="text-xs text-slate-500 font-mono">
+                    <span className="text-xs text-[#526D7D] font-mono">
                       {loc.website_url}
                     </span>
                   </div>
@@ -183,34 +183,34 @@ export default function SeoLocalPage() {
                   <span
                     className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase border ${
                       loc.nap_status === 'verified'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        ? 'bg-[#D7F1FA] text-[#167AA0] border-[#75D2EE]/40 dark:bg-[#167AA0]/30 dark:text-[#75D2EE]'
                         : loc.nap_status === 'inconsistent'
                         ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
-                        : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
+                        : 'bg-white/60 text-[#526D7D] border-[#75D2EE]/30 dark:bg-slate-800 dark:text-slate-400'
                     }`}
                   >
                     {loc.nap_status.replace('_', ' ')}
                   </span>
                 </div>
 
-                <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                <div className="space-y-1.5 text-xs text-[#526D7D] dark:text-slate-300">
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <MapPin className="w-3.5 h-3.5 text-[#167AA0] shrink-0" />
                     <span>{loc.address_street}, {loc.address_city}, {loc.address_state} {loc.address_postal_code}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <Phone className="w-3.5 h-3.5 text-[#167AA0] shrink-0" />
                     <span className="font-mono">{loc.phone}</span>
                   </div>
                 </div>
 
                 {/* Audit Details */}
                 {loc.audit_results?.discrepancies && loc.audit_results.discrepancies.length > 0 && (
-                  <div className="mt-3 p-3 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl space-y-1 text-xs">
+                  <div className="mt-3 p-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl space-y-1 text-xs">
                     <span className="font-bold text-amber-800 dark:text-amber-400 block">
                       Discrepancies Detected on Website:
                     </span>
-                    <ul className="text-slate-600 dark:text-slate-400 list-disc list-inside space-y-0.5 text-[11px]">
+                    <ul className="text-[#526D7D] dark:text-slate-400 list-disc list-inside space-y-0.5 text-[11px]">
                       {loc.audit_results.discrepancies.map((d: string, idx: number) => (
                         <li key={idx}>{d}</li>
                       ))}
@@ -220,15 +220,15 @@ export default function SeoLocalPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">
+              <div className="pt-3 border-t border-[#75D2EE]/20 flex items-center justify-between">
+                <span className="text-[11px] text-[#526D7D]">
                   {loc.audit_results?.lastChecked ? `Checked: ${new Date(loc.audit_results.lastChecked).toLocaleDateString()}` : 'Never checked'}
                 </span>
 
                 <button
                   onClick={() => handleRunNapAudit(loc.id)}
                   disabled={auditingId === loc.id}
-                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
+                  className="px-3 py-1.5 bg-[#D7F1FA] hover:bg-[#D7F1FA]/70 text-[#167AA0] dark:bg-[#167AA0]/30 dark:text-[#75D2EE] text-xs font-semibold rounded-xl flex items-center gap-1.5 transition glass-button-press cursor-pointer"
                 >
                   {auditingId === loc.id ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -245,20 +245,20 @@ export default function SeoLocalPage() {
 
       {/* Add Location Modal */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white/95 dark:bg-[#122836]/95 backdrop-blur-xl border border-[#75D2EE]/40 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#75D2EE]/20">
+              <h3 className="text-sm font-bold text-[#17364A] dark:text-white">
                 Add Business Location
               </h3>
-              <button onClick={() => setIsAddOpen(false)} className="text-slate-400 text-xs">
+              <button onClick={() => setIsAddOpen(false)} className="text-[#526D7D] hover:text-[#17364A] text-xs">
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleAddLocation} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
                   Registered Business Name *
                 </label>
                 <input
@@ -267,12 +267,12 @@ export default function SeoLocalPage() {
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   placeholder="e.g. Acme Marketing LLC"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                  className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
                   Street Address *
                 </label>
                 <input
@@ -281,68 +281,68 @@ export default function SeoLocalPage() {
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
                   placeholder="123 Market St, Suite 400"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                  className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">City</label>
+                  <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">City</label>
                   <input
                     type="text"
                     required
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="San Francisco"
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                    className="w-full px-2 py-1.5 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-lg text-[#17364A] dark:text-white focus:outline-hidden"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">State</label>
+                  <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">State</label>
                   <input
                     type="text"
                     required
                     value={state}
                     onChange={(e) => setState(e.target.value)}
                     placeholder="CA"
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                    className="w-full px-2 py-1.5 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-lg text-[#17364A] dark:text-white focus:outline-hidden"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Postal Code</label>
+                  <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">Postal Code</label>
                   <input
                     type="text"
                     required
                     value={zip}
                     onChange={(e) => setZip(e.target.value)}
                     placeholder="94105"
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                    className="w-full px-2 py-1.5 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-lg text-[#17364A] dark:text-white focus:outline-hidden"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Phone *</label>
+                  <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">Phone *</label>
                   <input
                     type="tel"
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+1 (415) 555-0199"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Website URL *</label>
+                  <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">Website URL *</label>
                   <input
                     type="url"
                     required
                     value={siteUrl}
                     onChange={(e) => setSiteUrl(e.target.value)}
                     placeholder="https://example.com"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -351,14 +351,14 @@ export default function SeoLocalPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="px-3 py-1.5 text-xs text-slate-500 rounded-lg"
+                  className="px-3 py-1.5 text-xs text-[#526D7D] rounded-xl hover:bg-[#D7F1FA]/40 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingLocation}
-                  className="px-4 py-2 bg-rose-600 text-white text-xs font-semibold rounded-xl"
+                  className="px-4 py-2 bg-[#167AA0] hover:bg-[#0E526E] text-white text-xs font-semibold rounded-xl shadow-sm transition glass-button-press"
                 >
                   {savingLocation ? 'Saving...' : 'Add Location'}
                 </button>

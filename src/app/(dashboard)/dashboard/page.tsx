@@ -106,23 +106,23 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/campaigns/journey"
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-[#167AA0] hover:bg-[#126383] text-white shadow-xs transition-all duration-140 glass-button-press focus-visible:ring-2 focus-visible:ring-[#75D2EE]"
           >
-            <Compass className="w-3.5 h-3.5" />
-            <span>Open 4D Journey</span>
+            <Compass className="w-3.5 h-3.5 text-[#75D2EE]" />
+            <span>Campaign Journey</span>
           </Link>
 
           <Link
             href="/contacts"
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl glass-panel text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-slate-800 transition-all shadow-xs"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl glass-panel bg-white/70 hover:bg-white text-[#17364A] dark:text-slate-200 border border-[#75D2EE]/40 transition-all duration-140 shadow-xs preview-tile-3d"
           >
-            <Users className="w-3.5 h-3.5 text-sky-600" />
+            <Users className="w-3.5 h-3.5 text-[#167AA0]" />
             <span>Add Customer</span>
           </Link>
 
           <Link
             href="/shorts"
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl glass-panel text-purple-700 dark:text-purple-300 hover:bg-purple-50 transition-all shadow-xs"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl glass-panel bg-white/70 hover:bg-white text-purple-700 dark:text-purple-300 border border-purple-200/60 transition-all duration-140 shadow-xs preview-tile-3d"
           >
             <Video className="w-3.5 h-3.5 text-purple-600" />
             <span>Make Shorts</span>
@@ -137,27 +137,27 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+            <h2 className="text-xs font-bold text-[#17364A] dark:text-white uppercase tracking-wider">
               1. What is Active Right Now
             </h2>
           </div>
           <Link
             href="/campaigns/journey"
-            className="text-xs text-sky-600 dark:text-sky-400 font-semibold hover:underline flex items-center gap-1"
+            className="text-xs text-[#167AA0] dark:text-sky-400 font-semibold hover:underline flex items-center gap-1"
           >
-            <span>View Full 4D Journey</span>
+            <span>View Campaign Journey</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Active Customers */}
-          <div className="glass-panel p-5 rounded-2xl border border-sky-200/70 shadow-xs glass-panel-interactive">
+          <div className="glass-panel p-5 rounded-2xl border border-[#75D2EE]/45 shadow-xs preview-tile-3d">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold text-[#526D7D] dark:text-slate-400">
                 Audience &amp; Customers
               </span>
-              <div className="p-2 rounded-xl bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
+              <div className="p-2 rounded-xl bg-[#D7F1FA] dark:bg-sky-950/60 text-[#167AA0] dark:text-sky-400">
                 <Users className="w-4 h-4" />
               </div>
             </div>
@@ -179,45 +179,45 @@ export default async function DashboardPage() {
           </div>
 
           {/* Active Pipeline Value */}
-          <div className="glass-panel p-5 rounded-2xl border border-sky-200/70 shadow-xs glass-panel-interactive">
+          <div className="glass-panel p-5 rounded-2xl border border-[#75D2EE]/45 shadow-xs preview-tile-3d">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold text-[#526D7D] dark:text-slate-400">
                 Pipeline Deal Value
               </span>
-              <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#167AA0] dark:text-blue-400">
                 <DollarSign className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">
+              <span className="text-2xl font-bold text-[#17364A] dark:text-white">
                 {formatCurrency(pipeline.totalPipelineValue)}
               </span>
             </div>
-            <div className="mt-3 pt-3 border-t border-sky-100 dark:border-sky-900/60 text-[11px] text-slate-500 flex items-center justify-between">
+            <div className="mt-3 pt-3 border-t border-[#75D2EE]/25 dark:border-sky-900/60 text-[11px] text-[#526D7D] flex items-center justify-between">
               <span>{pipeline.activeDealsCount} active deals</span>
-              <Link href="/deals" className="text-sky-600 font-semibold hover:underline">
+              <Link href="/deals" className="text-[#167AA0] font-semibold hover:underline">
                 View deals
               </Link>
             </div>
           </div>
 
           {/* Video Studio Clips */}
-          <div className="glass-panel p-5 rounded-2xl border border-sky-200/70 shadow-xs glass-panel-interactive">
+          <div className="glass-panel p-5 rounded-2xl border border-[#75D2EE]/45 shadow-xs preview-tile-3d">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold text-[#526D7D] dark:text-slate-400">
                 Video Studio Clips
               </span>
-              <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
+              <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
                 <Video className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">
+              <span className="text-2xl font-bold text-[#17364A] dark:text-white">
                 {clips.length}
               </span>
-              <span className="text-[11px] text-slate-400">vertical shorts</span>
+              <span className="text-[11px] text-[#526D7D]/70">vertical shorts</span>
             </div>
-            <div className="mt-3 pt-3 border-t border-sky-100 dark:border-sky-900/60 text-[11px]">
+            <div className="mt-3 pt-3 border-t border-[#75D2EE]/25 dark:border-sky-900/60 text-[11px]">
               <Link
                 href="/shorts"
                 className="text-purple-600 dark:text-purple-400 font-semibold hover:underline flex items-center gap-0.5"
@@ -229,22 +229,22 @@ export default async function DashboardPage() {
           </div>
 
           {/* Live Inbound Forms */}
-          <div className="glass-panel p-5 rounded-2xl border border-sky-200/70 shadow-xs glass-panel-interactive">
+          <div className="glass-panel p-5 rounded-2xl border border-[#75D2EE]/45 shadow-xs preview-tile-3d">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold text-[#526D7D] dark:text-slate-400">
                 Live Lead Forms
               </span>
-              <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+              <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
                 <FileText className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">
+              <span className="text-2xl font-bold text-[#17364A] dark:text-white">
                 {liveForms.length}
               </span>
-              <span className="text-[11px] text-slate-400">capturing leads</span>
+              <span className="text-[11px] text-[#526D7D]/70">capturing leads</span>
             </div>
-            <div className="mt-3 pt-3 border-t border-sky-100 dark:border-sky-900/60 text-[11px]">
+            <div className="mt-3 pt-3 border-t border-[#75D2EE]/25 dark:border-sky-900/60 text-[11px]">
               <Link
                 href="/forms"
                 className="text-amber-600 dark:text-amber-400 font-semibold hover:underline flex items-center gap-0.5"
@@ -256,22 +256,22 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* 4D Campaign Journey Hero Banner */}
-        <div className="glass-panel rounded-2xl p-5 border border-sky-200/80 bg-gradient-to-r from-sky-50/80 via-blue-50/40 to-indigo-50/50 dark:from-slate-900 dark:via-sky-950/30 dark:to-slate-900 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Campaign Journey Hero Banner */}
+        <div className="glass-panel rounded-2xl p-5 border border-[#75D2EE]/60 bg-gradient-to-r from-[#D7F1FA]/50 via-white/40 to-[#EDF9FD]/60 dark:from-slate-900 dark:via-sky-950/30 dark:to-slate-900 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className="p-3 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white shadow-xs shrink-0">
-              <Compass className="w-5 h-5" />
+            <div className="p-3 rounded-2xl bg-[#167AA0] text-white shadow-xs shrink-0">
+              <Compass className="w-5 h-5 text-[#75D2EE]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Explore Your 4D Campaign Journey
+                <h3 className="text-sm font-bold text-[#17364A] dark:text-white">
+                  Explore Your Campaign Journey
                 </h3>
                 <span className="glass-pill px-2 py-0.5 rounded-full text-[10px] font-bold">
-                  Time × Channel × Stage × Outcome
+                  Timeline • Channels • Conversions
                 </span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 max-w-xl leading-relaxed">
+              <p className="text-xs text-[#526D7D] dark:text-slate-300 mt-0.5 max-w-xl leading-relaxed">
                 Review your marketing actions plotted across customer stages (Discover → Consider → Convert) with real verified engagement and sales numbers.
               </p>
             </div>
@@ -279,9 +279,9 @@ export default async function DashboardPage() {
 
           <Link
             href="/campaigns/journey"
-            className="flex items-center gap-1.5 self-start md:self-auto px-4 py-2 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all shrink-0"
+            className="flex items-center gap-1.5 self-start md:self-auto px-4 py-2 text-xs font-bold rounded-xl bg-[#167AA0] hover:bg-[#126383] text-white shadow-xs transition-all duration-140 shrink-0 glass-button-press focus-visible:ring-2 focus-visible:ring-[#75D2EE]"
           >
-            <span>Launch 4D Canvas</span>
+            <span>Launch Journey Canvas</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>

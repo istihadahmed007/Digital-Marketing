@@ -102,30 +102,30 @@ export default function JourneyPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-sky-100 dark:border-sky-900/60">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              4D Campaign Journey
+            <h1 className="text-2xl font-bold tracking-tight text-[#17364A] dark:text-white">
+              Campaign Journey
             </h1>
             <span className="glass-pill px-2.5 py-0.5 rounded-full text-xs font-bold">
               Multi-Channel
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
             See all your marketing touchpoints mapped across Time, Channels, Customer Stages, and Real Outcomes in one unified view.
           </p>
         </div>
 
         {/* View Switcher Tabs & Quick Create Actions */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center p-1 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-200/80 dark:border-sky-800">
+          <div className="flex items-center p-1 rounded-xl bg-white/70 dark:bg-slate-900 border border-[#75D2EE]/40 dark:border-sky-800">
             <Link
               href="/campaigns/journey"
-              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-slate-800 text-sky-700 dark:text-sky-300 shadow-xs"
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#167AA0] text-white shadow-xs"
             >
-              4D Journey View
+              Journey View
             </Link>
             <Link
               href="/campaigns"
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg text-[#526D7D] dark:text-slate-400 hover:text-[#17364A]"
             >
               Email Broadcasts
             </Link>
@@ -236,8 +236,8 @@ export default function JourneyPage() {
 
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-500">
-          <Loader2 className="w-6 h-6 animate-spin text-sky-600" />
-          <p className="text-xs">Mapping multi-channel 4D journey coordinates...</p>
+          <Loader2 className="w-6 h-6 animate-spin text-[#167AA0]" />
+          <p className="text-xs">Mapping multi-channel campaign journey touchpoints...</p>
         </div>
       ) : (
         <>

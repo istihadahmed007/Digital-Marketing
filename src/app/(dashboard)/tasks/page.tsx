@@ -60,21 +60,21 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-200">
       {/* Top Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#75D2EE]/20 dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-[#17364A] dark:text-white">
             Workspace Tasks
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Track action items, follow-ups, calls, and deadlines across your team.
+          <p className="text-xs text-[#526D7D] dark:text-slate-300 mt-1">
+            Track action items, follow-ups, client discovery calls, and deadlines across your team.
           </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-[#167AA0] hover:bg-[#0E526E] text-white shadow-xs glass-button-press transition-all cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Task</span>
@@ -82,13 +82,13 @@ export default function TasksPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shadow-xs">
+      <div className="p-4 rounded-2xl glass-panel flex items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-400" />
+          <Filter className="w-4 h-4 text-[#526D7D] dark:text-slate-400" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white cursor-pointer"
+            className="px-3 py-1.5 text-xs rounded-xl border border-[#75D2EE]/30 dark:border-slate-700 bg-white/80 dark:bg-slate-800 text-[#17364A] dark:text-white cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-[#167AA0]"
           >
             <option value="all">All Tasks</option>
             <option value="pending">Pending</option>
@@ -97,14 +97,14 @@ export default function TasksPage() {
           </select>
         </div>
 
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+        <span className="text-xs text-[#526D7D] dark:text-slate-400 font-medium">
           {tasks.length} task{tasks.length === 1 ? '' : 's'}
         </span>
       </div>
 
       {/* Task List */}
       {loading ? (
-        <div className="p-12 flex justify-center text-indigo-600">
+        <div className="p-12 flex justify-center text-[#167AA0]">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
       ) : tasks.length === 0 ? (
@@ -122,14 +122,14 @@ export default function TasksPage() {
               key={task.id}
               className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
                 task.status === 'completed'
-                  ? 'bg-slate-50/50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/80 opacity-70'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xs'
+                  ? 'bg-white/40 dark:bg-slate-900/30 border-[#75D2EE]/15 dark:border-slate-800/80 opacity-70'
+                  : 'glass-panel preview-tile-3d shadow-xs'
               }`}
             >
               <div className="flex items-start gap-3 min-w-0">
                 <button
                   onClick={() => handleToggleStatus(task)}
-                  className="mt-0.5 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors cursor-pointer"
+                  className="mt-0.5 text-[#167AA0] dark:text-[#75D2EE] hover:text-[#0E526E] transition-colors cursor-pointer"
                   title={
                     task.status === 'completed'
                       ? 'Mark as Pending'
@@ -139,7 +139,7 @@ export default function TasksPage() {
                   {task.status === 'completed' ? (
                     <CheckSquare className="w-5 h-5 text-emerald-500" />
                   ) : (
-                    <Square className="w-5 h-5 text-slate-400 hover:text-indigo-600" />
+                    <Square className="w-5 h-5 text-[#526D7D]/60 hover:text-[#167AA0]" />
                   )}
                 </button>
 
@@ -147,20 +147,20 @@ export default function TasksPage() {
                   <h3
                     className={`text-xs font-bold ${
                       task.status === 'completed'
-                        ? 'line-through text-slate-400 dark:text-slate-500'
-                        : 'text-slate-900 dark:text-white'
+                        ? 'line-through text-[#526D7D]/60 dark:text-slate-500'
+                        : 'text-[#17364A] dark:text-white'
                     }`}
                   >
                     {task.title}
                   </h3>
                   {task.description && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                    <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-0.5 line-clamp-1">
                       {task.description}
                     </p>
                   )}
                   {task.due_date && (
-                    <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                    <p className="text-[11px] text-[#526D7D] dark:text-slate-400 mt-1 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-[#167AA0]/70" />
                       <span>
                         Due {new Date(task.due_date).toLocaleDateString()}
                       </span>

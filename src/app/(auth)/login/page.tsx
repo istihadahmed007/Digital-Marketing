@@ -63,7 +63,7 @@ function LoginForm() {
       )}
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
           Email Address
         </label>
         <input
@@ -72,18 +72,18 @@ function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
-          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#75D2EE]/40 bg-white/90 dark:bg-slate-900/90 text-[#17364A] dark:text-white placeholder-[#526D7D]/60 focus:outline-none focus:ring-2 focus:ring-[#167AA0] transition shadow-xs"
         />
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <label className="text-xs font-semibold text-[#17364A] dark:text-slate-300">
             Password
           </label>
           <Link
             href="/forgot-password"
-            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="text-[11px] text-[#167AA0] dark:text-[#75D2EE] font-medium hover:underline"
           >
             Forgot password?
           </Link>
@@ -94,14 +94,14 @@ function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••••••"
-          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#75D2EE]/40 bg-white/90 dark:bg-slate-900/90 text-[#17364A] dark:text-white placeholder-[#526D7D]/60 focus:outline-none focus:ring-2 focus:ring-[#167AA0] transition shadow-xs"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 transition-all disabled:opacity-50 cursor-pointer"
+        className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-bold rounded-xl bg-[#167AA0] hover:bg-[#126484] text-white shadow-md shadow-[#167AA0]/20 transition-all disabled:opacity-50 cursor-pointer glass-button-press"
       >
         {loading ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -118,24 +118,24 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-[#F8FDFF] via-[#EDF9FD] to-[#D7F1FA] text-[#17364A]">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <div className="flex justify-center mb-3">
             <Logo size="lg" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-xl font-bold tracking-tight text-[#17364A] dark:text-white">
             Welcome back
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-1">
             Sign in to access your marketing workspace and CRM data
           </p>
         </div>
 
-        <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="p-6 sm:p-8 rounded-3xl border border-[#75D2EE]/30 glass-panel-opaque shadow-[0_20px_60px_rgba(22,122,160,0.12)]">
           <Suspense
             fallback={
-              <div className="py-8 flex justify-center text-indigo-600">
+              <div className="py-8 flex justify-center text-[#167AA0]">
                 <Loader2 className="w-6 h-6 animate-spin" />
               </div>
             }
@@ -143,11 +143,11 @@ export default function LoginPage() {
             <LoginForm />
           </Suspense>
 
-          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-4 pt-4 border-t border-[#D7F1FA] dark:border-slate-800 text-center text-xs text-[#526D7D] dark:text-slate-400">
             Don&apos;t have an account yet?{' '}
             <Link
               href="/register"
-              className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="font-bold text-[#167AA0] dark:text-[#75D2EE] hover:underline"
             >
               Sign up
             </Link>

@@ -161,10 +161,10 @@ export default function ContactsPage() {
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-[#17364A] dark:text-white">
             Contacts Directory
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-1">
             Manage prospects, track rule-based lead scores, marketing consent, and attribution sources.
           </p>
         </div>
@@ -173,7 +173,7 @@ export default function ContactsPage() {
           <button
             onClick={handleExportCsv}
             disabled={exporting}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white/80 dark:bg-slate-900/80 border border-[#75D2EE]/30 text-[#17364A] dark:text-slate-300 hover:bg-[#D7F1FA]/50 transition shadow-xs"
             title="Export matching contacts to CSV"
           >
             {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
@@ -182,7 +182,7 @@ export default function ContactsPage() {
 
           <Link
             href="/contacts/import"
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white/80 dark:bg-slate-900/80 border border-[#75D2EE]/30 text-[#17364A] dark:text-slate-300 hover:bg-[#D7F1FA]/50 transition shadow-xs"
           >
             <UploadCloud className="w-3.5 h-3.5" />
             Import CSV
@@ -193,7 +193,7 @@ export default function ContactsPage() {
               setEditingContact(null);
               setIsModalOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-[#167AA0] hover:bg-[#126484] text-white shadow-xs transition glass-button-press cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             New Contact
@@ -204,21 +204,21 @@ export default function ContactsPage() {
       {/* Saved Views Bar */}
       {savedViews.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-          <span className="text-slate-400 font-semibold flex items-center gap-1 shrink-0">
-            <Bookmark className="w-3 h-3 text-indigo-500" /> Saved Views:
+          <span className="text-[#526D7D] font-semibold flex items-center gap-1 shrink-0">
+            <Bookmark className="w-3 h-3 text-[#167AA0]" /> Saved Views:
           </span>
           {savedViews.map((v) => (
             <button
               key={v.id}
               onClick={() => handleApplyView(v)}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 text-slate-700 dark:text-slate-300 text-xs font-medium shrink-0 transition"
+              className="px-2.5 py-1 rounded-lg bg-[#D7F1FA]/50 dark:bg-slate-800 hover:bg-[#D7F1FA] text-[#17364A] dark:text-slate-300 text-xs font-medium shrink-0 transition"
             >
               {v.name}
             </button>
           ))}
           <button
             onClick={handleSaveCurrentView}
-            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline shrink-0"
+            className="text-[11px] text-[#167AA0] dark:text-[#75D2EE] font-medium hover:underline shrink-0"
           >
             + Save Current
           </button>
@@ -226,10 +226,10 @@ export default function ContactsPage() {
       )}
 
       {/* Filter & Search Controls */}
-      <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-3">
+      <div className="p-4 glass-panel border border-[#75D2EE]/30 rounded-2xl shadow-xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="relative lg:col-span-2">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-[#526D7D] absolute left-3 top-2.5" />
             <input
               type="text"
               value={search}
@@ -238,7 +238,7 @@ export default function ContactsPage() {
                 setPage(1);
               }}
               placeholder="Search by name, email, or phone..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-white/90 dark:bg-slate-800 border border-[#75D2EE]/30 rounded-xl text-[#17364A] dark:text-slate-100 placeholder-[#526D7D]/60 focus:outline-none focus:ring-2 focus:ring-[#167AA0]"
             />
           </div>
 
@@ -335,10 +335,10 @@ export default function ContactsPage() {
           }}
         />
       ) : (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+        <div className="glass-panel-opaque border border-[#75D2EE]/30 rounded-2xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-300">
+              <thead className="bg-[#EDF9FD]/80 dark:bg-slate-800/60 border-b border-[#D7F1FA] dark:border-slate-800 font-semibold text-[#17364A] dark:text-slate-300">
                 <tr>
                   <th className="p-3.5">Name / Contact</th>
                   <th className="p-3.5">Company</th>
@@ -349,20 +349,20 @@ export default function ContactsPage() {
                   <th className="p-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+              <tbody className="divide-y divide-[#D7F1FA]/50 dark:divide-slate-800 text-[#17364A] dark:text-slate-300">
                 {contacts.map((contact) => (
-                  <tr key={contact.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
+                  <tr key={contact.id} className="hover:bg-[#F8FDFF]/90 dark:hover:bg-slate-800/40 transition">
                     <td className="p-3.5">
                       <Link
                         href={`/contacts/${contact.id}`}
-                        className="font-bold text-slate-900 dark:text-white hover:text-indigo-600 flex items-center gap-1.5"
+                        className="font-bold text-[#17364A] dark:text-white hover:text-[#167AA0] flex items-center gap-1.5"
                       >
                         {contact.first_name} {contact.last_name}
-                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                        <ExternalLink className="w-3 h-3 text-[#526D7D]" />
                       </Link>
-                      <span className="text-[11px] text-slate-400 block font-mono">{contact.email}</span>
+                      <span className="text-[11px] text-[#526D7D] block font-mono">{contact.email}</span>
                       {contact.job_title && (
-                        <span className="text-[11px] text-slate-500">{contact.job_title}</span>
+                        <span className="text-[11px] text-[#526D7D]">{contact.job_title}</span>
                       )}
                     </td>
 
@@ -370,9 +370,9 @@ export default function ContactsPage() {
                       {contact.company ? (
                         <Link
                           href={`/companies/${contact.company.id}`}
-                          className="font-semibold text-slate-700 dark:text-slate-300 hover:underline flex items-center gap-1"
+                          className="font-semibold text-[#17364A] dark:text-slate-300 hover:text-[#167AA0] hover:underline flex items-center gap-1"
                         >
-                          <Building2 className="w-3 h-3 text-slate-400" />
+                          <Building2 className="w-3 h-3 text-[#526D7D]" />
                           {contact.company.name}
                         </Link>
                       ) : (
@@ -388,7 +388,7 @@ export default function ContactsPage() {
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
                             : (contact.lead_score || 0) >= 30
                             ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
-                            : 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400'
+                            : 'bg-[#D7F1FA]/40 text-[#526D7D] border border-[#75D2EE]/30 dark:bg-slate-800 dark:text-slate-400'
                         }`}
                         title="Click to view transparent lead scoring breakdown"
                       >
@@ -397,7 +397,7 @@ export default function ContactsPage() {
                       </button>
                     </td>
 
-                    <td className="p-3.5 uppercase font-semibold text-[10px] tracking-wider text-slate-600 dark:text-slate-400">
+                    <td className="p-3.5 uppercase font-semibold text-[10px] tracking-wider text-[#526D7D] dark:text-slate-400">
                       {contact.lifecycle_stage}
                     </td>
 
@@ -406,11 +406,11 @@ export default function ContactsPage() {
                     </td>
 
                     <td className="p-3.5">
-                      <span className="capitalize text-slate-700 dark:text-slate-300 font-medium block">
+                      <span className="capitalize text-[#17364A] dark:text-slate-300 font-medium block">
                         {(contact.source || 'direct').replace('_', ' ')}
                       </span>
                       {contact.utm_source && (
-                        <span className="text-[10px] font-mono text-indigo-500 block">
+                        <span className="text-[10px] font-mono text-[#167AA0] block">
                           utm: {contact.utm_source}
                         </span>
                       )}
@@ -422,7 +422,7 @@ export default function ContactsPage() {
                           setEditingContact(contact);
                           setIsModalOpen(true);
                         }}
-                        className="text-indigo-600 hover:underline font-semibold"
+                        className="text-[#167AA0] hover:underline font-semibold"
                       >
                         Edit
                       </button>
@@ -442,24 +442,24 @@ export default function ContactsPage() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-              <span className="text-slate-500">
+            <div className="p-4 border-t border-[#D7F1FA] dark:border-slate-800 flex items-center justify-between text-xs">
+              <span className="text-[#526D7D]">
                 Page {page} of {totalPages}
               </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="p-1.5 rounded-lg border border-[#75D2EE]/30 bg-white/80 disabled:opacity-40 hover:bg-[#D7F1FA]/50"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-4 h-4 text-[#17364A]" />
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="p-1.5 rounded-lg border border-[#75D2EE]/30 bg-white/80 disabled:opacity-40 hover:bg-[#D7F1FA]/50"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4 text-[#17364A]" />
                 </button>
               </div>
             </div>
@@ -469,32 +469,32 @@ export default function ContactsPage() {
 
       {/* Lead Score Reason Inspection Modal */}
       {selectedScoreContact && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#17364A]/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white/95 dark:bg-[#122836]/95 border border-[#75D2EE]/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 backdrop-blur-xl">
+            <div className="flex items-center justify-between pb-3 border-b border-[#D7F1FA] dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <Flame className="w-5 h-5 text-amber-500" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                <h3 className="text-sm font-bold text-[#17364A] dark:text-white">
                   Lead Score Breakdown: {selectedScoreContact.first_name}
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedScoreContact(null)}
-                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                className="text-[#526D7D] hover:text-[#17364A] text-xs font-bold"
               >
                 ✕
               </button>
             </div>
 
             <div className="text-center py-2">
-              <span className="text-3xl font-black text-slate-900 dark:text-white">
+              <span className="text-3xl font-black text-[#17364A] dark:text-white">
                 {selectedScoreContact.lead_score || 0}
               </span>
-              <span className="text-xs text-slate-400 block">Total Score / 100</span>
+              <span className="text-xs text-[#526D7D] block">Total Score / 100</span>
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#526D7D] block">
                 Rule-Based Point Contributors:
               </span>
               {Array.isArray(selectedScoreContact.lead_score_reasons) &&
@@ -503,22 +503,22 @@ export default function ContactsPage() {
                   {selectedScoreContact.lead_score_reasons.map((r, idx) => (
                     <div
                       key={idx}
-                      className="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center justify-between text-xs"
+                      className="p-2.5 bg-[#EDF9FD]/60 dark:bg-slate-800/40 rounded-xl flex items-center justify-between text-xs"
                     >
-                      <span className="text-slate-700 dark:text-slate-300">{r.reason}</span>
+                      <span className="text-[#17364A] dark:text-slate-300">{r.reason}</span>
                       <span className="font-bold text-emerald-600 dark:text-emerald-400">+{r.points}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 italic">No specific scoring rules triggered yet.</p>
+                <p className="text-xs text-[#526D7D] italic">No specific scoring rules triggered yet.</p>
               )}
             </div>
 
             <div className="pt-2 text-right">
               <button
                 onClick={() => setSelectedScoreContact(null)}
-                className="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl"
+                className="px-4 py-2 bg-[#167AA0] hover:bg-[#126484] text-white text-xs font-semibold rounded-xl glass-button-press cursor-pointer"
               >
                 Done
               </button>

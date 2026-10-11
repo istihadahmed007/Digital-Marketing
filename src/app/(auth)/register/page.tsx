@@ -81,35 +81,35 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-[#F8FDFF] via-[#EDF9FD] to-[#D7F1FA] text-[#17364A]">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <div className="flex justify-center mb-3">
             <Logo size="lg" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-xl font-bold tracking-tight text-[#17364A] dark:text-white">
             Create an account
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-1">
             Get started with NexusMark Growth & CRM platform
           </p>
         </div>
 
-        <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="p-6 sm:p-8 rounded-3xl border border-[#75D2EE]/30 glass-panel-opaque shadow-[0_20px_60px_rgba(22,122,160,0.12)]">
           {successMessage ? (
             <div className="text-center py-4 space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-bold text-[#17364A] dark:text-white">
                 Check Your Inbox
               </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              <p className="text-xs text-[#526D7D] dark:text-slate-400 leading-relaxed">
                 {successMessage}
               </p>
               <Link
                 href="/login"
-                className="inline-block mt-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                className="inline-block mt-2 text-xs font-bold text-[#167AA0] dark:text-[#75D2EE] hover:underline"
               >
                 Go to Sign In →
               </Link>
@@ -124,7 +124,7 @@ export default function RegisterPage() {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
                   Work Email
                 </label>
                 <input
@@ -133,12 +133,12 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="alex@company.com"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#75D2EE]/40 bg-white/90 dark:bg-slate-900/90 text-[#17364A] dark:text-white placeholder-[#526D7D]/60 focus:outline-none focus:ring-2 focus:ring-[#167AA0] transition shadow-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
                   Password
                 </label>
                 <input
@@ -147,12 +147,12 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 6 characters"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#75D2EE]/40 bg-white/90 dark:bg-slate-900/90 text-[#17364A] dark:text-white placeholder-[#526D7D]/60 focus:outline-none focus:ring-2 focus:ring-[#167AA0] transition shadow-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
                   Confirm Password
                 </label>
                 <input
@@ -161,14 +161,14 @@ export default function RegisterPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repeat your password"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#75D2EE]/40 bg-white/90 dark:bg-slate-900/90 text-[#17364A] dark:text-white placeholder-[#526D7D]/60 focus:outline-none focus:ring-2 focus:ring-[#167AA0] transition shadow-xs"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 transition-all disabled:opacity-50 cursor-pointer"
+                className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-bold rounded-xl bg-[#167AA0] hover:bg-[#126484] text-white shadow-md shadow-[#167AA0]/20 transition-all disabled:opacity-50 cursor-pointer glass-button-press"
               >
                 {loading ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -182,11 +182,11 @@ export default function RegisterPage() {
             </form>
           )}
 
-          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-4 pt-4 border-t border-[#D7F1FA] dark:border-slate-800 text-center text-xs text-[#526D7D] dark:text-slate-400">
             Already have an account?{' '}
             <Link
               href="/login"
-              className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="font-bold text-[#167AA0] dark:text-[#75D2EE] hover:underline"
             >
               Sign in
             </Link>

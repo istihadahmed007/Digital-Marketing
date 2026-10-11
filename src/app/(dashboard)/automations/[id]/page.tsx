@@ -198,33 +198,33 @@ export default function WorkflowBuilderPage({
   }
 
   const statusBadges = {
-    active: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    draft: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    paused: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-    error: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+    active: 'bg-[#D7F1FA] text-[#167AA0] border-[#75D2EE]/40',
+    draft: 'bg-amber-50 text-amber-700 border-amber-200',
+    paused: 'bg-white/60 text-[#526D7D] border-[#75D2EE]/30',
+    error: 'bg-rose-50 text-rose-700 border-rose-200',
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-slate-950 overflow-hidden text-slate-100">
+    <div className="h-screen w-full flex flex-col bg-[#EDF9FD] dark:bg-[#0c1d28] overflow-hidden text-[#17364A] dark:text-slate-100">
       {/* Top Navigation & Action Bar */}
-      <header className="h-14 border-b border-slate-800 bg-slate-900/90 px-4 flex items-center justify-between shrink-0 z-10 backdrop-blur-md">
+      <header className="h-14 border-b border-[#75D2EE]/30 glass-panel-opaque px-4 flex items-center justify-between shrink-0 z-10 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <Link
             href="/automations"
-            className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            className="p-1.5 rounded-xl hover:bg-[#D7F1FA]/50 text-[#526D7D] hover:text-[#167AA0] transition"
             title="Back to Workflows"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
 
-          <div className="h-4 w-px bg-slate-800" />
+          <div className="h-4 w-px bg-[#75D2EE]/30" />
 
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="text-sm font-bold text-white bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden px-1 py-0.5 rounded transition max-w-xs"
+              className="text-sm font-bold text-[#17364A] dark:text-white bg-transparent border-b border-transparent hover:border-[#75D2EE]/60 focus:border-[#167AA0] focus:outline-hidden px-1 py-0.5 rounded transition max-w-xs"
               placeholder="Workflow Name"
             />
             <span
@@ -234,7 +234,7 @@ export default function WorkflowBuilderPage({
             >
               {status}
             </span>
-            <span className="text-[10px] text-slate-500 font-mono">v{version}</span>
+            <span className="text-[10px] text-[#526D7D] font-mono">v{version}</span>
           </div>
         </div>
 
@@ -243,14 +243,14 @@ export default function WorkflowBuilderPage({
           <div
             className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-md animate-in fade-in duration-200 ${
               feedback.type === 'success'
-                ? 'bg-emerald-950 border border-emerald-800 text-emerald-300'
-                : 'bg-rose-950 border border-rose-800 text-rose-300'
+                ? 'bg-[#D7F1FA] border border-[#75D2EE] text-[#167AA0]'
+                : 'bg-rose-50 border border-rose-200 text-rose-700'
             }`}
           >
             {feedback.type === 'success' ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#167AA0]" />
             ) : (
-              <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+              <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
             )}
             <span>{feedback.text}</span>
           </div>
@@ -262,9 +262,9 @@ export default function WorkflowBuilderPage({
           <button
             type="button"
             onClick={() => setIsTestRunOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-[#D7F1FA]/50 border border-[#75D2EE]/30 text-[#17364A] dark:text-slate-200 transition glass-button-press cursor-pointer"
           >
-            <Play className="w-3.5 h-3.5 text-emerald-400 fill-current" />
+            <Play className="w-3.5 h-3.5 text-[#167AA0] fill-current" />
             <span>Test Run</span>
           </button>
 
@@ -273,7 +273,7 @@ export default function WorkflowBuilderPage({
             type="button"
             disabled={saving}
             onClick={handleSaveDraft}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-[#D7F1FA]/50 border border-[#75D2EE]/30 text-[#17364A] dark:text-slate-200 transition disabled:opacity-50 glass-button-press cursor-pointer"
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             <span>Save Draft</span>
@@ -284,7 +284,7 @@ export default function WorkflowBuilderPage({
             <button
               type="button"
               onClick={handlePause}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-amber-600 hover:bg-amber-500 text-white transition shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition shadow-sm glass-button-press cursor-pointer"
             >
               <Pause className="w-3.5 h-3.5" />
               <span>Pause</span>
@@ -294,7 +294,7 @@ export default function WorkflowBuilderPage({
               type="button"
               disabled={publishing}
               onClick={handlePublish}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm shadow-indigo-600/30 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-[#167AA0] hover:bg-[#0E526E] text-white transition shadow-sm shadow-[#167AA0]/30 disabled:opacity-50 glass-button-press cursor-pointer"
             >
               {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
               <span>Publish Flow</span>

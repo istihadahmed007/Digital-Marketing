@@ -155,32 +155,32 @@ export default function AiToolsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-              Phase 2 Live
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#D7F1FA] text-[#167AA0] dark:bg-[#167AA0]/30 dark:text-[#75D2EE] border border-[#75D2EE]/40">
+              Verified Intelligence
             </span>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-[#17364A] dark:text-white">
               AI Growth Intelligence Hub
             </h1>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-[#526D7D] dark:text-slate-400 mt-1">
             Grounded intelligence assistants powered strictly by verified workspace CRM contacts, deals, and activity records.
           </p>
         </div>
 
         {/* Grounding guarantee badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#D7F1FA] border border-[#75D2EE]/40 text-[#167AA0] dark:bg-[#167AA0]/25 dark:text-[#75D2EE] text-xs font-semibold shadow-xs">
           <ShieldCheck className="w-4 h-4" /> Zero Hallucinated Metrics
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-[#75D2EE]/20 pb-2">
         <button
           onClick={() => setActiveTab('outreach')}
-          className={`px-3 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition ${
+          className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer ${
             activeTab === 'outreach'
-              ? 'bg-amber-500 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-[#167AA0] text-white shadow-sm shadow-[#167AA0]/25'
+              : 'text-[#526D7D] hover:text-[#17364A] hover:bg-[#D7F1FA]/30'
           }`}
         >
           <Mail className="w-3.5 h-3.5" />
@@ -189,10 +189,10 @@ export default function AiToolsPage() {
 
         <button
           onClick={() => setActiveTab('deals')}
-          className={`px-3 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition ${
+          className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer ${
             activeTab === 'deals'
-              ? 'bg-amber-500 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-[#167AA0] text-white shadow-sm shadow-[#167AA0]/25'
+              : 'text-[#526D7D] hover:text-[#17364A] hover:bg-[#D7F1FA]/30'
           }`}
         >
           <Activity className="w-3.5 h-3.5" />
@@ -201,10 +201,10 @@ export default function AiToolsPage() {
 
         <button
           onClick={() => setActiveTab('briefing')}
-          className={`px-3 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition ${
+          className={`px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer ${
             activeTab === 'briefing'
-              ? 'bg-amber-500 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-[#167AA0] text-white shadow-sm shadow-[#167AA0]/25'
+              : 'text-[#526D7D] hover:text-[#17364A] hover:bg-[#D7F1FA]/30'
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
@@ -215,21 +215,21 @@ export default function AiToolsPage() {
       {/* TAB 1: OUTREACH GENERATOR */}
       {activeTab === 'outreach' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-5">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
+          <div className="lg:col-span-5 glass-panel rounded-2xl p-6 shadow-xs space-y-5">
+            <h2 className="text-base font-bold text-[#17364A] dark:text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#167AA0] dark:text-[#75D2EE]" />
               Configure Outreach Target
             </h2>
 
             {/* Select Contact */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1.5">
                 Select Contact from CRM Directory
               </label>
               <select
                 value={selectedContactId}
                 onChange={(e) => setSelectedContactId(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100"
+                className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
               >
                 {contacts.length === 0 ? (
                   <option value="">No contacts in workspace</option>
@@ -245,13 +245,13 @@ export default function AiToolsPage() {
 
             {/* Outreach Objective */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1.5">
                 Outreach Objective
               </label>
               <select
                 value={objective}
                 onChange={(e) => setObjective(e.target.value as any)}
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100"
+                className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
               >
                 <option value="cold_outreach">Initial Cold Outreach (Growth Proposition)</option>
                 <option value="proposal_followup">Proposal Follow-Up (Close Discussion)</option>
@@ -263,7 +263,7 @@ export default function AiToolsPage() {
             <button
               onClick={handleGenerateOutreach}
               disabled={outreachLoading || !selectedContactId}
-              className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-xs transition flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 bg-[#167AA0] hover:bg-[#0E526E] disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-sm shadow-[#167AA0]/25 transition flex items-center justify-center gap-2 glass-button-press cursor-pointer"
             >
               {outreachLoading ? (
                 <>
@@ -277,21 +277,21 @@ export default function AiToolsPage() {
             </button>
           </div>
 
-          <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+          <div className="lg:col-span-7 glass-panel-opaque rounded-2xl p-6 shadow-xs flex flex-col justify-between">
             {outreachDraft ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div className="text-xs text-slate-500">
-                    Drafted for <strong className="text-slate-900 dark:text-white">{outreachDraft.contactName}</strong> at{' '}
-                    <strong className="text-slate-900 dark:text-white">{outreachDraft.companyName}</strong>
+                <div className="flex items-center justify-between pb-3 border-b border-[#75D2EE]/20">
+                  <div className="text-xs text-[#526D7D]">
+                    Drafted for <strong className="text-[#17364A] dark:text-white">{outreachDraft.contactName}</strong> at{' '}
+                    <strong className="text-[#17364A] dark:text-white">{outreachDraft.companyName}</strong>
                   </div>
                   <button
                     onClick={() => copyText(`${outreachDraft.subject}\n\n${outreachDraft.body}`)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/80 dark:bg-slate-800 hover:bg-[#D7F1FA]/50 border border-[#75D2EE]/30 text-[#17364A] dark:text-slate-300 rounded-lg text-xs font-semibold transition glass-button-press cursor-pointer"
                   >
                     {copiedOutreach ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-500" /> Copied
+                        <Check className="w-3.5 h-3.5 text-[#167AA0]" /> Copied
                       </>
                     ) : (
                       <>
@@ -302,11 +302,11 @@ export default function AiToolsPage() {
                 </div>
 
                 {/* Grounded facts box */}
-                <div className="p-3 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                <div className="p-3 bg-[#D7F1FA]/40 dark:bg-[#167AA0]/20 border border-[#75D2EE]/40 rounded-xl space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#167AA0] dark:text-[#75D2EE] flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5" /> Grounded Database Evidence:
                   </span>
-                  <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-0.5 list-disc list-inside">
+                  <ul className="text-xs text-[#526D7D] dark:text-slate-400 space-y-0.5 list-disc list-inside">
                     {outreachDraft.groundedFacts.map((fact, idx) => (
                       <li key={idx}>{fact}</li>
                     ))}
@@ -314,27 +314,27 @@ export default function AiToolsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">
+                  <label className="block text-xs font-semibold text-[#526D7D] mb-1">
                     Subject Line
                   </label>
-                  <p className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg text-xs font-medium text-slate-900 dark:text-white">
+                  <p className="p-2.5 bg-white/70 dark:bg-slate-800/60 rounded-xl text-xs font-medium text-[#17364A] dark:text-white border border-[#75D2EE]/20">
                     {outreachDraft.subject}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">
+                  <label className="block text-xs font-semibold text-[#526D7D] mb-1">
                     Email Body
                   </label>
-                  <pre className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs font-sans whitespace-pre-wrap text-slate-800 dark:text-slate-200 leading-relaxed border border-slate-200 dark:border-slate-700/60">
+                  <pre className="p-3.5 bg-white/70 dark:bg-slate-800/60 rounded-xl text-xs font-sans whitespace-pre-wrap text-[#17364A] dark:text-slate-200 leading-relaxed border border-[#75D2EE]/20">
                     {outreachDraft.body}
                   </pre>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-12 text-center text-slate-400 space-y-3">
-                <Mail className="w-10 h-10 text-slate-300 dark:text-slate-700" />
-                <p className="text-sm font-medium">No draft generated yet</p>
+              <div className="flex flex-col items-center justify-center p-12 text-center text-[#526D7D] space-y-3">
+                <Mail className="w-10 h-10 text-[#75D2EE]" />
+                <p className="text-sm font-semibold text-[#17364A] dark:text-white">No draft generated yet</p>
                 <p className="text-xs max-w-sm">
                   Select a contact and click &ldquo;Generate Personalized Draft&rdquo; to create grounded outreach emails based on their timeline notes.
                 </p>
@@ -350,19 +350,19 @@ export default function AiToolsPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#D7F1FA] text-[#167AA0] dark:bg-[#167AA0]/30 dark:text-[#75D2EE] border border-[#75D2EE]/30">
                   Rule-Based Engine
                 </span>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Deterministic Velocity & Inactivity Evaluation</span>
+                <span className="text-xs font-semibold text-[#17364A] dark:text-white">Deterministic Velocity & Inactivity Evaluation</span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-1">
                 Evaluates touchpoint recency, stage duration, and target close deadlines using deterministic CRM rules.
               </p>
             </div>
             <button
               onClick={handleScanDeals}
               disabled={dealsLoading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/80 dark:bg-slate-800 hover:bg-[#D7F1FA]/50 text-[#17364A] dark:text-slate-300 border border-[#75D2EE]/30 text-xs font-semibold rounded-xl transition glass-button-press cursor-pointer"
             >
               {dealsLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               Re-scan Deals
@@ -370,12 +370,12 @@ export default function AiToolsPage() {
           </div>
 
           {dealsLoading ? (
-            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-              <Loader2 className="w-8 h-8 text-amber-500 animate-spin mb-3" />
-              <p className="text-sm text-slate-500">Scanning deals for pipeline stagnation...</p>
+            <div className="flex flex-col items-center justify-center p-12 glass-panel rounded-2xl">
+              <Loader2 className="w-8 h-8 text-[#167AA0] animate-spin mb-3" />
+              <p className="text-sm text-[#526D7D]">Scanning deals for pipeline stagnation...</p>
             </div>
           ) : dealAssessments.length === 0 ? (
-            <div className="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-500">
+            <div className="p-12 text-center glass-panel rounded-2xl text-[#526D7D]">
               No open deals found to analyze in this workspace. Create deals in the pipeline to run stagnation checks.
             </div>
           ) : (
@@ -383,62 +383,62 @@ export default function AiToolsPage() {
               {dealAssessments.map((item) => (
                 <div
                   key={item.dealId}
-                  className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4"
+                  className="p-5 glass-panel preview-tile-3d rounded-2xl shadow-xs space-y-4"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
+                      <h3 className="text-sm font-bold text-[#17364A] dark:text-white line-clamp-1">
                         {item.dealTitle}
                       </h3>
-                      <span className="text-xs text-slate-500">{item.companyName}</span>
+                      <span className="text-xs text-[#526D7D]">{item.companyName}</span>
                     </div>
 
                     <span
                       className={`px-2.5 py-0.5 text-xs font-bold rounded-full border ${
                         item.riskScore === 'Critical'
-                          ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800'
+                          ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400'
                           : item.riskScore === 'High'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
                           : item.riskScore === 'Medium'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+                          ? 'bg-[#D7F1FA] text-[#167AA0] border-[#75D2EE]/40'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
                       }`}
                     >
                       {item.riskScore} Risk
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                  <div className="grid grid-cols-2 gap-2 text-xs p-3 bg-white/70 dark:bg-slate-800/40 rounded-xl border border-[#75D2EE]/20">
                     <div>
-                      <span className="text-slate-400">Amount:</span>
-                      <p className="font-bold text-slate-900 dark:text-white">
+                      <span className="text-[#526D7D]">Amount:</span>
+                      <p className="font-bold text-[#17364A] dark:text-white">
                         ${item.amount.toLocaleString()}
                       </p>
                     </div>
                     <div>
-                      <span className="text-slate-400">Silent Period:</span>
-                      <p className="font-bold text-slate-900 dark:text-white">
+                      <span className="text-[#526D7D]">Silent Period:</span>
+                      <p className="font-bold text-[#17364A] dark:text-white">
                         {item.daysSinceLastActivity} days
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#526D7D]">
                       Observed Factors
                     </span>
-                    <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
+                    <ul className="text-xs text-[#526D7D] dark:text-slate-400 space-y-1 list-disc list-inside">
                       {item.riskFactors.map((f, idx) => (
                         <li key={idx} className="line-clamp-2">{f}</li>
                       ))}
                     </ul>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block mb-1">
+                  <div className="pt-3 border-t border-[#75D2EE]/20 text-xs">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#167AA0] dark:text-[#75D2EE] block mb-1">
                       Recommended Action:
                     </span>
-                    <p className="text-slate-800 dark:text-slate-200 font-medium">
+                    <p className="text-[#17364A] dark:text-slate-200 font-medium">
                       {item.recommendedAction}
                     </p>
                   </div>
@@ -452,20 +452,20 @@ export default function AiToolsPage() {
       {/* TAB 3: ACCOUNT BRIEFING */}
       {activeTab === 'briefing' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-5">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-amber-500" />
+          <div className="lg:col-span-4 glass-panel rounded-2xl p-6 shadow-xs space-y-5">
+            <h2 className="text-base font-bold text-[#17364A] dark:text-white flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-[#167AA0]" />
               Target Organization
             </h2>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1.5">
                 Select Company Account
               </label>
               <select
                 value={selectedCompanyId}
                 onChange={(e) => setSelectedCompanyId(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100"
+                className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
               >
                 {companies.length === 0 ? (
                   <option value="">No companies in workspace</option>
@@ -482,7 +482,7 @@ export default function AiToolsPage() {
             <button
               onClick={handleGenerateBriefing}
               disabled={briefingLoading || !selectedCompanyId}
-              className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-xs transition flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 bg-[#167AA0] hover:bg-[#0E526E] disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-sm shadow-[#167AA0]/25 transition flex items-center justify-center gap-2 glass-button-press cursor-pointer"
             >
               {briefingLoading ? (
                 <>
@@ -496,15 +496,15 @@ export default function AiToolsPage() {
             </button>
           </div>
 
-          <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+          <div className="lg:col-span-8 glass-panel-opaque rounded-2xl p-6 shadow-xs">
             {accountBriefing ? (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-lg font-bold text-[#17364A] dark:text-white">
                     Executive Briefing: {accountBriefing.companyName}
                   </h3>
                   {accountBriefing.domain && (
-                    <span className="text-xs text-slate-400 font-mono">
+                    <span className="text-xs text-[#526D7D] font-mono">
                       {accountBriefing.domain}
                     </span>
                   )}
@@ -512,20 +512,20 @@ export default function AiToolsPage() {
 
                 {/* Account metrics */}
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                    <span className="text-[11px] text-slate-400 uppercase font-bold">Contacts</span>
-                    <p className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
+                  <div className="p-3 bg-white/70 dark:bg-slate-800/40 border border-[#75D2EE]/20 rounded-xl">
+                    <span className="text-[11px] text-[#526D7D] uppercase font-bold">Contacts</span>
+                    <p className="text-base font-bold text-[#17364A] dark:text-white mt-0.5">
                       {accountBriefing.totalContacts}
                     </p>
                   </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                    <span className="text-[11px] text-slate-400 uppercase font-bold">Open Pipeline</span>
-                    <p className="text-base font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                  <div className="p-3 bg-white/70 dark:bg-slate-800/40 border border-[#75D2EE]/20 rounded-xl">
+                    <span className="text-[11px] text-[#526D7D] uppercase font-bold">Open Pipeline</span>
+                    <p className="text-base font-bold text-[#167AA0] dark:text-[#75D2EE] mt-0.5">
                       ${accountBriefing.openPipelineValue.toLocaleString()}
                     </p>
                   </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                    <span className="text-[11px] text-slate-400 uppercase font-bold">Won Business</span>
+                  <div className="p-3 bg-white/70 dark:bg-slate-800/40 border border-[#75D2EE]/20 rounded-xl">
+                    <span className="text-[11px] text-[#526D7D] uppercase font-bold">Won Business</span>
                     <p className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
                       ${accountBriefing.wonRevenue.toLocaleString()}
                     </p>
@@ -533,31 +533,31 @@ export default function AiToolsPage() {
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#526D7D] mb-2">
                     Executive Narrative
                   </h4>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <p className="text-sm text-[#17364A] dark:text-slate-300 leading-relaxed bg-white/70 dark:bg-slate-800/40 p-4 rounded-xl border border-[#75D2EE]/20">
                     {accountBriefing.summary}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-xl space-y-2">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <div className="p-4 bg-white/70 dark:bg-slate-800/30 border border-[#75D2EE]/20 rounded-xl space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#526D7D]">
                       Key Account Insights
                     </h4>
-                    <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside">
+                    <ul className="text-xs text-[#526D7D] dark:text-slate-400 space-y-1.5 list-disc list-inside">
                       {accountBriefing.keyInsights.map((ki, idx) => (
                         <li key={idx}>{ki}</li>
                       ))}
                     </ul>
                   </div>
 
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-xl space-y-2">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <div className="p-4 bg-white/70 dark:bg-slate-800/30 border border-[#75D2EE]/20 rounded-xl space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#526D7D]">
                       Strategic Next Steps
                     </h4>
-                    <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside">
+                    <ul className="text-xs text-[#526D7D] dark:text-slate-400 space-y-1.5 list-disc list-inside">
                       {accountBriefing.actionItems.map((act, idx) => (
                         <li key={idx}>{act}</li>
                       ))}
@@ -566,9 +566,9 @@ export default function AiToolsPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-12 text-center text-slate-400 space-y-3">
-                <Building2 className="w-10 h-10 text-slate-300 dark:text-slate-700" />
-                <p className="text-sm font-medium">No account briefing loaded</p>
+              <div className="flex flex-col items-center justify-center p-12 text-center text-[#526D7D] space-y-3">
+                <Building2 className="w-10 h-10 text-[#75D2EE]" />
+                <p className="text-sm font-semibold text-[#17364A] dark:text-white">No account briefing loaded</p>
                 <p className="text-xs max-w-sm">
                   Select an organization from your directory to aggregate stakeholders, active deal stages, and strategic next steps.
                 </p>

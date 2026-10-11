@@ -178,14 +178,14 @@ export default function SeoKeywordsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#D7F1FA] text-[#167AA0] dark:bg-[#167AA0]/20 dark:text-[#75D2EE] border border-[#75D2EE]/40">
               SEO Engine
             </span>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-[#17364A] dark:text-white">
               Keyword Research & Tracking Workspace
             </h1>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-1">
             Track search intent, target URLs, search volume, keyword difficulty, CPC, and rankings. Strictly backed by configured providers or verified CSV imports.
           </p>
         </div>
@@ -194,7 +194,7 @@ export default function SeoKeywordsPage() {
           <button
             onClick={handleExportCsv}
             disabled={exporting}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white/80 dark:bg-slate-900/80 border border-[#75D2EE]/30 text-[#17364A] dark:text-slate-300 hover:bg-[#D7F1FA]/40 hover:border-[#75D2EE]/60 transition glass-button-press"
           >
             {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
             Export CSV
@@ -202,7 +202,7 @@ export default function SeoKeywordsPage() {
 
           <button
             onClick={() => setIsCsvOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white/80 dark:bg-slate-900/80 border border-[#75D2EE]/30 text-[#17364A] dark:text-slate-300 hover:bg-[#D7F1FA]/40 hover:border-[#75D2EE]/60 transition glass-button-press"
           >
             <UploadCloud className="w-3.5 h-3.5" />
             Import CSV
@@ -210,7 +210,7 @@ export default function SeoKeywordsPage() {
 
           <button
             onClick={() => setIsAddOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-[#167AA0] hover:bg-[#0E526E] text-white shadow-sm shadow-[#167AA0]/25 transition glass-button-press"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Keyword
@@ -219,16 +219,16 @@ export default function SeoKeywordsPage() {
       </div>
 
       {/* Website Scope & Filters */}
-      <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-3">
+      <div className="p-4 glass-panel rounded-2xl space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-[#526D7D] absolute left-3 top-2.5" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search tracked keywords..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white placeholder:text-[#526D7D]/60 focus:outline-hidden"
             />
           </div>
 
@@ -236,7 +236,7 @@ export default function SeoKeywordsPage() {
             <select
               value={selectedWebsiteId}
               onChange={(e) => setSelectedWebsiteId(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
             >
               <option value="all">All Workspace Websites</option>
               {websites.map((w) => (
@@ -251,7 +251,7 @@ export default function SeoKeywordsPage() {
             <select
               value={intentFilter}
               onChange={(e) => setIntentFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
             >
               <option value="all">All Search Intents</option>
               <option value="informational">Informational</option>
@@ -262,10 +262,10 @@ export default function SeoKeywordsPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800">
-          <span>Tracked Keywords: {filteredKeywords.length}</span>
-          <span className="flex items-center gap-1 text-slate-400">
-            <Info className="w-3 h-3 text-emerald-500" />
+        <div className="flex items-center justify-between text-[11px] text-[#526D7D] pt-1 border-t border-[#75D2EE]/20">
+          <span>Tracked Keywords: <strong className="text-[#17364A] dark:text-white">{filteredKeywords.length}</strong></span>
+          <span className="flex items-center gap-1 text-[#526D7D]">
+            <Info className="w-3 h-3 text-[#167AA0]" />
             Every metric displays its verified data provider and sync timestamp
           </span>
         </div>
@@ -273,9 +273,9 @@ export default function SeoKeywordsPage() {
 
       {/* Keywords Table */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-3" />
-          <p className="text-xs text-slate-500">Loading keywords...</p>
+        <div className="flex flex-col items-center justify-center p-12 glass-panel rounded-2xl">
+          <Loader2 className="w-8 h-8 text-[#167AA0] animate-spin mb-3" />
+          <p className="text-xs text-[#526D7D]">Loading keywords...</p>
         </div>
       ) : filteredKeywords.length === 0 ? (
         <EmptyState
@@ -286,10 +286,10 @@ export default function SeoKeywordsPage() {
           onAction={() => setIsAddOpen(true)}
         />
       ) : (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+        <div className="glass-panel-opaque rounded-2xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-300">
+              <thead className="bg-[#D7F1FA]/40 dark:bg-[#17364A]/40 border-b border-[#75D2EE]/30 font-semibold text-[#17364A] dark:text-slate-300">
                 <tr>
                   <th className="p-3.5">Keyword</th>
                   <th className="p-3.5">Intent</th>
@@ -302,55 +302,55 @@ export default function SeoKeywordsPage() {
                   <th className="p-3.5 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+              <tbody className="divide-y divide-[#75D2EE]/15 text-[#17364A] dark:text-slate-300">
                 {filteredKeywords.map((kw) => (
-                  <tr key={kw.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                    <td className="p-3.5 font-bold text-slate-900 dark:text-white">
+                  <tr key={kw.id} className="hover:bg-[#D7F1FA]/20 dark:hover:bg-[#17364A]/30 transition-colors">
+                    <td className="p-3.5 font-bold text-[#17364A] dark:text-white">
                       {kw.keyword}
                     </td>
 
                     <td className="p-3.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#D7F1FA] text-[#167AA0] dark:bg-[#167AA0]/20 dark:text-[#75D2EE] border border-[#75D2EE]/30">
                         {kw.intent}
                       </span>
                     </td>
 
-                    <td className="p-3.5 font-mono text-[11px] text-slate-500 max-w-xs truncate">
-                      {kw.target_url || <span className="text-slate-400 italic">—</span>}
+                    <td className="p-3.5 font-mono text-[11px] text-[#526D7D] max-w-xs truncate">
+                      {kw.target_url || <span className="text-[#526D7D]/60 italic">—</span>}
                     </td>
 
                     <td className="p-3.5 font-semibold">
-                      {kw.search_volume !== null ? kw.search_volume.toLocaleString() : <span className="text-slate-400">—</span>}
+                      {kw.search_volume !== null ? kw.search_volume.toLocaleString() : <span className="text-[#526D7D]/60">—</span>}
                     </td>
 
                     <td className="p-3.5">
                       {kw.difficulty !== null ? (
-                        <span className={`font-bold ${kw.difficulty > 70 ? 'text-red-500' : kw.difficulty > 40 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                        <span className={`font-bold ${kw.difficulty > 70 ? 'text-red-500' : kw.difficulty > 40 ? 'text-amber-500' : 'text-[#167AA0]'}`}>
                           {kw.difficulty}%
                         </span>
-                      ) : <span className="text-slate-400">—</span>}
+                      ) : <span className="text-[#526D7D]/60">—</span>}
                     </td>
 
                     <td className="p-3.5 font-mono">
-                      {kw.cpc !== null ? `$${kw.cpc.toFixed(2)}` : <span className="text-slate-400">—</span>}
+                      {kw.cpc !== null ? `$${kw.cpc.toFixed(2)}` : <span className="text-[#526D7D]/60">—</span>}
                     </td>
 
                     <td className="p-3.5">
                       {kw.current_rank ? (
-                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="font-mono font-bold text-[#167AA0] dark:text-[#75D2EE]">
                           #{kw.current_rank}
                         </span>
                       ) : (
-                        <span className="text-slate-400 italic">Unranked</span>
+                        <span className="text-[#526D7D]/60 italic">Unranked</span>
                       )}
                     </td>
 
                     <td className="p-3.5">
-                      <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block">
+                      <span className="text-[11px] font-semibold text-[#17364A] dark:text-slate-300 block">
                         {kw.provider}
                       </span>
                       {kw.last_updated_at && (
-                        <span className="text-[10px] text-slate-400 block font-mono">
+                        <span className="text-[10px] text-[#526D7D] block font-mono">
                           {new Date(kw.last_updated_at).toLocaleDateString()}
                         </span>
                       )}
@@ -359,7 +359,7 @@ export default function SeoKeywordsPage() {
                     <td className="p-3.5 text-right">
                       <button
                         onClick={() => handleDeleteKeyword(kw.id)}
-                        className="text-slate-400 hover:text-red-500"
+                        className="text-[#526D7D] hover:text-red-500 transition-colors cursor-pointer"
                         title="Delete"
                       >
                         <Trash2 className="w-3.5 h-3.5 inline" />
@@ -375,20 +375,20 @@ export default function SeoKeywordsPage() {
 
       {/* Add Keyword Modal */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white/95 dark:bg-[#122836]/95 backdrop-blur-xl border border-[#75D2EE]/40 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#75D2EE]/20">
+              <h3 className="text-sm font-bold text-[#17364A] dark:text-white">
                 Add Keyword to Tracker
               </h3>
-              <button onClick={() => setIsAddOpen(false)} className="text-slate-400 text-xs">
+              <button onClick={() => setIsAddOpen(false)} className="text-[#526D7D] hover:text-[#17364A] text-xs">
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleAddKeyword} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
                   Target Keyword *
                 </label>
                 <input
@@ -397,12 +397,12 @@ export default function SeoKeywordsPage() {
                   value={newKeyword}
                   onChange={(e) => setNewKeyword(e.target.value)}
                   placeholder="e.g. b2b marketing automation"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                  className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
                   Target URL
                 </label>
                 <input
@@ -410,19 +410,19 @@ export default function SeoKeywordsPage() {
                   value={newTargetUrl}
                   onChange={(e) => setNewTargetUrl(e.target.value)}
                   placeholder="https://example.com/automation"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                  className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
                     Search Intent
                   </label>
                   <select
                     value={newIntent}
                     onChange={(e) => setNewIntent(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
                   >
                     <option value="informational">Informational</option>
                     <option value="commercial">Commercial</option>
@@ -432,7 +432,7 @@ export default function SeoKeywordsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-[#17364A] dark:text-slate-300 mb-1">
                     Current Rank
                   </label>
                   <input
@@ -440,41 +440,41 @@ export default function SeoKeywordsPage() {
                     value={newRank}
                     onChange={(e) => setNewRank(e.target.value)}
                     placeholder="e.g. 4"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                    className="w-full px-3 py-2 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">Volume</label>
+                  <label className="block text-xs text-[#526D7D] mb-1">Volume</label>
                   <input
                     type="number"
                     value={newVolume}
                     onChange={(e) => setNewVolume(e.target.value)}
                     placeholder="2400"
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                    className="w-full px-2 py-1.5 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-lg text-[#17364A] dark:text-white focus:outline-hidden"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">KD (0-100)</label>
+                  <label className="block text-xs text-[#526D7D] mb-1">KD (0-100)</label>
                   <input
                     type="number"
                     value={newDifficulty}
                     onChange={(e) => setNewDifficulty(e.target.value)}
                     placeholder="45"
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                    className="w-full px-2 py-1.5 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-lg text-[#17364A] dark:text-white focus:outline-hidden"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">CPC ($)</label>
+                  <label className="block text-xs text-[#526D7D] mb-1">CPC ($)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={newCpc}
                     onChange={(e) => setNewCpc(e.target.value)}
                     placeholder="3.50"
-                    className="w-full px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                    className="w-full px-2 py-1.5 text-xs bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-lg text-[#17364A] dark:text-white focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -483,14 +483,14 @@ export default function SeoKeywordsPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="px-3 py-1.5 text-xs text-slate-500 rounded-lg hover:bg-slate-100"
+                  className="px-3 py-1.5 text-xs text-[#526D7D] rounded-xl hover:bg-[#D7F1FA]/40 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingKeyword}
-                  className="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl"
+                  className="px-4 py-2 bg-[#167AA0] hover:bg-[#0E526E] text-white text-xs font-semibold rounded-xl shadow-sm transition glass-button-press"
                 >
                   {savingKeyword ? 'Saving...' : 'Add Keyword'}
                 </button>
@@ -502,19 +502,19 @@ export default function SeoKeywordsPage() {
 
       {/* CSV Import Modal */}
       {isCsvOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white/95 dark:bg-[#122836]/95 backdrop-blur-xl border border-[#75D2EE]/40 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#75D2EE]/20">
+              <h3 className="text-sm font-bold text-[#17364A] dark:text-white">
                 Import Keywords via CSV
               </h3>
-              <button onClick={() => setIsCsvOpen(false)} className="text-slate-400 text-xs">
+              <button onClick={() => setIsCsvOpen(false)} className="text-[#526D7D] hover:text-[#17364A] text-xs">
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleImportCsv} className="space-y-3">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#526D7D]">
                 Paste CSV text with headers: <code>keyword,intent,volume,difficulty,cpc,rank</code>
               </p>
 
@@ -524,21 +524,21 @@ export default function SeoKeywordsPage() {
                 value={csvContent}
                 onChange={(e) => setCsvContent(e.target.value)}
                 placeholder={`keyword,intent,volume,difficulty,cpc,rank\nenterprise crm,commercial,4500,62,8.50,12\ndigital marketing automation,informational,8100,55,4.20,5`}
-                className="w-full font-mono text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                className="w-full font-mono text-xs px-3 py-2 bg-white/70 dark:bg-[#17364A]/50 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-xl text-[#17364A] dark:text-white focus:outline-hidden"
               />
 
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsCsvOpen(false)}
-                  className="px-3 py-1.5 text-xs text-slate-500 rounded-lg"
+                  className="px-3 py-1.5 text-xs text-[#526D7D] rounded-xl hover:bg-[#D7F1FA]/40 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={importingCsv}
-                  className="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl"
+                  className="px-4 py-2 bg-[#167AA0] hover:bg-[#0E526E] text-white text-xs font-semibold rounded-xl shadow-sm transition glass-button-press"
                 >
                   {importingCsv ? 'Importing...' : 'Run Import'}
                 </button>

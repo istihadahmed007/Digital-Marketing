@@ -860,58 +860,64 @@ export default function ShortsStudioPage() {
         </div>
       )}
 
-      {/* 4-Step Guided Workflow Bar */}
+      {/* 4-Step Guided Workflow Progression Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
         <div
           onClick={() => setIsUploadModalOpen(true)}
-          className="p-2.5 rounded-xl border border-purple-200 dark:border-purple-800/50 bg-purple-50/50 dark:bg-purple-950/20 flex items-center gap-2 cursor-pointer hover:bg-purple-50 transition"
+          className="p-2.5 rounded-xl border border-[#75D2EE]/50 bg-[#D7F1FA]/40 dark:bg-sky-950/20 flex items-center gap-2 cursor-pointer hover:bg-[#D7F1FA]/70 transition-all duration-140 glass-button-press"
         >
-          <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-[10px]">1</span>
-          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">Upload / URL Source</span>
+          <span className="w-5 h-5 rounded-full bg-[#167AA0] text-white flex items-center justify-center font-bold text-[10px]">1</span>
+          <span className="font-semibold text-[#17364A] dark:text-slate-200 truncate">Upload / URL Source</span>
         </div>
         <div
           onClick={() => setActiveTab('editor')}
-          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
+          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all duration-140 ${
             activeTab === 'editor'
-              ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30 font-semibold text-purple-700 dark:text-purple-300'
-              : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+              ? 'border-[#75D2EE] bg-[#D7F1FA]/50 dark:bg-sky-950/40 font-bold text-[#167AA0] dark:text-sky-300 shadow-xs'
+              : 'border-[#75D2EE]/30 bg-white/50 dark:border-slate-800 text-[#526D7D] dark:text-slate-400 hover:bg-[#D7F1FA]/20'
           }`}
         >
-          <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px]">2</span>
-          <span className="truncate">Choose AI Moments</span>
+          <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
+            activeTab === 'editor' ? 'bg-[#167AA0] text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+          }`}>2</span>
+          <span className="truncate">Choose Moments</span>
         </div>
         <div
           onClick={() => setActiveTab('editor')}
-          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
+          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all duration-140 ${
             activeTab === 'editor'
-              ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30 font-semibold text-purple-700 dark:text-purple-300'
-              : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+              ? 'border-[#75D2EE] bg-[#D7F1FA]/50 dark:bg-sky-950/40 font-bold text-[#167AA0] dark:text-sky-300 shadow-xs'
+              : 'border-[#75D2EE]/30 bg-white/50 dark:border-slate-800 text-[#526D7D] dark:text-slate-400 hover:bg-[#D7F1FA]/20'
           }`}
         >
-          <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px]">3</span>
+          <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
+            activeTab === 'editor' ? 'bg-[#167AA0] text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+          }`}>3</span>
           <span className="truncate">Preview &amp; Trim</span>
         </div>
         <div
           onClick={() => setActiveTab('library')}
-          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
+          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all duration-140 ${
             activeTab === 'library'
-              ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30 font-semibold text-purple-700 dark:text-purple-300'
-              : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+              ? 'border-[#75D2EE] bg-[#D7F1FA]/50 dark:bg-sky-950/40 font-bold text-[#167AA0] dark:text-sky-300 shadow-xs'
+              : 'border-[#75D2EE]/30 bg-white/50 dark:border-slate-800 text-[#526D7D] dark:text-slate-400 hover:bg-[#D7F1FA]/20'
           }`}
         >
-          <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px]">4</span>
+          <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
+            activeTab === 'library' ? 'bg-[#167AA0] text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+          }`}>4</span>
           <span className="truncate">Select &amp; Bulk Publish</span>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold">
+      <div className="flex items-center gap-1 border-b border-[#75D2EE]/35 dark:border-slate-800 text-xs font-semibold">
         <button
           onClick={() => setActiveTab('editor')}
-          className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition-all duration-140 cursor-pointer ${
             activeTab === 'editor'
-              ? 'border-purple-600 text-purple-600 dark:text-purple-400'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              ? 'border-[#167AA0] text-[#167AA0] dark:text-sky-300 font-bold'
+              : 'border-transparent text-[#526D7D] hover:text-[#17364A] dark:hover:text-slate-200'
           }`}
         >
           <Scissors className="w-3.5 h-3.5" />
@@ -920,10 +926,10 @@ export default function ShortsStudioPage() {
 
         <button
           onClick={() => setActiveTab('library')}
-          className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition-all duration-140 cursor-pointer ${
             activeTab === 'library'
-              ? 'border-purple-600 text-purple-600 dark:text-purple-400'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              ? 'border-[#167AA0] text-[#167AA0] dark:text-sky-300 font-bold'
+              : 'border-transparent text-[#526D7D] hover:text-[#17364A] dark:hover:text-slate-200'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -932,10 +938,10 @@ export default function ShortsStudioPage() {
 
         <button
           onClick={() => setActiveTab('calendar')}
-          className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition-all duration-140 cursor-pointer ${
             activeTab === 'calendar'
-              ? 'border-purple-600 text-purple-600 dark:text-purple-400'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              ? 'border-[#167AA0] text-[#167AA0] dark:text-sky-300 font-bold'
+              : 'border-transparent text-[#526D7D] hover:text-[#17364A] dark:hover:text-slate-200'
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
@@ -1364,8 +1370,10 @@ export default function ShortsStudioPage() {
                 return (
                   <div
                     key={c.id}
-                    className={`p-4 bg-white dark:bg-slate-900 border rounded-2xl shadow-xs space-y-3 flex flex-col justify-between transition ${
-                      isSelected ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800'
+                    className={`p-4 glass-panel preview-tile-3d border rounded-2xl shadow-xs space-y-3 flex flex-col justify-between transition-all duration-200 ${
+                      isSelected
+                        ? 'border-[#167AA0] ring-2 ring-[#75D2EE]/40 bg-white dark:bg-slate-900'
+                        : 'border-[#75D2EE]/40 bg-white/80 hover:bg-white dark:bg-slate-900/80'
                     }`}
                   >
                     <div className="space-y-2">
@@ -1381,7 +1389,7 @@ export default function ShortsStudioPage() {
                           title="Select clip"
                         >
                           {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-purple-400" />
+                            <CheckSquare className="w-4 h-4 text-[#75D2EE]" />
                           ) : (
                             <Square className="w-4 h-4 text-white" />
                           )}
@@ -1389,20 +1397,20 @@ export default function ShortsStudioPage() {
                         <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/80 text-white font-mono text-[10px] font-bold">
                           {c.duration_seconds.toFixed(1)}s
                         </span>
-                        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-purple-600/90 text-white text-[9px] font-bold uppercase">
+                        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#167AA0] text-white text-[9px] font-bold uppercase">
                           {c.crop_mode.replace('_', ' ')}
                         </span>
                       </div>
 
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
+                      <h4 className="text-xs font-bold text-[#17364A] dark:text-white line-clamp-1">
                         {c.title}
                       </h4>
-                      <p className="text-[11px] text-slate-500 line-clamp-2">
+                      <p className="text-[11px] text-[#526D7D] dark:text-slate-400 line-clamp-2">
                         {c.caption}
                       </p>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div className="pt-3 border-t border-[#75D2EE]/25 dark:border-slate-800 flex items-center justify-between">
                       <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                         ✓ 1080×1920 Verified
                       </span>
@@ -1414,7 +1422,7 @@ export default function ShortsStudioPage() {
                             setPublishingCaption(c.caption || '');
                             setIsPublishModalOpen(true);
                           }}
-                          className="px-2.5 py-1 text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-semibold bg-[#167AA0] hover:bg-[#126383] text-white rounded-lg transition-all duration-140 glass-button-press cursor-pointer"
                         >
                           Publish
                         </button>

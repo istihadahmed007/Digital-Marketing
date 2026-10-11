@@ -297,39 +297,39 @@ export function FlowCanvas({
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      className="relative w-full h-full overflow-hidden bg-slate-950 select-none cursor-grab active:cursor-grabbing"
+      className="relative w-full h-full overflow-hidden bg-[#EDF9FD] dark:bg-[#0c1d28] select-none cursor-grab active:cursor-grabbing"
       style={{
-        backgroundImage: `radial-gradient(circle, #334155 1px, transparent 1px)`,
+        backgroundImage: `radial-gradient(circle, rgba(117, 210, 238, 0.45) 1.5px, transparent 1.5px)`,
         backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
         backgroundPosition: `${pan.x}px ${pan.y}px`,
       }}
     >
       {/* Zoom / Viewport Controls Floating Toolbar */}
-      <div className="absolute bottom-6 left-6 z-20 flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-xl text-slate-300">
+      <div className="absolute bottom-6 left-6 z-20 flex items-center gap-1.5 p-1.5 rounded-2xl glass-panel shadow-xl text-[#17364A] dark:text-slate-200">
         <button
           type="button"
           onClick={() => setZoom((z) => Math.min(z + 0.15, 2))}
-          className="p-1.5 rounded-xl hover:bg-slate-800 hover:text-white transition"
+          className="p-1.5 rounded-xl hover:bg-[#D7F1FA]/50 hover:text-[#167AA0] transition cursor-pointer"
           title="Zoom In"
         >
           <ZoomIn className="w-4 h-4" />
         </button>
-        <span className="text-xs font-mono font-semibold px-1 text-slate-400">
+        <span className="text-xs font-mono font-semibold px-1 text-[#526D7D] dark:text-slate-400">
           {Math.round(zoom * 100)}%
         </span>
         <button
           type="button"
           onClick={() => setZoom((z) => Math.max(z - 0.15, 0.4))}
-          className="p-1.5 rounded-xl hover:bg-slate-800 hover:text-white transition"
+          className="p-1.5 rounded-xl hover:bg-[#D7F1FA]/50 hover:text-[#167AA0] transition cursor-pointer"
           title="Zoom Out"
         >
           <ZoomOut className="w-4 h-4" />
         </button>
-        <div className="w-px h-4 bg-slate-800" />
+        <div className="w-px h-4 bg-[#75D2EE]/30" />
         <button
           type="button"
           onClick={handleFitScreen}
-          className="p-1.5 rounded-xl hover:bg-slate-800 hover:text-white transition"
+          className="p-1.5 rounded-xl hover:bg-[#D7F1FA]/50 hover:text-[#167AA0] transition cursor-pointer"
           title="Fit to Screen"
         >
           <Maximize2 className="w-4 h-4" />
@@ -340,7 +340,7 @@ export function FlowCanvas({
             setZoom(1);
             setPan({ x: 50, y: 50 });
           }}
-          className="p-1.5 rounded-xl hover:bg-slate-800 hover:text-white transition"
+          className="p-1.5 rounded-xl hover:bg-[#D7F1FA]/50 hover:text-[#167AA0] transition cursor-pointer"
           title="Reset Zoom & Pan"
         >
           <RotateCcw className="w-4 h-4" />
@@ -352,7 +352,7 @@ export function FlowCanvas({
         <button
           type="button"
           onClick={onOpenLibrary}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition transform hover:scale-105 active:scale-95"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#167AA0] hover:bg-[#0E526E] text-white font-bold text-xs shadow-lg shadow-[#167AA0]/30 transition transform hover:scale-105 active:scale-95 glass-button-press cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Add Step</span>
@@ -386,8 +386,8 @@ export function FlowCanvas({
               : isFalseBranch
               ? '#ef4444'
               : isSelected
-              ? '#6366f1'
-              : '#64748b';
+              ? '#167AA0'
+              : '#526D7D';
 
             return (
               <g
@@ -413,7 +413,7 @@ export function FlowCanvas({
                   stroke={strokeColor}
                   strokeWidth={isSelected ? 3 : 2}
                   strokeDasharray={isFalseBranch ? '4 4' : undefined}
-                  className="transition-all duration-150 group-hover:stroke-indigo-400 group-hover:stroke-[3px]"
+                  className="transition-all duration-150 group-hover:stroke-[#167AA0] group-hover:stroke-[3px]"
                 />
               </g>
             );
@@ -428,7 +428,7 @@ export function FlowCanvas({
                 getSourcePos(connectingFrom.nodeId, connectingFrom.handleId).y + 50
               }, ${mousePos.x} ${mousePos.y - 50}, ${mousePos.x} ${mousePos.y}`}
               fill="none"
-              stroke="#6366f1"
+              stroke="#167AA0"
               strokeWidth={2.5}
               strokeDasharray="6 4"
               className="animate-pulse"

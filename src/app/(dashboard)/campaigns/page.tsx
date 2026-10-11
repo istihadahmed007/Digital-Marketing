@@ -117,20 +117,20 @@ export default function CampaignsPage() {
               Multi-Channel
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-            Design targeted email broadcasts or view your connected marketing touchpoints in the 4D Journey.
+          <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+            Design targeted email broadcasts or view your connected marketing touchpoints in the Campaign Journey.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {/* View Switcher Tabs */}
-          <div className="flex items-center p-1 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-200/80 dark:border-sky-800">
+          <div className="flex items-center p-1 rounded-xl bg-white/70 dark:bg-slate-900 border border-[#75D2EE]/40 dark:border-sky-800">
             <Link
               href="/campaigns/journey"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-[#526D7D] dark:text-slate-400 hover:text-[#167AA0] dark:hover:text-sky-300 transition-colors"
             >
               <Compass className="w-3.5 h-3.5" />
-              <span>4D Journey View</span>
+              <span>Campaign Journey</span>
             </Link>
             <Link
               href="/campaigns"
@@ -248,7 +248,7 @@ export default function CampaignsPage() {
             setEditingCampaign(null);
             setIsModalOpen(true);
           }}
-          secondaryActionLabel="Explore 4D Journey"
+          secondaryActionLabel="Explore Campaign Journey"
           secondaryActionHref="/campaigns/journey"
         />
       ) : (

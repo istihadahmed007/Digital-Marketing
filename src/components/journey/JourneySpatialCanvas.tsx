@@ -91,8 +91,8 @@ export function JourneySpatialCanvas({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Compass className="w-4 h-4 text-sky-600" />
-            <span>Interactive 4D Journey Canvas</span>
+            <Compass className="w-4 h-4 text-[#167AA0]" />
+            <span>Interactive Journey Canvas</span>
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Hover over planes to explore depth and click any node to inspect real outcomes.

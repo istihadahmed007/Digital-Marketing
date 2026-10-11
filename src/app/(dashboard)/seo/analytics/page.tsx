@@ -283,17 +283,17 @@ export default function SeoAnalyticsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Top Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#D7F1FA] dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#167AA0]/10 text-[#167AA0] dark:text-[#75D2EE] border border-[#167AA0]/20">
               SEO Analytics & Reporting
             </span>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-[#17364A] dark:text-white">
               Google Search Console & GA4
             </h1>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#526D7D] dark:text-slate-400 mt-1">
             Track organic clicks, search impressions, average position, and visitor traffic directly from Google.
           </p>
         </div>
@@ -301,12 +301,12 @@ export default function SeoAnalyticsPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Website Filter */}
           {websites.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 shadow-xs">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-1.5 bg-white/90 dark:bg-slate-900 border border-[#75D2EE]/30 rounded-xl px-2.5 py-1.5 shadow-xs">
+              <Globe className="w-3.5 h-3.5 text-[#167AA0]" />
               <select
                 value={selectedWebsiteId}
                 onChange={(e) => setSelectedWebsiteId(e.target.value)}
-                className="text-xs font-medium bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
+                className="text-xs font-medium bg-transparent text-[#17364A] dark:text-slate-300 focus:outline-none cursor-pointer"
               >
                 <option value="all">All Domains</option>
                 {websites.map((w) => (
@@ -322,7 +322,7 @@ export default function SeoAnalyticsPage() {
           <button
             onClick={() => fetchData(workspaceId, selectedWebsiteId)}
             disabled={loading}
-            className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-xs"
+            className="p-2 text-[#526D7D] hover:text-[#17364A] dark:hover:text-white bg-white/90 dark:bg-slate-900 border border-[#75D2EE]/30 rounded-xl hover:bg-[#D7F1FA]/50 transition shadow-xs cursor-pointer"
             title="Refresh Data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -331,10 +331,10 @@ export default function SeoAnalyticsPage() {
           {/* Configure Tab Shortcut */}
           <button
             onClick={() => setActiveTab('connect')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition shadow-xs ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition shadow-xs cursor-pointer ${
               activeTab === 'connect'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                ? 'bg-[#167AA0] text-white border-[#167AA0]'
+                : 'bg-white/90 dark:bg-slate-900 border-[#75D2EE]/30 text-[#17364A] dark:text-slate-300 hover:bg-[#D7F1FA]/50'
             }`}
           >
             <Plug className="w-3.5 h-3.5" />
@@ -344,13 +344,13 @@ export default function SeoAnalyticsPage() {
       </div>
 
       {/* Primary Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-[#D7F1FA] dark:border-slate-800 pb-2">
         <button
           onClick={() => setActiveTab('gsc')}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition ${
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition cursor-pointer ${
             activeTab === 'gsc'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-[#167AA0] text-white shadow-xs'
+              : 'text-[#526D7D] hover:bg-[#D7F1FA]/50 dark:hover:bg-slate-800'
           }`}
         >
           <Search className="w-3.5 h-3.5" />
@@ -362,10 +362,10 @@ export default function SeoAnalyticsPage() {
 
         <button
           onClick={() => setActiveTab('ga4')}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition ${
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition cursor-pointer ${
             activeTab === 'ga4'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-[#167AA0] text-white shadow-xs'
+              : 'text-[#526D7D] hover:bg-[#D7F1FA]/50 dark:hover:bg-slate-800'
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5" />
@@ -377,10 +377,10 @@ export default function SeoAnalyticsPage() {
 
         <button
           onClick={() => setActiveTab('connect')}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition ${
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition cursor-pointer ${
             activeTab === 'connect'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-[#167AA0] text-white shadow-xs'
+              : 'text-[#526D7D] hover:bg-[#D7F1FA]/50 dark:hover:bg-slate-800'
           }`}
         >
           <Key className="w-3.5 h-3.5" />
@@ -472,12 +472,12 @@ export default function SeoAnalyticsPage() {
 
               {/* KPI Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-slate-500 text-xs">
+                <div className="p-4 glass-panel border border-[#75D2EE]/30 rounded-2xl shadow-xs preview-tile-3d">
+                  <div className="flex items-center justify-between text-[#526D7D] text-xs">
                     <span>Total Clicks</span>
-                    <MousePointerClick className="w-4 h-4 text-blue-500" />
+                    <MousePointerClick className="w-4 h-4 text-[#167AA0]" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                  <div className="text-2xl font-bold text-[#17364A] dark:text-white mt-2">
                     {gscStats.totalClicks.toLocaleString()}
                   </div>
                   <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 inline-block">
@@ -485,38 +485,38 @@ export default function SeoAnalyticsPage() {
                   </span>
                 </div>
 
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-slate-500 text-xs">
+                <div className="p-4 glass-panel border border-[#75D2EE]/30 rounded-2xl shadow-xs preview-tile-3d">
+                  <div className="flex items-center justify-between text-[#526D7D] text-xs">
                     <span>Total Impressions</span>
-                    <Eye className="w-4 h-4 text-purple-500" />
+                    <Eye className="w-4 h-4 text-[#75D2EE]" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                  <div className="text-2xl font-bold text-[#17364A] dark:text-white mt-2">
                     {gscStats.totalImpressions.toLocaleString()}
                   </div>
-                  <span className="text-[11px] text-purple-600 dark:text-purple-400 font-medium mt-1 inline-block">
+                  <span className="text-[11px] text-[#167AA0] dark:text-[#75D2EE] font-medium mt-1 inline-block">
                     SERP appearances
                   </span>
                 </div>
 
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-slate-500 text-xs">
+                <div className="p-4 glass-panel border border-[#75D2EE]/30 rounded-2xl shadow-xs preview-tile-3d">
+                  <div className="flex items-center justify-between text-[#526D7D] text-xs">
                     <span>Average CTR</span>
                     <TrendingUp className="w-4 h-4 text-emerald-500" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                  <div className="text-2xl font-bold text-[#17364A] dark:text-white mt-2">
                     {gscStats.avgCtr}%
                   </div>
-                  <span className="text-[11px] text-slate-400 font-medium mt-1 inline-block">
+                  <span className="text-[11px] text-[#526D7D] font-medium mt-1 inline-block">
                     Click-Through Rate
                   </span>
                 </div>
 
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-slate-500 text-xs">
+                <div className="p-4 glass-panel border border-[#75D2EE]/30 rounded-2xl shadow-xs preview-tile-3d">
+                  <div className="flex items-center justify-between text-[#526D7D] text-xs">
                     <span>Average Position</span>
                     <Layers className="w-4 h-4 text-amber-500" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                  <div className="text-2xl font-bold text-[#17364A] dark:text-white mt-2">
                     {gscStats.avgPosition}
                   </div>
                   <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-1 inline-block">
@@ -528,30 +528,30 @@ export default function SeoAnalyticsPage() {
               {/* Data Table Toolbar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="relative flex-1 max-w-sm">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className="w-4 h-4 text-[#526D7D] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={querySearch}
                     onChange={(e) => setQuerySearch(e.target.value)}
                     placeholder="Search queries or landing pages..."
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-white/90 dark:bg-slate-900 border border-[#75D2EE]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#167AA0]"
                   />
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-[#526D7D]">
                   Showing <strong>{filteredGscData.length}</strong> of {gscData.length} queries
                 </div>
               </div>
 
               {/* GSC Query Table */}
               {filteredGscData.length === 0 ? (
-                <div className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-500">
+                <div className="p-8 text-center glass-panel border border-[#75D2EE]/30 rounded-2xl text-xs text-[#526D7D]">
                   {querySearch ? 'No search queries matched your filter.' : 'No search query data found for this property.'}
                 </div>
               ) : (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+                <div className="glass-panel-opaque border border-[#75D2EE]/30 rounded-2xl overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-300">
+                      <thead className="bg-[#EDF9FD]/80 dark:bg-slate-800/60 border-b border-[#D7F1FA] dark:border-slate-800 font-semibold text-[#17364A] dark:text-slate-300">
                         <tr>
                           <th className="p-3.5">Top Search Queries</th>
                           <th className="p-3.5">Landing Page</th>
@@ -561,16 +561,16 @@ export default function SeoAnalyticsPage() {
                           <th className="p-3.5 text-right">Avg. Position</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                      <tbody className="divide-y divide-[#D7F1FA]/50 dark:divide-slate-800 text-[#17364A] dark:text-slate-300">
                         {filteredGscData.map((row) => (
-                          <tr key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
-                            <td className="p-3.5 font-bold text-slate-900 dark:text-white">
+                          <tr key={row.id} className="hover:bg-[#F8FDFF]/80 dark:hover:bg-slate-800/40 transition">
+                            <td className="p-3.5 font-bold text-[#17364A] dark:text-white">
                               {row.query}
                             </td>
-                            <td className="p-3.5 text-slate-500 max-w-xs truncate" title={row.page}>
+                            <td className="p-3.5 text-[#526D7D] max-w-xs truncate" title={row.page}>
                               {row.page}
                             </td>
-                            <td className="p-3.5 text-right font-semibold text-blue-600 dark:text-blue-400">
+                            <td className="p-3.5 text-right font-semibold text-[#167AA0] dark:text-[#75D2EE]">
                               {row.clicks.toLocaleString()}
                             </td>
                             <td className="p-3.5 text-right">
@@ -584,8 +584,8 @@ export default function SeoAnalyticsPage() {
                                 row.average_position <= 3
                                   ? 'bg-emerald-500/10 text-emerald-600 font-bold'
                                   : row.average_position <= 10
-                                  ? 'bg-blue-500/10 text-blue-600'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                  ? 'bg-[#167AA0]/10 text-[#167AA0]'
+                                  : 'bg-[#D7F1FA]/40 text-[#526D7D] dark:bg-slate-800 dark:text-slate-400'
                               }`}>
                                 {row.average_position.toFixed(1)}
                               </span>
@@ -682,25 +682,25 @@ export default function SeoAnalyticsPage() {
 
               {/* GA4 KPI Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-slate-500 text-xs">
+                <div className="p-4 glass-panel border border-[#75D2EE]/30 rounded-2xl shadow-xs preview-tile-3d">
+                  <div className="flex items-center justify-between text-[#526D7D] text-xs">
                     <span>Total Sessions</span>
-                    <Globe className="w-4 h-4 text-amber-500" />
+                    <Globe className="w-4 h-4 text-[#167AA0]" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                  <div className="text-2xl font-bold text-[#17364A] dark:text-white mt-2">
                     {ga4Stats.totalSessions.toLocaleString()}
                   </div>
-                  <span className="text-[11px] text-slate-400 font-medium mt-1 inline-block">
+                  <span className="text-[11px] text-[#526D7D] font-medium mt-1 inline-block">
                     All acquisition channels
                   </span>
                 </div>
 
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-slate-500 text-xs">
+                <div className="p-4 glass-panel border border-[#75D2EE]/30 rounded-2xl shadow-xs preview-tile-3d">
+                  <div className="flex items-center justify-between text-[#526D7D] text-xs">
                     <span>Organic Sessions</span>
                     <Search className="w-4 h-4 text-emerald-500" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                  <div className="text-2xl font-bold text-[#17364A] dark:text-white mt-2">
                     {ga4Stats.totalOrganic.toLocaleString()}
                   </div>
                   <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 inline-block">
@@ -708,28 +708,28 @@ export default function SeoAnalyticsPage() {
                   </span>
                 </div>
 
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-slate-500 text-xs">
+                <div className="p-4 glass-panel border border-[#75D2EE]/30 rounded-2xl shadow-xs preview-tile-3d">
+                  <div className="flex items-center justify-between text-[#526D7D] text-xs">
                     <span>Conversions</span>
-                    <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                    <CheckCircle2 className="w-4 h-4 text-[#75D2EE]" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                  <div className="text-2xl font-bold text-[#17364A] dark:text-white mt-2">
                     {ga4Stats.totalConversions.toLocaleString()}
                   </div>
-                  <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium mt-1 inline-block">
+                  <span className="text-[11px] text-[#167AA0] dark:text-[#75D2EE] font-medium mt-1 inline-block">
                     Goal events completed
                   </span>
                 </div>
 
-                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-slate-500 text-xs">
+                <div className="p-4 glass-panel border border-[#75D2EE]/30 rounded-2xl shadow-xs preview-tile-3d">
+                  <div className="flex items-center justify-between text-[#526D7D] text-xs">
                     <span>Avg. Bounce Rate</span>
                     <TrendingUp className="w-4 h-4 text-purple-500" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                  <div className="text-2xl font-bold text-[#17364A] dark:text-white mt-2">
                     {ga4Stats.avgBounce}%
                   </div>
-                  <span className="text-[11px] text-slate-400 font-medium mt-1 inline-block">
+                  <span className="text-[11px] text-[#526D7D] font-medium mt-1 inline-block">
                     Session engagement rate
                   </span>
                 </div>
@@ -737,14 +737,14 @@ export default function SeoAnalyticsPage() {
 
               {/* GA4 Table */}
               {ga4Data.length === 0 ? (
-                <div className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-500">
+                <div className="p-8 text-center glass-panel border border-[#75D2EE]/30 rounded-2xl text-xs text-[#526D7D]">
                   No GA4 traffic rows recorded yet.
                 </div>
               ) : (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+                <div className="glass-panel-opaque border border-[#75D2EE]/30 rounded-2xl overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-300">
+                      <thead className="bg-[#EDF9FD]/80 dark:bg-slate-800/60 border-b border-[#D7F1FA] dark:border-slate-800 font-semibold text-[#17364A] dark:text-slate-300">
                         <tr>
                           <th className="p-3.5">Date</th>
                           <th className="p-3.5 text-right">Total Sessions</th>
@@ -753,10 +753,10 @@ export default function SeoAnalyticsPage() {
                           <th className="p-3.5 text-right">Bounce Rate</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                      <tbody className="divide-y divide-[#D7F1FA]/50 dark:divide-slate-800 text-[#17364A] dark:text-slate-300">
                         {ga4Data.map((row) => (
-                          <tr key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
-                            <td className="p-3.5 font-mono text-slate-900 dark:text-white font-medium">
+                          <tr key={row.id} className="hover:bg-[#F8FDFF]/80 dark:hover:bg-slate-800/40 transition">
+                            <td className="p-3.5 font-mono text-[#17364A] dark:text-white font-medium">
                               {row.date}
                             </td>
                             <td className="p-3.5 text-right font-medium">
@@ -765,7 +765,7 @@ export default function SeoAnalyticsPage() {
                             <td className="p-3.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">
                               {row.organic_sessions.toLocaleString()}
                             </td>
-                            <td className="p-3.5 text-right font-medium text-blue-600 dark:text-blue-400">
+                            <td className="p-3.5 text-right font-medium text-[#167AA0] dark:text-[#75D2EE]">
                               {row.conversions.toLocaleString()}
                             </td>
                             <td className="p-3.5 text-right font-mono">

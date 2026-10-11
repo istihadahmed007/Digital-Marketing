@@ -191,15 +191,15 @@ export default function AutomationsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center gap-1">
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#D7F1FA] text-[#167AA0] dark:bg-[#167AA0]/30 dark:text-[#75D2EE] border border-[#75D2EE]/40 flex items-center gap-1">
               <Zap className="w-3 h-3" />
               NexusFlow Engine
             </span>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-[#17364A] dark:text-white">
               Automation Workflows
             </h1>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-[#526D7D] dark:text-slate-400 mt-1">
             Build event-driven node workflows with real visual routing, conditional branching, and durable execution.
           </p>
         </div>
@@ -207,7 +207,7 @@ export default function AutomationsPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => fetchData(workspaceId)}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-2 text-[#526D7D] hover:text-[#17364A] dark:hover:text-slate-200 rounded-xl hover:bg-[#D7F1FA]/30 transition glass-button-press cursor-pointer"
             title="Refresh"
           >
             <RefreshCw className="w-4 h-4" />
@@ -216,7 +216,7 @@ export default function AutomationsPage() {
           <button
             onClick={handleCreateWorkflow}
             disabled={creating}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm transition"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#167AA0] hover:bg-[#0E526E] disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm shadow-[#167AA0]/25 transition glass-button-press cursor-pointer"
           >
             {creating ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -237,45 +237,45 @@ export default function AutomationsPage() {
 
       {/* Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+        <div className="p-5 glass-panel preview-tile-3d rounded-2xl shadow-xs">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#526D7D]">
             Active Workflows
           </span>
-          <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-2">
-            {activeWorkflowsCount} <span className="text-sm font-normal text-slate-400">/ {workflows.length}</span>
+          <p className="text-2xl font-black text-[#167AA0] dark:text-[#75D2EE] mt-2">
+            {activeWorkflowsCount} <span className="text-sm font-normal text-[#526D7D]">/ {workflows.length}</span>
           </p>
-          <span className="text-xs text-slate-500">Live event listeners running</span>
+          <span className="text-xs text-[#526D7D]">Live event listeners running</span>
         </div>
 
-        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+        <div className="p-5 glass-panel preview-tile-3d rounded-2xl shadow-xs">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#526D7D]">
             Total Executions
           </span>
-          <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">
+          <p className="text-2xl font-black text-[#17364A] dark:text-white mt-2">
             {totalRuns}
           </p>
-          <span className="text-xs text-slate-500">Durable execution runs logged</span>
+          <span className="text-xs text-[#526D7D]">Durable execution runs logged</span>
         </div>
 
-        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+        <div className="p-5 glass-panel preview-tile-3d rounded-2xl shadow-xs">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#526D7D]">
             Reliability Rate
           </span>
-          <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-2">
+          <p className="text-2xl font-black text-[#167AA0] dark:text-[#75D2EE] mt-2">
             {successRate}%
           </p>
-          <span className="text-xs text-slate-500">{succeededRuns} successful runs</span>
+          <span className="text-xs text-[#526D7D]">{succeededRuns} successful runs</span>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-[#75D2EE]/20 pb-2">
         <button
           onClick={() => setActiveTab('workflows')}
-          className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition ${
+          className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer ${
             activeTab === 'workflows'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-[#167AA0] text-white shadow-sm shadow-[#167AA0]/25'
+              : 'text-[#526D7D] hover:text-[#17364A] hover:bg-[#D7F1FA]/30'
           }`}
         >
           <GitFork className="w-3.5 h-3.5" />
@@ -283,10 +283,10 @@ export default function AutomationsPage() {
         </button>
         <button
           onClick={() => setActiveTab('executions')}
-          className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition ${
+          className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer ${
             activeTab === 'executions'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-[#167AA0] text-white shadow-sm shadow-[#167AA0]/25'
+              : 'text-[#526D7D] hover:text-[#17364A] hover:bg-[#D7F1FA]/30'
           }`}
         >
           <History className="w-3.5 h-3.5" />
@@ -298,16 +298,16 @@ export default function AutomationsPage() {
       {activeTab === 'workflows' && (
         <>
           {loading ? (
-            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-3" />
-              <p className="text-sm text-slate-500">Loading workflows...</p>
+            <div className="flex flex-col items-center justify-center p-12 glass-panel rounded-2xl">
+              <Loader2 className="w-8 h-8 text-[#167AA0] animate-spin mb-3" />
+              <p className="text-sm text-[#526D7D]">Loading workflows...</p>
             </div>
           ) : workflows.length === 0 ? (
             <EmptyState
               icon={GitFork}
               title="No automation workflows configured"
               description="Build your first node-based workflow pipeline to trigger tasks, send emails, and dispatch webhooks automatically."
-              actionText="Build Visual Workflow"
+              actionLabel="Build Visual Workflow"
               onAction={handleCreateWorkflow}
             />
           ) : (
@@ -320,7 +320,7 @@ export default function AutomationsPage() {
                 return (
                   <div
                     key={wf.id}
-                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition"
+                    className="glass-panel preview-tile-3d rounded-2xl p-5 shadow-xs flex flex-col justify-between"
                   >
                     <div>
                       {/* Top status bar */}
@@ -328,19 +328,19 @@ export default function AutomationsPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleToggleActive(wf)}
-                            className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border transition flex items-center gap-1.5 ${
+                            className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border transition flex items-center gap-1.5 cursor-pointer ${
                               isLive
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+                                ? 'bg-[#D7F1FA] text-[#167AA0] border-[#75D2EE]/40 dark:bg-[#167AA0]/30 dark:text-[#75D2EE]'
                                 : wf.status === 'draft'
                                 ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
-                                : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                                : 'bg-white/60 text-[#526D7D] border-[#75D2EE]/30 dark:bg-slate-800 dark:text-slate-400'
                             }`}
                             title={isLive ? 'Click to Pause' : 'Click to Publish'}
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
                                 isLive
-                                  ? 'bg-emerald-500'
+                                  ? 'bg-[#167AA0]'
                                   : wf.status === 'draft'
                                   ? 'bg-amber-500'
                                   : 'bg-slate-400'
@@ -349,7 +349,7 @@ export default function AutomationsPage() {
                             {isLive ? 'Active' : wf.status === 'draft' ? 'Draft' : 'Paused'}
                           </button>
 
-                          <span className="text-[11px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md">
+                          <span className="text-[11px] font-mono text-[#526D7D] bg-white/70 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-[#75D2EE]/20">
                             v{wf.version || 1}
                           </span>
                         </div>
@@ -357,14 +357,14 @@ export default function AutomationsPage() {
                         <div className="flex items-center gap-1">
                           <Link
                             href={`/automations/${wf.id}`}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+                            className="p-1.5 text-[#526D7D] hover:text-[#167AA0] dark:hover:text-[#75D2EE] hover:bg-[#D7F1FA]/30 rounded-lg transition"
                             title="Open Visual Canvas"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </Link>
                           <button
                             onClick={() => handleDelete(wf.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+                            className="p-1.5 text-[#526D7D] hover:text-red-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
                             title="Delete"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -374,29 +374,29 @@ export default function AutomationsPage() {
 
                       {/* Title & Description */}
                       <Link href={`/automations/${wf.id}`} className="group block">
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition flex items-center gap-1.5">
+                        <h3 className="text-base font-bold text-[#17364A] dark:text-white group-hover:text-[#167AA0] dark:group-hover:text-[#75D2EE] transition flex items-center gap-1.5">
                           {wf.name}
-                          <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition text-blue-600 dark:text-blue-400" />
+                          <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition text-[#167AA0] dark:text-[#75D2EE]" />
                         </h3>
                       </Link>
                       {wf.description && (
-                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                        <p className="text-xs text-[#526D7D] mt-1 line-clamp-2">
                           {wf.description}
                         </p>
                       )}
 
                       {/* Graph Metrics */}
-                      <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl space-y-2 text-xs">
+                      <div className="mt-4 p-3 bg-white/70 dark:bg-slate-800/40 border border-[#75D2EE]/20 rounded-xl space-y-2 text-xs">
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-400">Trigger Type:</span>
-                          <span className="font-semibold text-blue-600 dark:text-blue-400 font-mono">
+                          <span className="text-[#526D7D]">Trigger Type:</span>
+                          <span className="font-semibold text-[#167AA0] dark:text-[#75D2EE] font-mono">
                             {wf.trigger_type || 'manual'}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-400">Canvas Graph:</span>
-                          <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                            <Layers className="w-3 h-3 text-slate-400" />
+                          <span className="text-[#526D7D]">Canvas Graph:</span>
+                          <span className="font-semibold text-[#17364A] dark:text-slate-300 flex items-center gap-1">
+                            <Layers className="w-3 h-3 text-[#526D7D]" />
                             {nodeCount} {nodeCount === 1 ? 'node' : 'nodes'} • {edgeCount} connections
                           </span>
                         </div>
@@ -404,8 +404,8 @@ export default function AutomationsPage() {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                      <span className="text-xs text-slate-400">
+                    <div className="mt-4 pt-3 border-t border-[#75D2EE]/20 flex items-center justify-between">
+                      <span className="text-xs text-[#526D7D]">
                         {wf.execution_count || 0} runs executed
                       </span>
 
@@ -414,7 +414,7 @@ export default function AutomationsPage() {
                           type="button"
                           onClick={() => handleTestRun(wf)}
                           disabled={runningId === wf.id}
-                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
+                          className="px-3 py-1.5 bg-[#D7F1FA] hover:bg-[#D7F1FA]/70 text-[#167AA0] dark:bg-[#167AA0]/30 dark:text-[#75D2EE] rounded-xl text-xs font-semibold flex items-center gap-1.5 transition glass-button-press cursor-pointer"
                           title="Safe dry-run execution"
                         >
                           {runningId === wf.id ? (
@@ -427,7 +427,7 @@ export default function AutomationsPage() {
 
                         <Link
                           href={`/automations/${wf.id}`}
-                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-xl text-xs font-semibold flex items-center gap-1 transition"
+                          className="px-3 py-1.5 bg-[#167AA0] hover:bg-[#0E526E] text-white rounded-xl text-xs font-semibold flex items-center gap-1 transition glass-button-press"
                         >
                           Open Canvas
                           <ChevronRight className="w-3 h-3" />
@@ -446,18 +446,18 @@ export default function AutomationsPage() {
       {activeTab === 'executions' && (
         <div className="space-y-4">
           {/* Filters Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 glass-panel rounded-2xl text-xs">
             <div className="flex flex-wrap items-center gap-2">
-              <Filter className="w-3.5 h-3.5 text-slate-400 ml-1" />
-              <span className="font-semibold text-slate-600 dark:text-slate-400">Status:</span>
+              <Filter className="w-3.5 h-3.5 text-[#526D7D] ml-1" />
+              <span className="font-semibold text-[#17364A] dark:text-slate-300">Status:</span>
               {['all', 'succeeded', 'failed', 'running', 'waiting'].map((st) => (
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-2.5 py-1 rounded-lg font-medium transition capitalize ${
+                  className={`px-2.5 py-1 rounded-lg font-medium transition capitalize cursor-pointer ${
                     statusFilter === st
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      ? 'bg-[#167AA0] text-white shadow-xs'
+                      : 'text-[#526D7D] hover:bg-[#D7F1FA]/30'
                   }`}
                 >
                   {st}
@@ -466,11 +466,11 @@ export default function AutomationsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-slate-600 dark:text-slate-400">Workflow:</span>
+              <span className="font-semibold text-[#17364A] dark:text-slate-300">Workflow:</span>
               <select
                 value={workflowFilter}
                 onChange={(e) => setWorkflowFilter(e.target.value)}
-                className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 focus:outline-hidden"
+                className="px-2.5 py-1 bg-white/70 dark:bg-slate-800 border border-[#75D2EE]/30 focus:border-[#167AA0] rounded-lg text-[#17364A] dark:text-slate-300 focus:outline-hidden"
               >
                 <option value="all">All Workflows</option>
                 {workflows.map((w) => (
@@ -483,15 +483,15 @@ export default function AutomationsPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+          <div className="glass-panel-opaque rounded-2xl overflow-hidden shadow-xs">
             {filteredExecutions.length === 0 ? (
-              <div className="p-12 text-center text-slate-500 text-sm">
+              <div className="p-12 text-center text-[#526D7D] text-sm">
                 No execution runs found matching your filter criteria.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-300">
+                  <thead className="bg-[#D7F1FA]/40 dark:bg-[#17364A]/40 border-b border-[#75D2EE]/30 font-semibold text-[#17364A] dark:text-slate-300">
                     <tr>
                       <th className="p-3.5">Execution Run</th>
                       <th className="p-3.5">Workflow</th>
@@ -502,37 +502,37 @@ export default function AutomationsPage() {
                       <th className="p-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                  <tbody className="divide-y divide-[#75D2EE]/15 text-[#17364A] dark:text-slate-300">
                     {filteredExecutions.map((exec) => (
                       <tr
                         key={exec.id}
                         onClick={() => handleInspectExecution(exec.id)}
-                        className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 cursor-pointer transition"
+                        className="hover:bg-[#D7F1FA]/20 dark:hover:bg-[#17364A]/30 cursor-pointer transition"
                       >
-                        <td className="p-3.5 whitespace-nowrap font-mono text-blue-600 dark:text-blue-400 font-semibold">
+                        <td className="p-3.5 whitespace-nowrap font-mono text-[#167AA0] dark:text-[#75D2EE] font-semibold">
                           #{exec.id.slice(0, 8)}
                         </td>
-                        <td className="p-3.5 font-semibold text-slate-900 dark:text-white">
+                        <td className="p-3.5 font-semibold text-[#17364A] dark:text-white">
                           <div className="flex items-center gap-1.5">
                             <span>{exec.workflow?.name || 'Workflow'}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">
+                            <span className="text-[10px] text-[#526D7D] font-mono">
                               v{exec.workflow_version || 1}
                             </span>
                           </div>
                         </td>
-                        <td className="p-3.5 font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                        <td className="p-3.5 font-mono text-[11px] text-[#526D7D] dark:text-slate-400">
                           {exec.trigger_type}
                         </td>
                         <td className="p-3.5">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 w-fit ${
                               exec.status === 'succeeded'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+                                ? 'bg-[#D7F1FA] text-[#167AA0] border border-[#75D2EE]/40 dark:bg-[#167AA0]/30 dark:text-[#75D2EE]'
                                 : exec.status === 'failed'
-                                ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
                                 : exec.status === 'waiting'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
-                                : 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
+                                : 'bg-[#D7F1FA]/60 text-[#167AA0] border border-[#75D2EE]/30'
                             }`}
                           >
                             {exec.status === 'succeeded' && <CheckCircle className="w-3 h-3" />}
@@ -542,10 +542,10 @@ export default function AutomationsPage() {
                             {exec.status}
                           </span>
                         </td>
-                        <td className="p-3.5 font-mono text-slate-500">
+                        <td className="p-3.5 font-mono text-[#526D7D]">
                           {exec.duration_ms ? `${exec.duration_ms}ms` : '—'}
                         </td>
-                        <td className="p-3.5 whitespace-nowrap text-slate-500 font-mono">
+                        <td className="p-3.5 whitespace-nowrap text-[#526D7D] font-mono">
                           {new Date(exec.started_at).toLocaleString()}
                         </td>
                         <td className="p-3.5 text-right">
@@ -554,7 +554,7 @@ export default function AutomationsPage() {
                               e.stopPropagation();
                               handleInspectExecution(exec.id);
                             }}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition"
+                            className="px-2.5 py-1 bg-white/80 hover:bg-[#D7F1FA]/50 border border-[#75D2EE]/30 text-[#17364A] dark:text-slate-300 rounded-lg text-xs font-semibold transition glass-button-press cursor-pointer"
                           >
                             Inspect Trace
                           </button>
