@@ -159,7 +159,7 @@ export function CampaignModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <div className="p-2 rounded-xl bg-[#75D2EE]/20 text-[#167AA0] dark:text-[#75D2EE]">
               <Mail className="w-5 h-5" />
             </div>
             <div>
@@ -201,7 +201,7 @@ export function CampaignModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Q4 Growth Webinar Announcement"
-                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#167AA0]"
                 />
               </div>
 
@@ -215,7 +215,7 @@ export function CampaignModal({
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="e.g. Elevate your revenue velocity this quarter"
-                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#167AA0]"
                 />
               </div>
             </div>
@@ -229,7 +229,7 @@ export function CampaignModal({
                 value={previewText}
                 onChange={(e) => setPreviewText(e.target.value)}
                 placeholder="A sneak peek at the new features..."
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#167AA0]"
               />
             </div>
           </div>
@@ -245,9 +245,9 @@ export function CampaignModal({
                   key={tpl.name}
                   type="button"
                   onClick={() => handleApplyTemplate(tpl)}
-                  className="px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 transition flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-[#D7F1FA]/40 dark:hover:bg-purple-950/40 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 transition flex items-center gap-1.5"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                  <Sparkles className="w-3.5 h-3.5 text-[#167AA0]" />
                   {tpl.name}
                 </button>
               ))}
@@ -268,14 +268,14 @@ export function CampaignModal({
               rows={8}
               value={contentHtml}
               onChange={(e) => setContentHtml(e.target.value)}
-              className="w-full font-mono text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full font-mono text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#167AA0]"
             />
           </div>
 
           {/* Audience Segmentation */}
           <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-purple-500" />
+              <Layers className="w-4 h-4 text-[#167AA0]" />
               Recipient Segmentation
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -355,7 +355,7 @@ export function CampaignModal({
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-sm transition flex items-center gap-2"
+              className="px-5 py-2 text-sm font-semibold text-white bg-[#167AA0] hover:bg-[#0E526E] rounded-xl shadow-sm transition flex items-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {campaignToEdit ? 'Save Changes' : 'Save Campaign'}

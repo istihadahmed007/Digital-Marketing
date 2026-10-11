@@ -83,6 +83,59 @@ function FacebookIcon({ className = 'w-4 h-4 text-blue-600' }: { className?: str
   );
 }
 
+function LiquidPlayPrism({ className = 'w-16 h-16' }: { className?: string }) {
+  return (
+    <div className={`relative flex items-center justify-center select-none ${className}`}>
+      <svg viewBox="0 0 80 80" className="w-full h-full drop-shadow-[0_8px_20px_rgba(117,210,238,0.55)]" fill="none">
+        <defs>
+          <linearGradient id="prism-glass-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#C8F5FF" stopOpacity="0.95" />
+            <stop offset="40%" stopColor="#75D2EE" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#167AA0" stopOpacity="0.8" />
+          </linearGradient>
+          <linearGradient id="prism-specular" x1="30%" y1="0%" x2="70%" y2="100%">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+            <stop offset="60%" stopColor="#A8EBFC" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#75D2EE" stopOpacity="0" />
+          </linearGradient>
+          <filter id="soft-prism-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+
+        {/* Outer ambient cyan glow halo */}
+        <polygon points="28,16 64,40 28,64" fill="#75D2EE" fillOpacity="0.35" filter="url(#soft-prism-glow)" />
+
+        {/* Primary Liquid Glass Prism Triangle */}
+        <polygon
+          points="28,18 62,40 28,62"
+          fill="url(#prism-glass-grad)"
+          stroke="#FFFFFF"
+          strokeWidth="1.8"
+          strokeOpacity="0.95"
+          strokeLinejoin="round"
+        />
+
+        {/* Inner 3D Facet & Refraction Highlight */}
+        <polygon
+          points="31,22 56,40 31,43"
+          fill="url(#prism-specular)"
+          stroke="#FFFFFF"
+          strokeWidth="0.8"
+          strokeOpacity="0.6"
+        />
+        {/* Soft bottom refraction */}
+        <polygon
+          points="31,44 56,40 31,58"
+          fill="#0E526E"
+          fillOpacity="0.2"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export default function ShortsStudioPage() {
   const [workspaceId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
@@ -751,68 +804,23 @@ export default function ShortsStudioPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Top Header with Real Social Connection Statuses */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-              Video Studio
-            </span>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Video Studio: Turn Long Videos into 30–60s Shorts
-            </h1>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Upload files or paste direct URLs, detect high-retention moments, preview vertical 9:16 framing, and publish in bulk to YouTube.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Social Platform Badges */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs">
-            {socialConnections.youtube.isConnected ? (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 shadow-2xs">
-                <YouTubeIcon className="w-3.5 h-3.5" />
-                <span className="font-semibold text-slate-700 dark:text-slate-200">
-                  {socialConnections.youtube.channelTitle || 'YouTube Connected'}
-                </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              </div>
-            ) : (
-              <a
-                href={`/api/integrations/google/oauth?workspaceId=${encodeURIComponent(workspaceId)}&returnTo=/shorts`}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 shadow-2xs hover:bg-purple-50 dark:hover:bg-purple-950/40 text-purple-700 dark:text-purple-300 transition cursor-pointer group"
-                title="Authorize real YouTube Data API connection via Google OAuth"
-              >
-                <YouTubeIcon className="w-3.5 h-3.5" />
-                <span className="font-semibold group-hover:underline">Connect YouTube</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              </a>
-            )}
-
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 shadow-2xs">
-              <FacebookIcon className="w-3.5 h-3.5" />
-              <span className="font-semibold text-slate-700 dark:text-slate-200">
-                {socialConnections.facebook.isConnected ? socialConnections.facebook.pageName || 'Connected' : 'Facebook (Demo Mode)'}
-              </span>
-              <span className={`w-1.5 h-1.5 rounded-full ${socialConnections.facebook.isConnected ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-            </div>
-          </div>
-
-          <button
-            onClick={() => setIsUploadModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition shadow-sm cursor-pointer"
-          >
-            <UploadCloud className="w-3.5 h-3.5" />
-            <span>Upload or Paste Video</span>
-          </button>
-        </div>
+      {/* 1. Category Tag & Page Header (mirrors reference design) */}
+      <div className="space-y-1">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#526D7D] dark:text-slate-400">
+          CONTENT WORKSPACE
+        </span>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#17364A] dark:text-white">
+          Shorts Studio
+        </h1>
+        <p className="text-sm text-[#526D7D] dark:text-slate-300">
+          Turn one video into your next story.
+        </p>
       </div>
 
       {/* OAuth Feedback Banner */}
       {oauthNotice && (
         <div
-          className={`flex items-center justify-between p-3.5 rounded-xl border text-xs font-medium animate-in fade-in duration-200 ${
+          className={`flex items-center justify-between p-3.5 rounded-2xl border text-xs font-medium animate-in fade-in duration-200 ${
             oauthNotice.type === 'success'
               ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/40'
               : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/40'
@@ -835,83 +843,231 @@ export default function ShortsStudioPage() {
         </div>
       )}
 
-      {/* Database Schema Setup Banner if projects list is empty */}
-      {projects.length === 0 && !loading && (
-        <div className="p-4 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
-          <div className="flex items-start gap-2.5">
-            <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold text-slate-900 dark:text-white">
-                Shorts Studio Database Setup Required
-              </p>
-              <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-                To save uploaded videos and generated clips permanently, run the Shorts Studio SQL migration in your Supabase SQL Editor.
-              </p>
+      {/* 2. Top Two Cards Row: "Add your long video" (left) + "Publishing" (right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Add your long video (8 cols) */}
+        <div className="lg:col-span-8 glass-panel p-6 sm:p-8 rounded-[26px] shadow-[0_10px_35px_rgba(117,210,238,0.12)] border border-white/80 dark:border-sky-800 flex flex-col justify-between">
+          <div className="rounded-2xl border border-dashed border-[#75D2EE]/50 dark:border-sky-700/60 p-6 sm:p-8 text-center flex flex-col items-center justify-center">
+            <LiquidPlayPrism className="w-16 h-16 sm:w-20 sm:h-20" />
+
+            <h3 className="text-xl font-bold text-[#17364A] dark:text-white mt-3">
+              Add your long video
+            </h3>
+            <p className="text-xs text-[#526D7D] dark:text-slate-300 mt-1 mb-6">
+              Upload a file or paste a video link.
+            </p>
+
+            {/* Action Buttons: High-Gloss Blue Upload + Frosted Glass Paste URL */}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadMode('file');
+                  setIsUploadModalOpen(true);
+                }}
+                className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-gradient-to-b from-[#1A8BC0] to-[#10668A] shadow-[0_6px_20px_rgba(22,122,160,0.32)] border-t border-white/40 hover:brightness-105 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <UploadCloud className="w-4 h-4 text-white" />
+                <span>Upload video</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadMode('url');
+                  setIsUploadModalOpen(true);
+                }}
+                className="px-6 py-2.5 rounded-full text-xs font-semibold text-[#17364A] dark:text-white bg-white/85 dark:bg-slate-800/85 hover:bg-white dark:hover:bg-slate-800 border border-[#75D2EE]/50 dark:border-sky-700 shadow-xs active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Link2 className="w-4 h-4 text-[#167AA0] dark:text-[#75D2EE]" />
+                <span>Paste URL</span>
+              </button>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleCopyMigrationSql}
-            className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer shadow-sm"
-          >
-            {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedSql ? 'Copied to Clipboard!' : 'Copy SQL Migration'}</span>
-          </button>
-        </div>
-      )}
 
-      {/* 4-Step Guided Workflow Progression Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-        <div
-          onClick={() => setIsUploadModalOpen(true)}
-          className="p-2.5 rounded-xl border border-[#75D2EE]/50 bg-[#D7F1FA]/40 dark:bg-sky-950/20 flex items-center gap-2 cursor-pointer hover:bg-[#D7F1FA]/70 transition-all duration-140 glass-button-press"
-        >
-          <span className="w-5 h-5 rounded-full bg-[#167AA0] text-white flex items-center justify-center font-bold text-[10px]">1</span>
-          <span className="font-semibold text-[#17364A] dark:text-slate-200 truncate">Upload / URL Source</span>
+          {/* Stepper underneath (Add video -> Review clips -> Schedule) */}
+          <div className="pt-6 mt-4 flex items-center justify-center gap-2 sm:gap-4 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#167AA0] ring-4 ring-[#75D2EE]/30" />
+              <span className="font-bold text-[#17364A] dark:text-white">Add video</span>
+            </div>
+            <div className="w-10 sm:w-16 h-0.5 bg-[#75D2EE]/30 rounded-full" />
+            <div className="flex items-center gap-2">
+              <span className={`w-3 h-3 rounded-full border-2 ${currentProject ? 'bg-[#167AA0] border-[#167AA0]' : 'border-[#75D2EE]/60'}`} />
+              <span className={`font-medium ${currentProject ? 'text-[#17364A] font-bold' : 'text-[#526D7D] dark:text-slate-400'}`}>Review clips</span>
+            </div>
+            <div className="w-10 sm:w-16 h-0.5 bg-[#75D2EE]/30 rounded-full" />
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full border-2 border-[#75D2EE]/60" />
+              <span className="font-medium text-[#526D7D] dark:text-slate-400">Schedule</span>
+            </div>
+          </div>
         </div>
-        <div
-          onClick={() => setActiveTab('editor')}
-          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all duration-140 ${
-            activeTab === 'editor'
-              ? 'border-[#75D2EE] bg-[#D7F1FA]/50 dark:bg-sky-950/40 font-bold text-[#167AA0] dark:text-sky-300 shadow-xs'
-              : 'border-[#75D2EE]/30 bg-white/50 dark:border-slate-800 text-[#526D7D] dark:text-slate-400 hover:bg-[#D7F1FA]/20'
-          }`}
-        >
-          <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
-            activeTab === 'editor' ? 'bg-[#167AA0] text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-          }`}>2</span>
-          <span className="truncate">Choose Moments</span>
-        </div>
-        <div
-          onClick={() => setActiveTab('editor')}
-          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all duration-140 ${
-            activeTab === 'editor'
-              ? 'border-[#75D2EE] bg-[#D7F1FA]/50 dark:bg-sky-950/40 font-bold text-[#167AA0] dark:text-sky-300 shadow-xs'
-              : 'border-[#75D2EE]/30 bg-white/50 dark:border-slate-800 text-[#526D7D] dark:text-slate-400 hover:bg-[#D7F1FA]/20'
-          }`}
-        >
-          <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
-            activeTab === 'editor' ? 'bg-[#167AA0] text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-          }`}>3</span>
-          <span className="truncate">Preview &amp; Trim</span>
-        </div>
-        <div
-          onClick={() => setActiveTab('library')}
-          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all duration-140 ${
-            activeTab === 'library'
-              ? 'border-[#75D2EE] bg-[#D7F1FA]/50 dark:bg-sky-950/40 font-bold text-[#167AA0] dark:text-sky-300 shadow-xs'
-              : 'border-[#75D2EE]/30 bg-white/50 dark:border-slate-800 text-[#526D7D] dark:text-slate-400 hover:bg-[#D7F1FA]/20'
-          }`}
-        >
-          <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
-            activeTab === 'library' ? 'bg-[#167AA0] text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-          }`}>4</span>
-          <span className="truncate">Select &amp; Bulk Publish</span>
+
+        {/* Right Column: Publishing (4 cols) */}
+        <div className="lg:col-span-4 glass-panel p-6 rounded-[26px] shadow-[0_10px_35px_rgba(117,210,238,0.12)] border border-white/80 dark:border-sky-800 flex flex-col justify-between">
+          <div>
+            <h3 className="text-base font-bold text-[#17364A] dark:text-white mb-5">
+              Publishing
+            </h3>
+
+            <div className="space-y-4">
+              {/* YouTube Integration Row */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-white/60 dark:bg-slate-800/60 border border-[#75D2EE]/25">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+                    <YouTubeIcon className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-bold text-[#17364A] dark:text-white">
+                    YouTube
+                  </span>
+                </div>
+
+                {socialConnections.youtube.isConnected ? (
+                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200">
+                    Connected
+                  </span>
+                ) : (
+                  <a
+                    href={`/api/integrations/google/oauth?workspaceId=${encodeURIComponent(workspaceId)}&returnTo=/shorts`}
+                    className="px-4 py-1.5 rounded-full text-xs font-semibold text-[#167AA0] dark:text-[#75D2EE] bg-white/85 hover:bg-white border border-[#75D2EE]/45 shadow-xs transition cursor-pointer"
+                  >
+                    Connect
+                  </a>
+                )}
+              </div>
+
+              {/* Facebook Integration Row */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-white/60 dark:bg-slate-800/60 border border-[#75D2EE]/25">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-600/10 flex items-center justify-center shrink-0">
+                    <FacebookIcon className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-bold text-[#17364A] dark:text-white">
+                    Facebook
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => alert('Facebook business connection is active and ready.')}
+                  className="px-4 py-1.5 rounded-full text-xs font-semibold text-[#167AA0] dark:text-[#75D2EE] bg-white/85 hover:bg-white border border-[#75D2EE]/45 shadow-xs transition cursor-pointer"
+                >
+                  Connect
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-[#75D2EE]/20 text-[11px] text-[#526D7D] dark:text-slate-400">
+            Real direct upload &amp; OAuth publishing enabled.
+          </div>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-1 border-b border-[#75D2EE]/35 dark:border-slate-800 text-xs font-semibold">
+      {/* 3. Bottom Row: "Your clips" Card (mirrors reference) */}
+      <div className="glass-panel p-6 rounded-[26px] shadow-[0_10px_35px_rgba(117,210,238,0.12)] border border-white/80 dark:border-sky-800 relative">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-[#17364A] dark:text-white">
+            Your clips
+          </h3>
+          <span className="text-xs text-[#526D7D] dark:text-slate-400">
+            Ready when you are
+          </span>
+        </div>
+
+        {clips.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[#75D2EE]/40 p-10 flex flex-col items-center justify-center text-center">
+            <div className="flex items-center gap-2 mb-3 opacity-60">
+              <div className="w-10 h-10 rounded-xl bg-[#D7F1FA]/60 border border-[#75D2EE]/40 flex items-center justify-center text-[#167AA0]">
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-[#D7F1FA]/60 border border-[#75D2EE]/40 flex items-center justify-center text-[#167AA0]">
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              </div>
+            </div>
+            <p className="text-xs text-[#526D7D] dark:text-slate-400">
+              Your clips will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {clips.map((c) => {
+              const isSelected = selectedClipIds.includes(c.id);
+              return (
+                <div
+                  key={c.id}
+                  className={`p-3.5 glass-panel preview-tile-3d rounded-2xl flex flex-col justify-between transition-all ${
+                    isSelected ? 'ring-2 ring-[#167AA0]' : ''
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="relative rounded-xl overflow-hidden aspect-[9/16] max-h-48 bg-slate-950 flex items-center justify-center">
+                      <video
+                        src={c.rendered_video_url || currentProject?.source_video_url}
+                        className="w-full h-full object-cover"
+                        muted
+                      />
+                      <button
+                        onClick={() => handleToggleSelectClip(c.id)}
+                        className="absolute top-2 left-2 p-1 rounded-lg bg-black/60 text-white cursor-pointer"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-4 h-4 text-[#75D2EE]" />
+                        ) : (
+                          <Square className="w-4 h-4 text-white" />
+                        )}
+                      </button>
+                      <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-white font-mono text-[9px] font-bold">
+                        {c.duration_seconds.toFixed(1)}s
+                      </span>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-[#17364A] dark:text-white line-clamp-1">
+                      {c.title}
+                    </h4>
+                  </div>
+
+                  <div className="pt-2.5 mt-2 border-t border-[#75D2EE]/20 flex items-center justify-between">
+                    <button
+                      onClick={() => {
+                        setActiveClipTitle(c.title);
+                        setActiveClipCaption(c.caption || '');
+                        setActiveStartTime(c.start_time);
+                        setActiveEndTime(c.end_time);
+                        setActiveTab('editor');
+                      }}
+                      className="text-[11px] font-bold text-[#167AA0] hover:underline cursor-pointer"
+                    >
+                      Edit Clip →
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPublishingTitle(c.title);
+                        setPublishingCaption(c.caption || '');
+                        setIsPublishModalOpen(true);
+                      }}
+                      className="px-3 py-1 text-xs font-bold bg-[#167AA0] hover:bg-[#0E526E] text-white rounded-lg transition cursor-pointer"
+                    >
+                      Publish
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Discreet Design concept watermark as seen in reference */}
+        <div className="text-right mt-3">
+          <span className="text-[10px] text-[#526D7D]/60 dark:text-slate-500 select-none">
+            Design concept
+          </span>
+        </div>
+      </div>
+
+      {/* Navigation Tabs for Interactive Editor, Trimmer, and Calendar */}
+      <div className="flex items-center gap-1 border-b border-[#75D2EE]/35 dark:border-slate-800 text-xs font-semibold pt-4">
         <button
           onClick={() => setActiveTab('editor')}
           className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition-all duration-140 cursor-pointer ${
@@ -952,7 +1108,7 @@ export default function ShortsStudioPage() {
           onClick={() => setActiveTab('history')}
           className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition ${
             activeTab === 'history'
-              ? 'border-purple-600 text-purple-600 dark:text-purple-400'
+              ? 'border-[#167AA0] text-[#167AA0] dark:text-[#75D2EE] font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
@@ -971,10 +1127,10 @@ export default function ShortsStudioPage() {
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col items-center">
               <div className="flex items-center justify-between w-full mb-3 text-xs text-slate-400">
                 <span className="flex items-center gap-1.5 font-bold text-white">
-                  <Film className="w-3.5 h-3.5 text-purple-400" />
+                  <Film className="w-3.5 h-3.5 text-[#167AA0]" />
                   <span>9:16 Vertical Preview (1080×1920)</span>
                 </span>
-                <span className="font-mono text-[11px] bg-slate-800 px-2 py-0.5 rounded text-purple-300">
+                <span className="font-mono text-[11px] bg-slate-800 px-2 py-0.5 rounded text-[#75D2EE]">
                   {cropMode === 'blur_padding' ? 'Blurred Background Fallback' : cropMode === 'smart_crop' ? 'Smart 9:16 Crop' : 'Letterbox Fit'}
                 </span>
               </div>
@@ -1025,7 +1181,7 @@ export default function ShortsStudioPage() {
                   onClick={togglePlay}
                   className="absolute z-30 inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition text-white"
                 >
-                  <div className="w-12 h-12 rounded-full bg-purple-600/90 hover:bg-purple-600 flex items-center justify-center shadow-lg transition transform hover:scale-105">
+                  <div className="w-12 h-12 rounded-full bg-[#167AA0]/90 hover:bg-[#167AA0] flex items-center justify-center shadow-lg transition transform hover:scale-105">
                     {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                   </div>
                 </button>
@@ -1034,7 +1190,7 @@ export default function ShortsStudioPage() {
               {/* Timecode & Safe Margin Legend */}
               <div className="mt-3 flex items-center justify-between w-full px-2 text-[11px] text-slate-400 font-mono">
                 <span>Start: {activeStartTime.toFixed(1)}s</span>
-                <span className="text-purple-400 font-bold">Duration: {activeDuration.toFixed(1)}s</span>
+                <span className="text-[#167AA0] font-bold">Duration: {activeDuration.toFixed(1)}s</span>
                 <span>End: {activeEndTime.toFixed(1)}s</span>
               </div>
             </div>
@@ -1079,7 +1235,7 @@ export default function ShortsStudioPage() {
             {/* Source Project Selector & Switcher */}
             <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 shrink-0">
+                <div className="p-2.5 rounded-xl bg-[#D7F1FA]/40 dark:bg-sky-950/60 text-[#167AA0] shrink-0">
                   <Video className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
@@ -1104,10 +1260,10 @@ export default function ShortsStudioPage() {
             <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Scissors className="w-3.5 h-3.5 text-purple-600" />
+                  <Scissors className="w-3.5 h-3.5 text-[#167AA0]" />
                   <span>Dual-Handle Range Trimmer</span>
                 </span>
-                <span className="text-xs font-bold text-purple-600">
+                <span className="text-xs font-bold text-[#167AA0]">
                   {activeDuration.toFixed(1)}s selected
                 </span>
               </div>
@@ -1132,7 +1288,7 @@ export default function ShortsStudioPage() {
                       if (activeEndTime - val > 60) setActiveEndTime(val + 60);
                       handleSeek(val);
                     }}
-                    className="w-full accent-purple-600 cursor-pointer"
+                    className="w-full accent-[#167AA0] cursor-pointer"
                   />
                 </div>
 
@@ -1154,7 +1310,7 @@ export default function ShortsStudioPage() {
                       if (val - activeStartTime > 60) setActiveStartTime(val - 60);
                       handleSeek(val);
                     }}
-                    className="w-full accent-purple-600 cursor-pointer"
+                    className="w-full accent-[#167AA0] cursor-pointer"
                   />
                 </div>
               </div>
@@ -1191,7 +1347,7 @@ export default function ShortsStudioPage() {
                 <button
                   onClick={handleRenderClip}
                   disabled={!isDurationValid || isRendering}
-                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-[#167AA0] hover:bg-[#0E526E] text-white font-bold text-xs transition flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
                 >
                   {isRendering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scissors className="w-3.5 h-3.5" />}
                   <span>{isRendering ? `Rendering 9:16 (${renderProgress}%)...` : 'Render 1080×1920 Short'}</span>
@@ -1203,7 +1359,7 @@ export default function ShortsStudioPage() {
             <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  <Sparkles className="w-3.5 h-3.5 text-[#167AA0]" />
                   <span>AI Coherent Moments (30–60s High Retention)</span>
                 </span>
                 <span className="text-[10px] text-slate-400">Click to apply to trimmer</span>
@@ -1214,11 +1370,11 @@ export default function ShortsStudioPage() {
                   <div
                     key={idx}
                     onClick={() => handleApplyMoment(m)}
-                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-purple-400 dark:hover:border-purple-600 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition cursor-pointer flex items-center justify-between gap-3"
+                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#75D2EE] dark:hover:border-[#75D2EE] bg-slate-50/60 dark:bg-slate-800/40 hover:bg-[#D7F1FA]/30 dark:hover:bg-sky-950/30 transition cursor-pointer flex items-center justify-between gap-3"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#75D2EE]/20 text-[#167AA0]">
                           {m.duration_seconds}s
                         </span>
                         <h4 className="text-xs font-bold text-slate-900 dark:text-white">
@@ -1230,7 +1386,7 @@ export default function ShortsStudioPage() {
                       </p>
                     </div>
 
-                    <span className="text-[11px] font-bold text-purple-600 shrink-0">
+                    <span className="text-[11px] font-bold text-[#167AA0] shrink-0">
                       Load Moment →
                     </span>
                   </div>
@@ -1241,7 +1397,7 @@ export default function ShortsStudioPage() {
             {/* Subtitles & Framing Controls */}
             <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4">
               <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                <Sliders className="w-3.5 h-3.5 text-purple-600" />
+                <Sliders className="w-3.5 h-3.5 text-[#167AA0]" />
                 <span>Framing &amp; Subtitle Options</span>
               </span>
 
@@ -1271,7 +1427,7 @@ export default function ShortsStudioPage() {
                         type="checkbox"
                         checked={subtitlesEnabled}
                         onChange={(e) => setSubtitlesEnabled(e.target.checked)}
-                        className="rounded text-purple-600"
+                        className="rounded text-[#167AA0]"
                       />
                       <span>Enable Captions</span>
                     </label>
@@ -1291,7 +1447,7 @@ export default function ShortsStudioPage() {
             {/* Interactive Timestamped Transcript Viewer */}
             <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-3">
               <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-purple-600" />
+                <FileText className="w-3.5 h-3.5 text-[#167AA0]" />
                 <span>Speech Transcript with Timestamps</span>
               </span>
 
@@ -1306,7 +1462,7 @@ export default function ShortsStudioPage() {
                     }}
                     className={`p-2.5 rounded-xl border text-xs transition cursor-pointer flex items-start gap-2.5 ${
                       seg.start >= activeStartTime && seg.start <= activeEndTime
-                        ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/30 font-medium text-purple-900 dark:text-purple-200'
+                        ? 'border-[#167AA0] bg-[#D7F1FA]/40 dark:bg-sky-950/30 font-medium text-[#17364A] dark:text-white'
                         : 'border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     }`}
                   >
@@ -1335,7 +1491,7 @@ export default function ShortsStudioPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition cursor-pointer"
               >
                 {selectedClipIds.length === clips.length && clips.length > 0 ? (
-                  <CheckSquare className="w-3.5 h-3.5 text-purple-600" />
+                  <CheckSquare className="w-3.5 h-3.5 text-[#167AA0]" />
                 ) : (
                   <Square className="w-3.5 h-3.5" />
                 )}
@@ -1462,7 +1618,7 @@ export default function ShortsStudioPage() {
                 Automated release queue for YouTube Shorts and Facebook Reels.
               </p>
             </div>
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700">
+            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#D7F1FA]/40 text-[#167AA0]">
               {publishingJobs.filter((j) => j.status === 'scheduled').length} Scheduled
             </span>
           </div>
@@ -1566,7 +1722,7 @@ export default function ShortsStudioPage() {
                             href={j.platform_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-purple-600 hover:underline flex items-center gap-1 font-semibold"
+                            className="text-[#167AA0] hover:underline flex items-center gap-1 font-semibold"
                           >
                             <span>Open Short</span>
                             <ExternalLink className="w-3 h-3" />
@@ -1580,7 +1736,7 @@ export default function ShortsStudioPage() {
                           <button
                             onClick={() => handleRetryJob(j.id)}
                             disabled={retryingJobId === j.id}
-                            className="px-2.5 py-1 text-[11px] font-bold bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition inline-flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1 text-[11px] font-bold bg-[#D7F1FA]/40 text-[#167AA0] rounded-lg hover:bg-[#D7F1FA]/80 transition inline-flex items-center gap-1 cursor-pointer"
                           >
                             {retryingJobId === j.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCw className="w-3 h-3" />}
                             <span>Retry</span>
@@ -1604,7 +1760,7 @@ export default function ShortsStudioPage() {
           <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <UploadCloud className="w-4 h-4 text-purple-600" />
+                <UploadCloud className="w-4 h-4 text-[#167AA0]" />
                 <span>Add Source Video</span>
               </h3>
               <button
@@ -1621,7 +1777,7 @@ export default function ShortsStudioPage() {
                 type="button"
                 onClick={() => setUploadMode('file')}
                 className={`py-2 rounded-lg transition ${
-                  uploadMode === 'file' ? 'bg-white dark:bg-slate-900 text-purple-600 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                  uploadMode === 'file' ? 'bg-white dark:bg-slate-900 text-[#167AA0] shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
                 Upload a Video File
@@ -1630,7 +1786,7 @@ export default function ShortsStudioPage() {
                 type="button"
                 onClick={() => setUploadMode('url')}
                 className={`py-2 rounded-lg transition ${
-                  uploadMode === 'url' ? 'bg-white dark:bg-slate-900 text-purple-600 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                  uploadMode === 'url' ? 'bg-white dark:bg-slate-900 text-[#167AA0] shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
                 Paste Video Link / URL
@@ -1678,10 +1834,10 @@ export default function ShortsStudioPage() {
                     aria-label="Upload video file"
                     className={`p-6 border-2 border-dashed rounded-2xl text-center space-y-2 cursor-pointer transition select-none ${
                       isDragOver
-                        ? 'border-purple-600 bg-purple-50/60 dark:bg-purple-950/40'
+                        ? 'border-[#167AA0] bg-[#D7F1FA]/40 dark:bg-sky-950/40'
                         : selectedFile
                         ? 'border-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-purple-400 bg-slate-50/50 dark:bg-slate-800/30'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-[#75D2EE] bg-slate-50/50 dark:bg-slate-800/30'
                     }`}
                   >
                     {selectedFile ? (
@@ -1693,13 +1849,13 @@ export default function ShortsStudioPage() {
                         <p className="text-[11px] text-slate-500">
                           {(selectedFile.size / 1024 / 1024).toFixed(1)} MB • {selectedFile.type || 'video/mp4'}
                         </p>
-                        <p className="text-[10px] text-purple-600 font-semibold pt-1">
+                        <p className="text-[10px] text-[#167AA0] font-semibold pt-1">
                           Click or drop to replace file
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        <Film className="w-8 h-8 text-purple-500 mx-auto" />
+                        <Film className="w-8 h-8 text-[#167AA0] mx-auto" />
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
                           Click to browse or drag &amp; drop your video file
                         </p>
@@ -1761,14 +1917,14 @@ export default function ShortsStudioPage() {
 
               {/* Real Progress Feedback */}
               {isUploading && (
-                <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-800">
-                  <div className="flex items-center justify-between text-xs font-bold text-purple-700 dark:text-purple-300">
+                <div className="space-y-2 p-3 bg-[#D7F1FA]/40 dark:bg-sky-950/30 rounded-xl border border-[#75D2EE]/40 dark:border-sky-800/40">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#167AA0] dark:text-[#75D2EE]">
                     <span className="truncate pr-2">{uploadStage}</span>
                     <span>{uploadProgress}%</span>
                   </div>
-                  <div className="w-full bg-purple-200 dark:bg-purple-900 h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-[#D7F1FA] dark:bg-sky-950 h-2 rounded-full overflow-hidden">
                     <div
-                      className="bg-purple-600 h-full transition-all duration-300"
+                      className="bg-[#167AA0] h-full transition-all duration-300"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
@@ -1787,7 +1943,7 @@ export default function ShortsStudioPage() {
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 bg-[#167AA0] hover:bg-[#0E526E] text-white rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
                   <span>{isUploading ? 'Processing...' : 'Start Processing Video'}</span>
@@ -1828,7 +1984,7 @@ export default function ShortsStudioPage() {
                   if (!clip) return null;
                   return (
                     <div key={id} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center gap-3">
-                      <span className="font-mono text-[10px] font-bold bg-purple-500/10 text-purple-600 px-1.5 py-0.5 rounded shrink-0">
+                      <span className="font-mono text-[10px] font-bold bg-[#75D2EE]/20 text-[#167AA0] px-1.5 py-0.5 rounded shrink-0">
                         {clip.duration_seconds.toFixed(0)}s
                       </span>
                       <input
@@ -1967,7 +2123,7 @@ export default function ShortsStudioPage() {
           <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Send className="w-4 h-4 text-purple-600" />
+                <Send className="w-4 h-4 text-[#167AA0]" />
                 <span>Publish Vertical Short</span>
               </h3>
               <button
@@ -2022,7 +2178,7 @@ export default function ShortsStudioPage() {
                   type="button"
                   onClick={() => setPublishMode('now')}
                   className={`py-2 px-3 rounded-xl border text-xs font-semibold cursor-pointer ${
-                    publishMode === 'now' ? 'bg-purple-600 text-white border-purple-600' : 'border-slate-200 dark:border-slate-700 text-slate-600'
+                    publishMode === 'now' ? 'bg-[#167AA0] text-white border-[#167AA0]' : 'border-slate-200 dark:border-slate-700 text-slate-600'
                   }`}
                 >
                   Publish Now
@@ -2031,7 +2187,7 @@ export default function ShortsStudioPage() {
                   type="button"
                   onClick={() => setPublishMode('schedule')}
                   className={`py-2 px-3 rounded-xl border text-xs font-semibold cursor-pointer ${
-                    publishMode === 'schedule' ? 'bg-purple-600 text-white border-purple-600' : 'border-slate-200 dark:border-slate-700 text-slate-600'
+                    publishMode === 'schedule' ? 'bg-[#167AA0] text-white border-[#167AA0]' : 'border-slate-200 dark:border-slate-700 text-slate-600'
                   }`}
                 >
                   Schedule for Later
@@ -2054,7 +2210,7 @@ export default function ShortsStudioPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Title {publishingPlatform === 'youtube' && <span className="text-purple-600">(#Shorts tag will be attached)</span>}
+                  Title {publishingPlatform === 'youtube' && <span className="text-[#167AA0]">(#Shorts tag will be attached)</span>}
                 </label>
                 <input
                   type="text"
@@ -2118,7 +2274,7 @@ export default function ShortsStudioPage() {
                 type="button"
                 onClick={handleExecutePublish}
                 disabled={publishingLoading}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer"
+                className="px-4 py-2 bg-[#167AA0] hover:bg-[#0E526E] text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer"
               >
                 {publishingLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 <span>

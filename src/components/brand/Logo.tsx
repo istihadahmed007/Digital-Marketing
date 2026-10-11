@@ -14,40 +14,60 @@ export function Logo({ className = '', size = 'md', showText = true }: LogoProps
   };
 
   const textSizes = {
-    sm: 'text-lg',
-    md: 'text-xl',
-    lg: 'text-2xl',
+    sm: 'text-xl',
+    md: 'text-2xl',
+    lg: 'text-3xl',
   };
 
   return (
     <div className={`flex items-center gap-2.5 font-bold tracking-tight select-none ${className}`}>
-      <div
-        className={`${iconSizes[size]} relative flex items-center justify-center rounded-xl bg-gradient-to-br from-[#75D2EE] via-[#167AA0] to-[#0E526E] shadow-md shadow-[#167AA0]/20 text-white border border-white/40`}
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="w-5/8 h-5/8 transform -rotate-6"
-        >
-          {/* Custom geometric Nexus mark */}
-          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-          <line x1="4" y1="22" x2="4" y2="15" />
+      {/* 3D Isometric Faceted Cube as seen in the reference */}
+      <div className={`${iconSizes[size]} relative flex items-center justify-center shrink-0`}>
+        <svg viewBox="0 0 36 36" className="w-full h-full drop-shadow-sm" fill="none">
+          <defs>
+            {/* Top illuminated face */}
+            <linearGradient id="cube-top-grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#A8EBFC" />
+              <stop offset="100%" stopColor="#75D2EE" />
+            </linearGradient>
+            {/* Left face */}
+            <linearGradient id="cube-left-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2596BE" />
+              <stop offset="100%" stopColor="#167AA0" />
+            </linearGradient>
+            {/* Right shaded face */}
+            <linearGradient id="cube-right-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#146A8C" />
+              <stop offset="100%" stopColor="#0E4A62" />
+            </linearGradient>
+          </defs>
+
+          {/* Top Face */}
+          <path d="M18 4L32 12L18 20L4 12L18 4Z" fill="url(#cube-top-grad)" />
+          {/* Inner Highlight on Top Face */}
+          <path d="M18 6L29 12L18 18L7 12L18 6Z" fill="#FFFFFF" fillOpacity="0.25" />
+
+          {/* Left Face */}
+          <path d="M4 12L18 20V33L4 25V12Z" fill="url(#cube-left-grad)" />
+
+          {/* Right Face */}
+          <path d="M18 20L32 12V25L18 33V20Z" fill="url(#cube-right-grad)" />
+
+          {/* Precision Edges */}
+          <path
+            d="M18 4L32 12M18 4L4 12M18 4V20M32 12V25M4 12V25M18 20L32 12M18 20L4 12M18 20V33M4 25L18 33L32 25"
+            stroke="#FFFFFF"
+            strokeWidth="0.8"
+            strokeOpacity="0.6"
+            strokeLinejoin="round"
+          />
         </svg>
-        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#75D2EE] ring-2 ring-white dark:ring-slate-900 shadow-xs" />
       </div>
+
       {showText && (
-        <div className="flex flex-col">
-          <span className={`${textSizes[size]} leading-none font-black tracking-tight text-[#17364A] dark:text-white`}>
-            Nexus<span className="text-[#167AA0] dark:text-[#75D2EE]">Mark</span>
-          </span>
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[#526D7D] dark:text-slate-400 mt-0.5">
-            Marketing Workspace
-          </span>
-        </div>
+        <span className={`${textSizes[size]} leading-none font-extrabold tracking-tight text-[#17364A] dark:text-white`}>
+          Digi
+        </span>
       )}
     </div>
   );

@@ -93,7 +93,7 @@ export function RoadmapModuleView({
       </div>
 
       {/* Phase 1 Verification Callout */}
-      <div className="p-5 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/60 to-purple-50/60 dark:from-indigo-950/20 dark:to-purple-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-r from-[#D7F1FA]/40 to-[#EDF9FD]/60 dark:from-sky-950/20 dark:to-slate-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
             Phase 1 Functional CRM is fully operational

@@ -67,7 +67,7 @@ export default async function ContactDetailPage({
         <div className="space-y-6">
           <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-5">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#167AA0] to-[#75D2EE] flex items-center justify-center text-white font-bold text-lg shadow-sm">
                 {contact.first_name.charAt(0)}
               </div>
               <div>

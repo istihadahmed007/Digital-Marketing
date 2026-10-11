@@ -109,7 +109,7 @@ export function AiAssistantModal({ isOpen, onClose }: AiAssistantModalProps) {
         {/* Modal Header */}
         <div className="p-4 px-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#167AA0] to-[#75D2EE] text-white flex items-center justify-center shadow-xs">
               <Bot className="w-4 h-4" />
             </div>
             <div>

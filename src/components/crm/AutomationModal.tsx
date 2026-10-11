@@ -325,7 +325,7 @@ export function AutomationModal({
                   onClick={() => handleAddStep('add_tag')}
                   className="px-2.5 py-1 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 flex items-center gap-1 transition"
                 >
-                  <Tag className="w-3 h-3 text-purple-500" /> Add Tag
+                  <Tag className="w-3 h-3 text-[#167AA0]" /> Add Tag
                 </button>
                 <button
                   type="button"

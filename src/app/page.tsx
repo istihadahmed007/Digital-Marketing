@@ -94,7 +94,7 @@ export default function HomePage() {
               href="/shorts"
               className="flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl glass-panel bg-white/70 hover:bg-white text-[#17364A] dark:text-white border border-[#75D2EE]/50 transition-all duration-140 shadow-xs preview-tile-3d"
             >
-              <Video className="w-4 h-4 text-purple-600" />
+              <Video className="w-4 h-4 text-[#167AA0]" />
               <span>Make Video Shorts</span>
             </Link>
 
@@ -228,7 +228,7 @@ export default function HomePage() {
 
             {/* Feature 2: Shorts Studio */}
             <div id="shorts" className="glass-panel p-6 rounded-3xl border border-[#75D2EE]/45 space-y-4 preview-tile-3d">
-              <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-xl bg-[#D7F1FA] dark:bg-sky-950 text-[#167AA0] dark:text-[#75D2EE] flex items-center justify-center font-bold">
                 <Video className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-[#17364A] dark:text-white">
@@ -239,7 +239,7 @@ export default function HomePage() {
               </p>
               <Link
                 href="/shorts"
-                className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1 hover:underline"
+                className="text-xs font-bold text-[#167AA0] dark:text-[#75D2EE] flex items-center gap-1 hover:underline"
               >
                 <span>Open Video Studio</span>
                 <ArrowRight className="w-3.5 h-3.5" />

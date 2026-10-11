@@ -133,9 +133,9 @@ export default function JourneyPage() {
 
           <Link
             href="/shorts"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl glass-panel text-purple-700 dark:text-purple-300 hover:bg-purple-50 transition-all shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl glass-panel text-[#167AA0] dark:text-[#75D2EE] hover:bg-[#D7F1FA]/40 transition-all shadow-xs"
           >
-            <Video className="w-3.5 h-3.5 text-purple-600" />
+            <Video className="w-3.5 h-3.5 text-[#167AA0]" />
             <span>Make Shorts</span>
           </Link>
 

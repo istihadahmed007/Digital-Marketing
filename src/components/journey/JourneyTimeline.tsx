@@ -29,7 +29,7 @@ export function JourneyTimeline({
   const getChannelIcon = (channel: string) => {
     switch (channel) {
       case 'video':
-        return <Video className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />;
+        return <Video className="w-3.5 h-3.5 text-[#167AA0] dark:text-[#75D2EE]" />;
       case 'email':
         return <Mail className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />;
       case 'seo':

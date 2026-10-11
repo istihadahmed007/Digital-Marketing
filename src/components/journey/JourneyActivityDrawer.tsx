@@ -35,7 +35,7 @@ export function JourneyActivityDrawer({
   const getChannelIcon = () => {
     switch (activity.channel) {
       case 'video':
-        return <Video className="w-4 h-4 text-purple-600" />;
+        return <Video className="w-4 h-4 text-[#167AA0]" />;
       case 'email':
         return <Mail className="w-4 h-4 text-indigo-600" />;
       case 'seo':

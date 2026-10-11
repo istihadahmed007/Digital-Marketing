@@ -10,23 +10,18 @@ import { createClient } from '@/lib/supabase/client';
 import { AiAssistantModal } from '@/components/ai/AiAssistantModal';
 import {
   Home,
-  Users,
-  Building2,
-  TrendingUp,
-  FileText,
-  Mail,
+  Megaphone,
   Video,
-  GitFork,
+  Search,
+  Users,
+  Zap,
+  BarChart2,
   Plug,
   Settings,
-  LogOut,
-  ChevronDown,
-  Sparkles,
-  Compass,
-  Globe,
-  UploadCloud,
   Menu,
   X,
+  Sparkles,
+  LogOut,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -54,248 +49,199 @@ export function Sidebar({
     router.refresh();
   };
 
-  const navLinks = [
+  // Nav links exactly mirroring the reference design:
+  // Overview, Campaigns, Shorts Studio, SEO, Leads, Automations, Analytics
+  const mainNavItems = [
     {
-      group: 'Overview',
-      items: [
-        {
-          label: 'Overview',
-          href: '/dashboard',
-          icon: Home,
-          active: pathname === '/dashboard',
-        },
-      ],
+      label: 'Overview',
+      href: '/dashboard',
+      icon: Home,
+      active: pathname === '/dashboard',
     },
     {
-      group: 'Campaigns & Journey',
-      items: [
-        {
-          label: 'Campaign Journey',
-          href: '/campaigns/journey',
-          icon: Compass,
-          active: pathname.startsWith('/campaigns/journey'),
-        },
-        {
-          label: 'Email Campaigns',
-          href: '/campaigns',
-          icon: Mail,
-          active: pathname === '/campaigns',
-        },
-      ],
+      label: 'Campaigns',
+      href: '/campaigns/journey',
+      icon: Megaphone,
+      active: pathname.startsWith('/campaigns'),
     },
     {
-      group: 'Content Studio',
-      items: [
-        {
-          label: 'Video Studio',
-          href: '/shorts',
-          icon: Video,
-          active: pathname.startsWith('/shorts'),
-          badge: 'Shorts',
-        },
-        {
-          label: 'SEO Analytics',
-          href: '/seo/analytics',
-          icon: Globe,
-          active: pathname.startsWith('/seo'),
-        },
-      ],
+      label: 'Shorts Studio',
+      href: '/shorts',
+      icon: Video,
+      active: pathname.startsWith('/shorts'),
     },
     {
-      group: 'Leads & CRM',
-      items: [
-        {
-          label: 'Contacts',
-          href: '/contacts',
-          icon: Users,
-          active: pathname.startsWith('/contacts'),
-        },
-        {
-          label: 'Companies',
-          href: '/companies',
-          icon: Building2,
-          active: pathname.startsWith('/companies'),
-        },
-        {
-          label: 'Deals & Pipeline',
-          href: '/deals',
-          icon: TrendingUp,
-          active: pathname.startsWith('/deals'),
-        },
-        {
-          label: 'Inbound Forms',
-          href: '/forms',
-          icon: FileText,
-          active: pathname.startsWith('/forms'),
-        },
-      ],
+      label: 'SEO',
+      href: '/seo/analytics',
+      icon: Search,
+      active: pathname.startsWith('/seo'),
     },
     {
-      group: 'Automations',
-      items: [
-        {
-          label: 'Workflows & Follow-ups',
-          href: '/automations',
-          icon: GitFork,
-          active: pathname.startsWith('/automations'),
-        },
-      ],
+      label: 'Leads',
+      href: '/contacts',
+      icon: Users,
+      active:
+        pathname.startsWith('/contacts') ||
+        pathname.startsWith('/deals') ||
+        pathname.startsWith('/companies') ||
+        pathname.startsWith('/forms') ||
+        pathname.startsWith('/tasks'),
     },
     {
-      group: 'System & Apps',
-      items: [
-        {
-          label: 'Connected Apps',
-          href: '/integrations',
-          icon: Plug,
-          active: pathname.startsWith('/integrations'),
-        },
-        {
-          label: 'Workspace Settings',
-          href: '/settings/workspace',
-          icon: Settings,
-          active: pathname.startsWith('/settings'),
-        },
-      ],
+      label: 'Automations',
+      href: '/automations',
+      icon: Zap,
+      active: pathname.startsWith('/automations') || pathname.startsWith('/ai-tools'),
+    },
+    {
+      label: 'Analytics',
+      href: '/seo/analytics',
+      icon: BarChart2,
+      active: pathname === '/seo/analytics',
+    },
+  ];
+
+  const bottomNavItems = [
+    {
+      label: 'Integrations',
+      href: '/integrations',
+      icon: Plug,
+      active: pathname.startsWith('/integrations'),
+    },
+    {
+      label: 'Settings',
+      href: '/settings/workspace',
+      icon: Settings,
+      active: pathname.startsWith('/settings'),
     },
   ];
 
   const renderNavContent = () => (
-    <>
-      {/* Top Brand Logo */}
-      <div className="p-4 md:p-5 border-b border-[#75D2EE]/30 dark:border-sky-900/60 flex items-center justify-between">
-        <Link
-          href="/dashboard"
-          onClick={() => setMobileMenuOpen(false)}
-          className="transition-opacity hover:opacity-90"
-        >
-          <Logo size="md" />
-        </Link>
-        {/* Mobile close button */}
-        <button
-          onClick={() => setMobileMenuOpen(false)}
-          className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="flex flex-col h-full justify-between p-4">
+      <div>
+        {/* Top Brand Logo ("Digi" with 3D faceted cube) */}
+        <div className="px-3 pt-2 pb-5 flex items-center justify-between">
+          <Link
+            href="/dashboard"
+            onClick={() => setMobileMenuOpen(false)}
+            className="transition-opacity hover:opacity-90 flex items-center gap-2"
+          >
+            <Logo size="md" />
+          </Link>
+          {/* Mobile close button */}
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="md:hidden p-1.5 rounded-lg text-[#526D7D] hover:text-[#17364A] cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Workspace Switcher Drawer */}
+        <div className="mb-4">
+          <WorkspaceSwitcher
+            workspaces={workspaces}
+            currentWorkspaceId={currentWorkspaceId}
+          />
+        </div>
+
+        {/* Main Navigation Items */}
+        <nav className="space-y-1">
+          {mainNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.active;
+
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`group flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-160 cursor-pointer ${
+                  isActive
+                    ? 'bg-gradient-to-r from-[#75D2EE]/45 via-[#75D2EE]/30 to-[#167AA0]/20 text-[#17364A] font-bold border border-[#75D2EE]/80 shadow-[0_4px_16px_rgba(117,210,238,0.3),inset_0_1px_1px_rgba(255,255,255,0.85)]'
+                    : 'text-[#526D7D] dark:text-slate-300 hover:text-[#17364A] dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/40'
+                }`}
+              >
+                <div
+                  className={`p-1.5 rounded-xl flex items-center justify-center transition-colors ${
+                    isActive
+                      ? 'bg-white/85 text-[#167AA0] shadow-2xs'
+                      : 'text-[#526D7D] group-hover:text-[#167AA0] dark:text-slate-400 dark:group-hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                </div>
+                <span className="truncate">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Workspace Switcher */}
-      <div className="p-3 border-b border-[#75D2EE]/25 dark:border-sky-900/60 bg-[#D7F1FA]/20 dark:bg-slate-900/40">
-        <WorkspaceSwitcher
-          workspaces={workspaces}
-          currentWorkspaceId={currentWorkspaceId}
-        />
-      </div>
+      {/* Bottom Section: Integrations & Settings */}
+      <div className="pt-4 border-t border-[#75D2EE]/25 space-y-1">
+        {bottomNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = item.active;
 
-      {/* AI Assistant Contextual Button */}
-      <div className="px-3 pt-3">
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-160 cursor-pointer ${
+                isActive
+                  ? 'bg-gradient-to-r from-[#75D2EE]/45 via-[#75D2EE]/30 to-[#167AA0]/20 text-[#17364A] font-bold border border-[#75D2EE]/80 shadow-xs'
+                  : 'text-[#526D7D] dark:text-slate-300 hover:text-[#17364A] dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/40'
+              }`}
+            >
+              <div
+                className={`p-1.5 rounded-xl flex items-center justify-center transition-colors ${
+                  isActive
+                    ? 'bg-white/85 text-[#167AA0] shadow-2xs'
+                    : 'text-[#526D7D] group-hover:text-[#167AA0] dark:text-slate-400 dark:group-hover:text-white'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+
+        {/* AI Assistant Contextual Button */}
         <button
           onClick={() => {
             setShowAiModal(true);
             setMobileMenuOpen(false);
           }}
-          className="flex items-center justify-center gap-2 w-full py-2 px-3 text-xs font-bold rounded-xl bg-[#167AA0] hover:bg-[#126383] text-white transition-all shadow-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#75D2EE]"
+          className="mt-2 flex items-center justify-center gap-2 w-full py-2 px-3 text-xs font-bold rounded-2xl bg-[#167AA0] hover:bg-[#0E526E] text-white shadow-xs glass-button-press transition-all cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-[#75D2EE]" />
-          <span>AI Assistant</span>
+          <span>AI Growth Hub</span>
         </button>
       </div>
-
-      {/* Grouped Navigation Links */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
-        {navLinks.map((group) => (
-          <div key={group.group} className="space-y-1">
-            <div className="px-2.5 py-1 text-[10px] font-bold text-[#526D7D] dark:text-slate-400 uppercase tracking-wider">
-              {group.group}
-            </div>
-            <div className="space-y-0.5">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all duration-140 ${
-                      item.active
-                        ? 'bg-[#167AA0] text-white shadow-xs font-bold'
-                        : 'text-[#526D7D] dark:text-slate-300 hover:text-[#17364A] dark:hover:text-white hover:bg-[#D7F1FA]/40 dark:hover:bg-slate-800/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon
-                        className={`w-4 h-4 shrink-0 ${
-                          item.active ? 'text-white' : 'text-[#167AA0] dark:text-sky-400'
-                        }`}
-                      />
-                      <span className="truncate">{item.label}</span>
-                    </div>
-                    {item.badge && (
-                      <span
-                        className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${
-                          item.active
-                            ? 'bg-white/20 text-white'
-                            : 'bg-[#D7F1FA] text-[#167AA0] dark:bg-sky-950 dark:text-sky-300'
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* User Profile & Sign Out Footer */}
-      <div className="p-3 border-t border-sky-100 dark:border-sky-900/60 bg-sky-50/40 dark:bg-slate-900/40">
-        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-sky-200/70 dark:border-sky-800">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-              {userEmail ? userEmail.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                {userEmail || 'Active User'}
-              </p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                Connected
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleSignOut}
-            title="Sign Out"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </>
+    </div>
   );
 
   return (
     <>
       {/* Mobile Top Header Bar (< md) */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 glass-header w-full shrink-0 border-b border-[#75D2EE]/35">
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white/70 backdrop-blur-xl border-b border-[#75D2EE]/35 w-full shrink-0">
         <Link href="/dashboard">
           <Logo size="sm" />
         </Link>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowAiModal(true)}
-            className="p-1.5 rounded-lg bg-[#D7F1FA] dark:bg-sky-950 text-[#167AA0] dark:text-sky-300 cursor-pointer"
+            className="p-1.5 rounded-xl bg-[#D7F1FA] text-[#167AA0] cursor-pointer"
             title="AI Assistant"
           >
             <Sparkles className="w-4 h-4" />
           </button>
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="p-1.5 rounded-lg bg-white/90 dark:bg-slate-800 border border-[#75D2EE]/40 dark:border-sky-700 text-[#17364A] dark:text-slate-200 cursor-pointer"
+            className="p-1.5 rounded-xl bg-white/90 border border-[#75D2EE]/40 text-[#17364A] cursor-pointer"
             aria-label="Open Navigation Menu"
           >
             <Menu className="w-5 h-5" />
@@ -303,19 +249,21 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Desktop Persistent Sidebar (md and up) */}
-      <aside className="hidden md:flex md:w-64 glass-sidebar flex-col h-screen shrink-0 select-none border-r border-[#75D2EE]/35">
-        {renderNavContent()}
+      {/* Desktop Persistent Floating Sidebar (md and up) */}
+      <aside className="hidden md:flex md:w-60 flex-col h-full shrink-0 select-none p-3 pl-4">
+        <div className="w-full h-full rounded-[26px] bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/80 dark:border-sky-800/80 shadow-[0_10px_35px_rgba(117,210,238,0.15)] overflow-hidden flex flex-col justify-between">
+          {renderNavContent()}
+        </div>
       </aside>
 
       {/* Mobile Slide-Over Drawer Modal */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="relative w-72 max-w-[85vw] glass-sidebar bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl h-full flex flex-col z-10 shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="relative w-72 max-w-[85vw] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl h-full flex flex-col z-10 shadow-2xl p-2 animate-in slide-in-from-left duration-200">
             {renderNavContent()}
           </div>
         </div>

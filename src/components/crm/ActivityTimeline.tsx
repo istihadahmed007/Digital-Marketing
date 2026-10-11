@@ -80,7 +80,7 @@ export function ActivityTimeline({
       case 'call':
         return <Phone className="w-4 h-4 text-blue-500" />;
       case 'meeting':
-        return <Calendar className="w-4 h-4 text-purple-500" />;
+        return <Calendar className="w-4 h-4 text-[#167AA0]" />;
       case 'email':
         return <Mail className="w-4 h-4 text-emerald-500" />;
       case 'stage_change':
