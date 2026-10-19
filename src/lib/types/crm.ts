@@ -326,7 +326,7 @@ export interface AutomationLog {
   workflow?: AutomationWorkflow | null;
 }
 
-export type IntegrationProvider = 'mautic' | 'sendgrid' | 'resend' | 'slack' | 'webhook' | 'google_calendar' | 'smmfollows';
+export type IntegrationProvider = 'mautic' | 'sendgrid' | 'resend' | 'slack' | 'webhook' | 'google_calendar' | 'smmfollows' | 'paymently';
 
 export interface Integration {
   id: string;

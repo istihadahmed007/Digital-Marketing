@@ -12,7 +12,10 @@ import {
   Settings,
   ShieldCheck,
   RefreshCw,
+  CreditCard,
+  ExternalLink,
 } from 'lucide-react';
+import { DEFAULT_PAYMENTLY_URL } from '@/lib/constants/payments';
 import { getWorkspaceWalletAction, getSmmSettingsAction } from '@/lib/actions/social-marketing';
 import { WorkspaceWallet, SmmSettings } from '@/lib/types/social-marketing';
 
@@ -99,6 +102,19 @@ export default function SocialMarketingLayout({
                 </p>
               </div>
             </Link>
+
+            {/* Quick Online Paymently Top Up (BDT) */}
+            <a
+              href={DEFAULT_PAYMENTLY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-bold transition-all shadow-xs cursor-pointer"
+              title="Deposit funds in BDT via Paymently"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Deposit BDT</span>
+              <ExternalLink className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+            </a>
 
             {/* Provider Connection Pill */}
             <div

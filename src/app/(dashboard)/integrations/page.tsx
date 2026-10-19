@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Mail,
   Share2,
+  CreditCard,
   X,
   Check,
 } from 'lucide-react';
@@ -126,6 +127,20 @@ export default function IntegrationsPage() {
       icon: Share2,
       fields: [
         { key: 'apiKey', label: 'SMMFollows API Key', placeholder: 'Enter API key...', type: 'password' },
+      ],
+    },
+    {
+      id: 'paymently',
+      name: 'Paymently Gateway (BDT)',
+      description: 'Accept instant online wallet deposits and order payments in Bangladeshi Taka via bKash, Nagad, Rocket, and Cards.',
+      category: 'Billing & Payments',
+      icon: CreditCard,
+      fields: [
+        {
+          key: 'paymentUrl',
+          label: 'Paymently Checkout URL',
+          placeholder: 'https://vartualtutor.paymently.io/paymentlink/default/BDT',
+        },
       ],
     },
   ];

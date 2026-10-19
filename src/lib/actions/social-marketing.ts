@@ -1388,3 +1388,55 @@ export async function adminDepositFundsAction(
     return { success: false, error: err.message };
   }
 }
+
+export async function submitPaymentlyDepositAction(
+  requestedWorkspaceId: string,
+  params: {
+    amountUsd: number;
+    amountBdt?: number;
+    trxId: string;
+    paymentMethod?: string;
+    notes?: string;
+  }
+): Promise<{ success: boolean; newBalance?: number; transactionId?: string; error?: string }> {
+  const auth = await getAuthorizedWorkspace({ requestedWorkspaceId });
+  const workspaceId = auth.workspaceId;
+  const userId = auth.user.id;
+
+  if (!params.amountUsd || params.amountUsd <= 0) {
+    return { success: false, error: 'Deposit amount must be greater than $0.00 USD.' };
+  }
+
+  const cleanTrx = (params.trxId || '').trim();
+  if (!cleanTrx) {
+    return { success: false, error: 'Paymently Transaction ID (TrxID) or payment reference is required.' };
+  }
+
+  const supabase = (await createClient()) || createAdminClient();
+
+  const methodLabel = params.paymentMethod ? ` via ${params.paymentMethod}` : '';
+  const bdtLabel = params.amountBdt ? ` (৳${params.amountBdt.toLocaleString()} BDT)` : '';
+  const memo = `Paymently Deposit${bdtLabel}${methodLabel} - TrxID: ${cleanTrx}${params.notes ? ` - ${params.notes}` : ''}`;
+
+  try {
+    const result = await depositWalletFunds({
+      workspaceId,
+      amount: Math.round(params.amountUsd * 100) / 100,
+      description: memo,
+      referenceId: cleanTrx,
+      userId,
+      supabase,
+    });
+
+    safeRevalidate('/social-marketing/wallet');
+    safeRevalidate('/social-marketing/new-order');
+    safeRevalidate('/social-marketing');
+    return {
+      success: true,
+      newBalance: result.newBalance,
+      transactionId: result.transactionId,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}

@@ -16,7 +16,10 @@ import {
   Loader2,
   Layers,
   Info,
+  ExternalLink,
+  CreditCard,
 } from 'lucide-react';
+import { DEFAULT_PAYMENTLY_URL } from '@/lib/constants/payments';
 import {
   getSmmServicesAction,
   createSmmOrderAction,
@@ -463,16 +466,28 @@ function NewOrderForm() {
             </div>
 
             {hasInsufficientBalance && (
-              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs space-y-2">
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs space-y-2.5">
                 <p className="text-rose-700 dark:text-rose-300 font-semibold">
                   Insufficient funds in workspace wallet.
                 </p>
-                <Link
-                  href="/social-marketing/wallet"
-                  className="block text-center py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition-all"
-                >
-                  Top Up Wallet
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <a
+                    href={DEFAULT_PAYMENTLY_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-xs"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Pay with Paymently (BDT)</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <Link
+                    href="/social-marketing/wallet"
+                    className="block text-center py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition-all"
+                  >
+                    Top Up Wallet Ledger
+                  </Link>
+                </div>
               </div>
             )}
           </div>

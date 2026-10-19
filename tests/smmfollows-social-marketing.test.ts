@@ -25,7 +25,14 @@ import {
   testSmmConnectionAction,
   getSmmProviderBalanceAction,
   getSmmServicesAction,
+  submitPaymentlyDepositAction,
 } from '../src/lib/actions/social-marketing';
+import {
+  DEFAULT_PAYMENTLY_URL,
+  DEFAULT_BDT_PER_USD,
+  convertBdtToUsd,
+  convertUsdToBdt,
+} from '../src/lib/constants/payments';
 import {
   initTestStore,
   resetTestStore,
@@ -809,6 +816,79 @@ describe('SMMFollows Social Marketing Module & Wallet Engine', () => {
       const masked = maskSecret(plaintext);
       expect(masked).toContain('••••••••');
       expect(masked).not.toBe(plaintext);
+    });
+  });
+
+  // =========================================================================
+  // 7. Paymently Gateway Integration & BDT Wallet Deposits
+  // =========================================================================
+  describe('7. Paymently Gateway Integration & BDT Currency Conversions', () => {
+    it('provides the correct default Paymently BDT checkout link and exchange rate', () => {
+      expect(DEFAULT_PAYMENTLY_URL).toBe('https://vartualtutor.paymently.io/paymentlink/default/BDT');
+      expect(DEFAULT_BDT_PER_USD).toBe(125);
+    });
+
+    it('accurately converts BDT to USD and USD to BDT using exchange rate', () => {
+      const bdtAmount = 1250;
+      const usdAmount = convertBdtToUsd(bdtAmount, 125);
+      expect(usdAmount).toBe(10.0);
+
+      const convertedBdt = convertUsdToBdt(10.0, 125);
+      expect(convertedBdt).toBe(1250);
+
+      // Edge cases
+      expect(convertBdtToUsd(0)).toBe(0);
+      expect(convertUsdToBdt(0)).toBe(0);
+    });
+
+    it('submits a Paymently deposit and credits workspace wallet balance', async () => {
+      const store = getTestStore()!;
+      store.wallets.set(wsAlpha, {
+        id: `wallet-${wsAlpha}`,
+        workspace_id: wsAlpha,
+        balance: 5.0,
+        currency: 'USD',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      const res = await submitPaymentlyDepositAction(wsAlpha, {
+        amountUsd: 20.0,
+        amountBdt: 2500,
+        trxId: 'TRX-PAYMENTLY-9988',
+        paymentMethod: 'bKash',
+        notes: 'Paid via bKash 01700000000',
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.newBalance).toBe(25.0);
+
+      const wallet = store.wallets.get(wsAlpha);
+      expect(wallet?.balance).toBe(25.0);
+
+      const txs = store.transactions.get(wsAlpha);
+      expect(txs?.length).toBeGreaterThanOrEqual(1);
+      const latestTx = txs![txs!.length - 1];
+      expect(latestTx.type).toBe('deposit');
+      expect(latestTx.amount).toBe(20.0);
+      expect(latestTx.description).toContain('Paymently Deposit (৳2,500 BDT) via bKash');
+      expect(latestTx.reference_id).toBe('TRX-PAYMENTLY-9988');
+    });
+
+    it('rejects Paymently deposits with missing TrxID or invalid amount', async () => {
+      const resNoTrx = await submitPaymentlyDepositAction(wsAlpha, {
+        amountUsd: 10.0,
+        trxId: '',
+      });
+      expect(resNoTrx.success).toBe(false);
+      expect(resNoTrx.error).toMatch(/Transaction ID.*is required/i);
+
+      const resZeroAmount = await submitPaymentlyDepositAction(wsAlpha, {
+        amountUsd: 0,
+        trxId: 'TRX-1234',
+      });
+      expect(resZeroAmount.success).toBe(false);
+      expect(resZeroAmount.error).toMatch(/greater than \$0\.00/i);
     });
   });
 });
