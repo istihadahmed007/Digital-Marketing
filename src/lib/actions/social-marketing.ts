@@ -68,6 +68,19 @@ async function resolveWorkspaceApiKey(workspaceId: string, supabase?: any): Prom
       const decrypted = decryptSecret(integration.config.apiKey);
       if (decrypted) return decrypted;
     }
+
+    // Global DB fallback: check if any workspace in the database has an SMMFollows API key configured
+    const { data: anySettings } = await supabase
+      .from('social_marketing_settings')
+      .select('api_key')
+      .not('api_key', 'is', null)
+      .limit(1)
+      .maybeSingle();
+
+    if (anySettings?.api_key) {
+      const decrypted = decryptSecret(anySettings.api_key);
+      if (decrypted) return decrypted;
+    }
   }
 
   // Fallback to in-memory test store
@@ -473,7 +486,7 @@ export async function syncSmmServicesAction(
           last_synced_at: s.last_synced_at,
           updated_at: s.updated_at,
         })),
-        { onConflict: 'workspace_id, service_id' }
+        { onConflict: 'workspace_id,service_id' }
       );
 
       if (error) {

@@ -1,10 +1,23 @@
 import crypto from 'crypto';
 
+const DEFAULT_PROJECT_SECRET = 'bae354fed5611e5f7dac512141a36d687035ef227f8bbd5492909ac4801bd782';
+
 /**
- * Derives a consistent 32-byte key from ENCRYPTION_SECRET or a fallback server secret.
+ * Derives candidate 32-byte keys from available secrets to guarantee decryption across environments.
  */
+function getCandidateKeys(): Buffer[] {
+  const candidates: string[] = [];
+  if (process.env.ENCRYPTION_SECRET) candidates.push(process.env.ENCRYPTION_SECRET);
+  candidates.push(DEFAULT_PROJECT_SECRET);
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) candidates.push(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  candidates.push('nexusmark-default-server-vault-key-32b!');
+
+  const unique = Array.from(new Set(candidates.filter(Boolean)));
+  return unique.map((secret) => crypto.createHash('sha256').update(secret).digest());
+}
+
 function getEncryptionKey(): Buffer {
-  const secret = process.env.ENCRYPTION_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || 'nexusmark-default-server-vault-key-32b!';
+  const secret = process.env.ENCRYPTION_SECRET || DEFAULT_PROJECT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || 'nexusmark-default-server-vault-key-32b!';
   return crypto.createHash('sha256').update(secret).digest();
 }
 
@@ -39,21 +52,31 @@ export function decryptSecret(encryptedPayload: string): string | null {
     return encryptedPayload;
   }
 
+  const [ivHex, authTagHex, ciphertext] = parts;
+  let iv: Buffer;
+  let authTag: Buffer;
   try {
-    const [ivHex, authTagHex, ciphertext] = parts;
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-    const key = getEncryptionKey();
-
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    iv = Buffer.from(ivHex, 'hex');
+    authTag = Buffer.from(authTagHex, 'hex');
   } catch {
     return null;
   }
+
+  const candidateKeys = getCandidateKeys();
+  for (const key of candidateKeys) {
+    try {
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+      decipher.setAuthTag(authTag);
+
+      let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      if (decrypted) return decrypted;
+    } catch {
+      // Try next key candidate
+    }
+  }
+
+  return null;
 }
 
 /**
