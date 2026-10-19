@@ -12,6 +12,7 @@ import {
   Home,
   Megaphone,
   Video,
+  Share2,
   Search,
   Users,
   Zap,
@@ -50,7 +51,7 @@ export function Sidebar({
   };
 
   // Nav links exactly mirroring the reference design:
-  // Overview, Campaigns, Shorts Studio, SEO, Leads, Automations, Analytics
+  // Overview, Campaigns, Shorts Studio, Social Marketing, SEO, Leads, Automations, Analytics
   const mainNavItems = [
     {
       label: 'Overview',
@@ -69,6 +70,12 @@ export function Sidebar({
       href: '/shorts',
       icon: Video,
       active: pathname.startsWith('/shorts'),
+    },
+    {
+      label: 'Social Marketing',
+      href: '/social-marketing',
+      icon: Share2,
+      active: pathname.startsWith('/social-marketing'),
     },
     {
       label: 'SEO',

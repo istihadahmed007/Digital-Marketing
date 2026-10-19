@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Logo } from '@/components/brand/Logo';
 import { Loader2, ArrowRight, AlertCircle } from 'lucide-react';
+import { LiquidBackground } from '@/components/layout/LiquidBackground';
 
 function LoginForm() {
   const router = useRouter();
@@ -118,8 +119,9 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-[#F8FDFF] via-[#EDF9FD] to-[#D7F1FA] text-[#17364A]">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="min-h-screen relative flex flex-col justify-center items-center p-4 bg-gradient-to-br from-[#F8FDFF] via-[#EDF9FD] to-[#D7F1FA] text-[#17364A] overflow-hidden">
+      <LiquidBackground />
+      <div className="w-full max-w-sm space-y-6 relative z-10">
         <div className="text-center">
           <div className="flex justify-center mb-3">
             <Logo size="lg" />

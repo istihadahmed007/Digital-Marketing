@@ -15,10 +15,12 @@ import {
   Clock,
   TrendingUp,
 } from 'lucide-react';
+import { LiquidBackground } from '@/components/layout/LiquidBackground';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen text-[#17364A] dark:text-[#F0F9FF] flex flex-col font-sans selection:bg-[#167AA0] selection:text-white">
+    <div className="min-h-screen relative overflow-hidden text-[#17364A] dark:text-[#F0F9FF] flex flex-col font-sans selection:bg-[#167AA0] selection:text-white">
+      <LiquidBackground />
       {/* Top Navbar */}
       <header className="glass-header sticky top-0 z-40 border-b border-[#75D2EE]/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">

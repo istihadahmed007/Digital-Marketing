@@ -21,6 +21,7 @@ import {
   ExternalLink,
   MessageSquare,
   Mail,
+  Share2,
   X,
   Check,
 } from 'lucide-react';
@@ -115,6 +116,16 @@ export default function IntegrationsPage() {
       fields: [
         { key: 'webhookUrl', label: 'Incoming Slack Webhook URL', placeholder: 'https://hooks.slack.com/services/...' },
         { key: 'channelName', label: 'Channel Name', placeholder: '#growth-wins' },
+      ],
+    },
+    {
+      id: 'smmfollows',
+      name: 'SMMFollows Social Marketing',
+      description: 'Automated social media growth services, verified order fulfillment, and live tracking.',
+      category: 'Social Marketing',
+      icon: Share2,
+      fields: [
+        { key: 'apiKey', label: 'SMMFollows API Key', placeholder: 'Enter API key...', type: 'password' },
       ],
     },
   ];
