@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import {
-  LucideIcon,
   Building2,
   TrendingUp,
   Clock,
@@ -15,6 +14,8 @@ import {
   Inbox,
   FolderOpen,
 } from 'lucide-react';
+
+type LucideIcon = React.ComponentType<{ className?: string; size?: number | string }>;
 
 const ICON_MAP: Record<string, LucideIcon> = {
   building: Building2,

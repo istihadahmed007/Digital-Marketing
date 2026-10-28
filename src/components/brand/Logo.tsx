@@ -65,9 +65,14 @@ export function Logo({ className = '', size = 'md', showText = true }: LogoProps
       </div>
 
       {showText && (
-        <span className={`${textSizes[size]} leading-none font-extrabold tracking-tight text-[#17364A] dark:text-white`}>
-          Digi
-        </span>
+        <div className="flex items-center gap-1.5 leading-none">
+          <span className={`${textSizes[size]} font-extrabold tracking-tight text-[#17364A] dark:text-white`}>
+            GrowthPilot
+          </span>
+          <span className="text-[10px] uppercase font-black px-1.5 py-0.5 rounded-md bg-[#167AA0] text-white tracking-widest shadow-2xs">
+            AI
+          </span>
+        </div>
       )}
     </div>
   );

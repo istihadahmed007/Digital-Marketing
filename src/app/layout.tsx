@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NexusMark — AI Growth CRM & Digital Marketing Platform",
+  title: "GrowthPilot AI — Website & Social Media Marketing Automation Platform",
   description:
-    "Next-generation digital marketing platform with CRM, lead management, sales pipeline, CSV import, activity tracking, and PostgreSQL RLS multi-tenant security.",
+    "Professional, production-ready website and social media marketing automation platform with bilingual AI Content Studio, verified CRM pipelines, automated workflows, and search intelligence.",
 };
 
 export default function RootLayout({

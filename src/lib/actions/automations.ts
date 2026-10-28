@@ -16,6 +16,7 @@ import { validateWorkflowGraph } from '@/lib/automations/graph-validator';
 import { executeWorkflowGraph, ExecutionResult } from '@/lib/automations/execution-engine';
 import { ResendEmailProvider } from '@/lib/integrations/email/resend';
 import { decryptSecret } from '@/lib/security/crypto';
+import { seedGrowthPilotWorkflows } from '@/lib/automations/seed-workflows';
 import crypto from 'crypto';
 
 const LEGACY_ALLOWED_TRIGGERS = new Set<string>([
@@ -122,12 +123,38 @@ export async function getWorkflows(workspaceId: string): Promise<AutomationWorkf
     error = fallback.error;
   }
 
+  if (!error && data && data.length === 0) {
+    try {
+      await seedGrowthPilotWorkflows(workspaceId);
+      const reloaded = await supabase
+        .from('automation_workflows')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: true });
+      if (reloaded.data && reloaded.data.length > 0) {
+        data = reloaded.data;
+      }
+    } catch {
+      // Invariant safe
+    }
+  }
+
   if (error || !data) {
     console.error('Error fetching workflows:', error);
     return [];
   }
 
   return data.map(normalizeWorkflowRow);
+}
+
+export async function deployRecommendedWorkflows(workspaceId: string): Promise<{ success: boolean; seededCount: number; error?: string }> {
+  const res = await seedGrowthPilotWorkflows(workspaceId);
+  try {
+    revalidatePath('/automations');
+  } catch {
+    // Ignore in non-request contexts
+  }
+  return res;
 }
 
 export async function getWorkflow(

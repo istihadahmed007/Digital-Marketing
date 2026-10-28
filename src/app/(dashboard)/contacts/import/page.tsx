@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { getContacts } from '@/lib/actions/contacts';
 import { getUserWorkspaces } from '@/lib/actions/workspaces';
 import { CsvImportWizard } from '@/components/crm/CsvImportWizard';
-import { ArrowLeft } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
 export default async function ContactImportPage() {
@@ -28,7 +27,9 @@ export default async function ContactImportPage() {
             href="/contacts"
             className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors mb-1"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
             <span>Back to Contacts</span>
           </Link>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">

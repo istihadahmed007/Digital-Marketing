@@ -130,6 +130,62 @@ export default function IntegrationsPage() {
       ],
     },
     {
+      id: 'n8n',
+      name: 'n8n Community Edition (Self-Hosted)',
+      description: 'Connect self-hosted n8n workflows with secure webhook endpoints and bi-directional event triggers for zero-fee marketing automation.',
+      category: 'Workflow Automation',
+      icon: Plug,
+      fields: [
+        { key: 'webhookUrl', label: 'n8n Inbound Webhook URL', placeholder: 'https://n8n.yourdomain.com/webhook/growthpilot' },
+        { key: 'apiKey', label: 'n8n API Key / Header Secret', placeholder: 'n8n_api_key_here', type: 'password' },
+        { key: 'instanceUrl', label: 'n8n Instance Host URL', placeholder: 'https://n8n.yourdomain.com' },
+      ],
+    },
+    {
+      id: 'google_analytics_4',
+      name: 'Google Analytics 4',
+      description: 'Stream verified website traffic, visitor sessions, and landing page conversions directly into your dashboard.',
+      category: 'Website Analytics',
+      icon: Globe,
+      fields: [
+        { key: 'propertyId', label: 'Numeric GA4 Property ID', placeholder: '348291024' },
+        { key: 'accessToken', label: 'Google OAuth Access Token', placeholder: 'ya29.a0AfH...', type: 'password' },
+      ],
+    },
+    {
+      id: 'google_search_console',
+      name: 'Google Search Console',
+      description: 'Query verified organic search queries, keyword impression spikes, and average position trends directly from Google.',
+      category: 'SEO & Search Intelligence',
+      icon: Globe,
+      fields: [
+        { key: 'propertyId', label: 'GSC Property Identifier', placeholder: 'sc-domain:digi.vartualtutor.com' },
+        { key: 'accessToken', label: 'Google OAuth Access Token', placeholder: 'ya29.a0AfH...', type: 'password' },
+      ],
+    },
+    {
+      id: 'meta',
+      name: 'Meta for Developers (Facebook & Instagram)',
+      description: 'Publish approved social captions and scheduled campaigns directly to Facebook Pages and Instagram Professional accounts.',
+      category: 'Social Publishing',
+      icon: Share2,
+      fields: [
+        { key: 'appId', label: 'Meta App ID', placeholder: '123456789012345' },
+        { key: 'pageAccessToken', label: 'Page Access Token (Permanent)', placeholder: 'EAA...', type: 'password' },
+      ],
+    },
+    {
+      id: 'brevo',
+      name: 'Brevo (formerly Sendinblue)',
+      description: 'Deliver automated lead nurturing campaigns and transactional welcome sequences with generous free-tier email quotas.',
+      category: 'Email Marketing',
+      icon: Mail,
+      fields: [
+        { key: 'apiKey', label: 'Brevo v3 API Key', placeholder: 'xkeysib-...', type: 'password' },
+        { key: 'senderEmail', label: 'Verified Sender Email Address', placeholder: 'hello@yourdomain.com' },
+      ],
+    },
+    {
       id: 'paymently',
       name: 'Paymently Gateway (BDT)',
       description: 'Accept instant online wallet deposits and order payments in Bangladeshi Taka via bKash, Nagad, Rocket, and Cards.',

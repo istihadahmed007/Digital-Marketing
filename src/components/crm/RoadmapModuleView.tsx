@@ -1,6 +1,10 @@
+'use client';
+
 import React from 'react';
-import { LucideIcon, Layers, ShieldCheck, Clock, CheckCircle } from 'lucide-react';
+import { Layers, ShieldCheck, Clock, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+
+type LucideIcon = React.ComponentType<{ className?: string; size?: number | string }>;
 
 interface RoadmapModuleViewProps {
   title: string;

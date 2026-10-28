@@ -16,6 +16,7 @@ import {
   testRunWorkflowGraph,
   getWorkflowExecutions,
   retryExecution,
+  deployRecommendedWorkflows,
 } from '@/lib/actions/automations';
 import { ExecutionDetailDrawer } from '@/components/automations/ExecutionDetailDrawer';
 import { EmptyState } from '@/components/crm/EmptyState';
@@ -42,6 +43,7 @@ import {
   XCircle,
   RotateCw,
   Zap,
+  Sparkles,
 } from 'lucide-react';
 
 export default function AutomationsPage() {
@@ -211,6 +213,22 @@ export default function AutomationsPage() {
             title="Refresh"
           >
             <RefreshCw className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={async () => {
+              setLoading(true);
+              const res = await deployRecommendedWorkflows(workspaceId);
+              await fetchData(workspaceId);
+              if (res.success) {
+                setRunFeedback(`Deployed ${res.seededCount} core GrowthPilot workflows (A–F).`);
+                setTimeout(() => setRunFeedback(null), 5000);
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/80 dark:bg-slate-800 hover:bg-[#D7F1FA]/40 border border-[#75D2EE]/40 text-[#17364A] dark:text-slate-200 text-xs font-semibold rounded-xl shadow-xs transition glass-button-press cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#167AA0]" />
+            <span>Deploy Workflows (A–F)</span>
           </button>
 
           <button

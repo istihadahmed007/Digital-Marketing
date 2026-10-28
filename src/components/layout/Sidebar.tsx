@@ -23,6 +23,8 @@ import {
   X,
   Sparkles,
   LogOut,
+  Calendar,
+  FileText,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -50,8 +52,7 @@ export function Sidebar({
     router.refresh();
   };
 
-  // Nav links exactly mirroring the reference design:
-  // Overview, Campaigns, Shorts Studio, Social Marketing, SEO, Leads, Automations, Analytics
+  // GrowthPilot AI Navigation Architecture (13 canonical destinations)
   const mainNavItems = [
     {
       label: 'Overview',
@@ -60,31 +61,37 @@ export function Sidebar({
       active: pathname === '/dashboard',
     },
     {
+      label: 'AI Content Studio',
+      href: '/ai-studio',
+      icon: Sparkles,
+      active: pathname.startsWith('/ai-studio') || pathname.startsWith('/ai-tools'),
+    },
+    {
       label: 'Campaigns',
-      href: '/campaigns/journey',
+      href: '/campaigns',
       icon: Megaphone,
       active: pathname.startsWith('/campaigns'),
     },
     {
-      label: 'Shorts Studio',
-      href: '/shorts',
-      icon: Video,
-      active: pathname.startsWith('/shorts'),
+      label: 'Content Calendar',
+      href: '/calendar',
+      icon: Calendar,
+      active: pathname.startsWith('/calendar'),
     },
     {
-      label: 'Social Marketing',
-      href: '/social-marketing',
+      label: 'Social Accounts',
+      href: '/social-accounts',
       icon: Share2,
-      active: pathname.startsWith('/social-marketing'),
+      active: pathname.startsWith('/social-accounts') || pathname.startsWith('/social-marketing'),
     },
     {
-      label: 'SEO',
-      href: '/seo/analytics',
+      label: 'SEO & Intelligence',
+      href: '/seo',
       icon: Search,
       active: pathname.startsWith('/seo'),
     },
     {
-      label: 'Leads',
+      label: 'CRM & Leads',
       href: '/contacts',
       icon: Users,
       active:
@@ -95,16 +102,22 @@ export function Sidebar({
         pathname.startsWith('/tasks'),
     },
     {
+      label: 'Video Studio',
+      href: '/shorts',
+      icon: Video,
+      active: pathname.startsWith('/shorts'),
+    },
+    {
       label: 'Automations',
       href: '/automations',
       icon: Zap,
-      active: pathname.startsWith('/automations') || pathname.startsWith('/ai-tools'),
+      active: pathname.startsWith('/automations'),
     },
     {
       label: 'Analytics',
-      href: '/seo/analytics',
+      href: '/analytics',
       icon: BarChart2,
-      active: pathname === '/seo/analytics',
+      active: pathname === '/analytics',
     },
   ];
 
@@ -114,6 +127,12 @@ export function Sidebar({
       href: '/integrations',
       icon: Plug,
       active: pathname.startsWith('/integrations'),
+    },
+    {
+      label: 'Reports',
+      href: '/reports',
+      icon: FileText,
+      active: pathname.startsWith('/reports'),
     },
     {
       label: 'Settings',
@@ -153,7 +172,7 @@ export function Sidebar({
         </div>
 
         {/* Main Navigation Items */}
-        <nav className="space-y-1">
+        <nav className="space-y-1 overflow-y-auto max-h-[calc(100vh-290px)] pr-1">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.active;

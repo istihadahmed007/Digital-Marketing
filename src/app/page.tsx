@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/brand/Logo';
@@ -67,37 +69,37 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center space-y-6 relative z-10">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-pill text-[#167AA0] dark:text-sky-300 text-xs font-bold shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-[#167AA0]" />
-            <span>The Clear, Professional Marketing Workspace for Non-Marketers</span>
+            <span>GrowthPilot AI — Website &amp; Social Media Marketing Automation</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#17364A] dark:text-white leading-[1.14]">
-            Connect with customers, create Shorts, and steer your{' '}
+            Automate your website marketing, publish multi-channel content, and accelerate{' '}
             <span className="bg-gradient-to-r from-[#167AA0] via-[#0E7490] to-[#0284C7] bg-clip-text text-transparent">
-              Campaign Journey
+              verified revenue
             </span>
             .
           </h1>
 
           <p className="text-base sm:text-lg text-[#526D7D] dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Everything your business needs: organized customer relationships, email broadcasts, AI-assisted vertical Shorts, and an interactive campaign journey that connects actions to real results.
+            The professional, production-ready marketing automation engine. Bilingual AI Content Studio, live CRM lead pipelines, visual event workflows, vertical Video Studio, and real analytics.
           </p>
 
           {/* Clear Starting Actions */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
             <Link
-              href="/campaigns/journey"
+              href="/dashboard"
               className="flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl bg-[#167AA0] hover:bg-[#126383] text-white shadow-xs transition-all duration-140 glass-button-press focus-visible:ring-2 focus-visible:ring-[#75D2EE]"
             >
-              <Compass className="w-4 h-4 text-[#75D2EE]" />
-              <span>Explore Campaign Journey</span>
+              <Sparkles className="w-4 h-4 text-[#75D2EE]" />
+              <span>Launch GrowthPilot Command Center</span>
             </Link>
 
             <Link
-              href="/shorts"
+              href="/ai-studio"
               className="flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl glass-panel bg-white/70 hover:bg-white text-[#17364A] dark:text-white border border-[#75D2EE]/50 transition-all duration-140 shadow-xs preview-tile-3d"
             >
-              <Video className="w-4 h-4 text-[#167AA0]" />
-              <span>Make Video Shorts</span>
+              <Globe className="w-4 h-4 text-[#167AA0]" />
+              <span>Open AI Content Studio</span>
             </Link>
 
             <Link

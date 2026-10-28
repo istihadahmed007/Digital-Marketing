@@ -17,6 +17,8 @@ export interface TestMockStore {
   smmSettings: Map<string, SmmSettings>;
   wallets: Map<string, WorkspaceWallet>;
   transactions: Map<string, WorkspaceWalletTransaction[]>;
+  socialPosts: Map<string, any[]>;
+  contentTemplates: Map<string, any[]>;
 }
 
 let currentTestStore: TestMockStore | null = null;
@@ -32,6 +34,8 @@ export function initTestStore(): TestMockStore {
     smmSettings: new Map(),
     wallets: new Map(),
     transactions: new Map(),
+    socialPosts: new Map(),
+    contentTemplates: new Map(),
   };
   return currentTestStore;
 }
@@ -55,6 +59,8 @@ export function getTestStore(): TestMockStore | null {
       smmSettings: new Map(),
       wallets: new Map(),
       transactions: new Map(),
+      socialPosts: new Map(),
+      contentTemplates: new Map(),
     };
   }
   return currentTestStore;
