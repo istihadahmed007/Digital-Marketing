@@ -10,7 +10,7 @@ interface HeaderProps {
   workspaceName?: string;
 }
 
-export function Header({ userEmail = 'demo@nexusmark.local', workspaceName = 'Digi Workspace' }: HeaderProps) {
+export function Header({ userEmail = 'demo@nexusmark.local', workspaceName = 'GrowthPilot Workspace' }: HeaderProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
